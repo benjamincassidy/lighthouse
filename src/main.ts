@@ -5,11 +5,13 @@ import { HierarchicalCounter } from '@/core/HierarchicalCounter'
 import { ProjectManager } from '@/core/ProjectManager'
 import { WordCounter } from '@/core/WordCounter'
 import { ZenMode } from '@/core/ZenMode'
+import { DEFAULT_SETTINGS, LighthouseSettingTab, type LighthouseSettings } from '@/ui/SettingsTab'
 import { DASHBOARD_VIEW_TYPE, DashboardView } from '@/ui/views/DashboardView'
 import { PROJECT_EXPLORER_VIEW_TYPE, ProjectExplorerView } from '@/ui/views/ProjectExplorerView'
 import { STATS_PANEL_VIEW_TYPE, StatsPanelView } from '@/ui/views/StatsPanelView'
 
 export default class LighthousePlugin extends Plugin {
+  settings!: LighthouseSettings
   projectManager!: ProjectManager
   folderManager!: FolderManager
   wordCounter!: WordCounter
@@ -18,6 +20,9 @@ export default class LighthousePlugin extends Plugin {
 
   async onload() {
     console.log('Loading Lighthouse plugin')
+
+    // Load settings
+    await this.loadSettings()
 
     // Initialize core services
     this.folderManager = new FolderManager(this.app.vault)
@@ -93,12 +98,23 @@ export default class LighthousePlugin extends Plugin {
       ],
     })
 
+    // Add settings tab
+    this.addSettingTab(new LighthouseSettingTab(this.app, this))
+
     // Log current state for debugging
     console.log('Lighthouse: Loaded', this.projectManager.getProjectCount(), 'projects')
     const activeProject = this.projectManager.getActiveProject()
     if (activeProject) {
       console.log('Lighthouse: Active project:', activeProject.name)
     }
+  }
+
+  async loadSettings() {
+    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData())
+  }
+
+  async saveSettings() {
+    await this.saveData(this.settings)
   }
 
   onunload() {
