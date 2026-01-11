@@ -1,7 +1,13 @@
 import { Plugin } from 'obsidian'
 
 import { ProjectStorage } from '@/core/ProjectStorage'
-import { Project } from '@/types/types'
+import {
+  removeProjectFromStore,
+  setActiveProjectId,
+  setProjects,
+  updateProjectInStore,
+} from '@/core/stores'
+import type { Project } from '@/types/types'
 
 /**
  * Manages project lifecycle and business logic
@@ -18,6 +24,16 @@ export class ProjectManager {
    */
   async initialize(): Promise<void> {
     await this.storage.load()
+    // Sync stores with loaded data
+    this.syncStores()
+  }
+
+  /**
+   * Sync Svelte stores with current storage state
+   */
+  private syncStores(): void {
+    setProjects(this.storage.getProjects())
+    setActiveProjectId(this.storage.getActiveProjectId())
   }
 
   /**
@@ -35,13 +51,22 @@ export class ProjectManager {
   async updateProject(project: Project): Promise<void> {
     project.updatedAt = new Date().toISOString()
     await this.storage.saveProject(project)
+    updateProjectInStore(project)
   }
 
   /**
    * Delete a project by ID
    */
   async deleteProject(id: string): Promise<boolean> {
-    return await this.storage.deleteProject(id)
+    const result = await this.storage.deleteProject(id)
+    if (result) {
+      removeProjectFromStore(id)
+      // If the deleted project was active, update the active project store
+      if (this.storage.getActiveProjectId() === undefined) {
+        setActiveProjectId(undefined)
+      }
+    }
+    return result
   }
 
   /**
@@ -80,6 +105,7 @@ export class ProjectManager {
       throw new Error(`Project with ID ${id} not found`)
     }
     await this.storage.setActiveProjectId(id)
+    setActiveProjectId(id)
   }
 
   /**
