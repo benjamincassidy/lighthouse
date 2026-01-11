@@ -4,6 +4,7 @@ import { FolderManager } from '@/core/FolderManager'
 import { HierarchicalCounter } from '@/core/HierarchicalCounter'
 import { ProjectManager } from '@/core/ProjectManager'
 import { WordCounter } from '@/core/WordCounter'
+import { ZenMode } from '@/core/ZenMode'
 import { DASHBOARD_VIEW_TYPE, DashboardView } from '@/ui/views/DashboardView'
 import { PROJECT_EXPLORER_VIEW_TYPE, ProjectExplorerView } from '@/ui/views/ProjectExplorerView'
 import { STATS_PANEL_VIEW_TYPE, StatsPanelView } from '@/ui/views/StatsPanelView'
@@ -13,6 +14,7 @@ export default class LighthousePlugin extends Plugin {
   folderManager!: FolderManager
   wordCounter!: WordCounter
   hierarchicalCounter!: HierarchicalCounter
+  zenMode!: ZenMode
 
   async onload() {
     console.log('Loading Lighthouse plugin')
@@ -26,6 +28,7 @@ export default class LighthousePlugin extends Plugin {
       this.folderManager,
     )
     this.projectManager = new ProjectManager(this)
+    this.zenMode = new ZenMode(this.app)
     await this.projectManager.initialize()
 
     // Register views
@@ -75,6 +78,21 @@ export default class LighthousePlugin extends Plugin {
       },
     })
 
+    // Add command to toggle zen mode
+    this.addCommand({
+      id: 'lighthouse-toggle-zen-mode',
+      name: 'Toggle Zen Mode',
+      callback: () => {
+        this.zenMode.toggleZenMode()
+      },
+      hotkeys: [
+        {
+          modifiers: ['Mod', 'Shift'],
+          key: 'z',
+        },
+      ],
+    })
+
     // Log current state for debugging
     console.log('Lighthouse: Loaded', this.projectManager.getProjectCount(), 'projects')
     const activeProject = this.projectManager.getActiveProject()
@@ -84,6 +102,10 @@ export default class LighthousePlugin extends Plugin {
   }
 
   onunload() {
+    // Exit zen mode if active
+    if (this.zenMode.isZenModeActive()) {
+      this.zenMode.exitZenMode()
+    }
     console.log('Unloading Lighthouse plugin')
   }
 
