@@ -1,20 +1,20 @@
 import { Plugin } from 'obsidian'
 
-import { ProjectStorage } from '@/core/ProjectStorage'
+import { ProjectManager } from '@/core/ProjectManager'
 
 export default class LighthousePlugin extends Plugin {
-  storage!: ProjectStorage
+  projectManager!: ProjectManager
 
   async onload() {
     console.log('Loading Lighthouse plugin')
 
-    // Initialize storage
-    this.storage = new ProjectStorage(this)
-    await this.storage.load()
+    // Initialize project manager
+    this.projectManager = new ProjectManager(this)
+    await this.projectManager.initialize()
 
     // Log current state for debugging
-    console.log('Lighthouse: Loaded', this.storage.getProjects().length, 'projects')
-    const activeProject = this.storage.getActiveProject()
+    console.log('Lighthouse: Loaded', this.projectManager.getProjectCount(), 'projects')
+    const activeProject = this.projectManager.getActiveProject()
     if (activeProject) {
       console.log('Lighthouse: Active project:', activeProject.name)
     }
@@ -24,7 +24,7 @@ export default class LighthousePlugin extends Plugin {
       id: 'lighthouse-hello',
       name: 'Say hello',
       callback: () => {
-        const projectCount = this.storage.getProjects().length
+        const projectCount = this.projectManager.getProjectCount()
         console.log(`Lighthouse: ${projectCount} projects loaded`)
       },
     })
