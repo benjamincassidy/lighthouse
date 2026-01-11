@@ -1,27 +1,44 @@
 import { Plugin } from 'obsidian'
 
 import { FolderManager } from '@/core/FolderManager'
+import { HierarchicalCounter } from '@/core/HierarchicalCounter'
 import { ProjectManager } from '@/core/ProjectManager'
+import { WordCounter } from '@/core/WordCounter'
 import { PROJECT_EXPLORER_VIEW_TYPE, ProjectExplorerView } from '@/ui/views/ProjectExplorerView'
+import { STATS_PANEL_VIEW_TYPE, StatsPanelView } from '@/ui/views/StatsPanelView'
 
 export default class LighthousePlugin extends Plugin {
   projectManager!: ProjectManager
   folderManager!: FolderManager
+  wordCounter!: WordCounter
+  hierarchicalCounter!: HierarchicalCounter
 
   async onload() {
     console.log('Loading Lighthouse plugin')
 
     // Initialize core services
     this.folderManager = new FolderManager(this.app.vault)
+    this.wordCounter = new WordCounter()
+    this.hierarchicalCounter = new HierarchicalCounter(
+      this.app.vault,
+      this.wordCounter,
+      this.folderManager,
+    )
     this.projectManager = new ProjectManager(this)
     await this.projectManager.initialize()
 
     // Register views
     this.registerView(PROJECT_EXPLORER_VIEW_TYPE, (leaf) => new ProjectExplorerView(leaf, this))
+    this.registerView(STATS_PANEL_VIEW_TYPE, (leaf) => new StatsPanelView(leaf, this))
 
     // Add ribbon icon to open project explorer
     this.addRibbonIcon('folder-tree', 'Project Explorer', () => {
       this.activateProjectExplorer()
+    })
+
+    // Add ribbon icon to open stats panel
+    this.addRibbonIcon('bar-chart-2', 'Writing Stats', () => {
+      this.activateStatsPanel()
     })
 
     // Add command to open project explorer
@@ -30,6 +47,15 @@ export default class LighthousePlugin extends Plugin {
       name: 'Open Project Explorer',
       callback: () => {
         this.activateProjectExplorer()
+      },
+    })
+
+    // Add command to open stats panel
+    this.addCommand({
+      id: 'lighthouse-open-stats-panel',
+      name: 'Open Writing Stats',
+      callback: () => {
+        this.activateStatsPanel()
       },
     })
 
@@ -59,6 +85,27 @@ export default class LighthousePlugin extends Plugin {
       leaf = leftLeaf
       await leaf.setViewState({
         type: PROJECT_EXPLORER_VIEW_TYPE,
+        active: true,
+      })
+    }
+
+    workspace.revealLeaf(leaf)
+  }
+
+  async activateStatsPanel(): Promise<void> {
+    const { workspace } = this.app
+
+    let leaf = workspace.getLeavesOfType(STATS_PANEL_VIEW_TYPE)[0]
+
+    if (!leaf) {
+      // Create new leaf in right sidebar
+      const rightLeaf = workspace.getRightLeaf(false)
+      if (!rightLeaf) {
+        return
+      }
+      leaf = rightLeaf
+      await leaf.setViewState({
+        type: STATS_PANEL_VIEW_TYPE,
         active: true,
       })
     }
