@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 
-import { Project } from '@/types/types'
+import type { Project } from '@/types/types'
 import { generateUUID, normalizeVaultPath, validateProject } from '@/utils/validation'
 
 describe('validation utilities', () => {

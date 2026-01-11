@@ -1,6 +1,6 @@
 import { Plugin } from 'obsidian'
 
-import { LighthouseSettings, Project } from '@/types/types'
+import type { LighthouseSettings, Project } from '@/types/types'
 import { generateUUID, normalizeVaultPath, validateProject } from '@/utils/validation'
 
 const DEFAULT_SETTINGS: LighthouseSettings = {

@@ -58,6 +58,9 @@ export default tseslint.config(
       parserOptions: {
         parser: tseslint.parser,
       },
+      globals: {
+        CustomEvent: 'readonly',
+      },
     },
   },
   {

@@ -2,7 +2,7 @@ import { Plugin } from 'obsidian'
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { ProjectManager } from '@/core/ProjectManager'
-import { Project } from '@/types/types'
+import type { Project } from '@/types/types'
 
 describe('ProjectManager', () => {
   let manager: ProjectManager

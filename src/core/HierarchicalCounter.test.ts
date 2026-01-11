@@ -109,9 +109,13 @@ describe('HierarchicalCounter', () => {
         throw new Error('File not found')
       }
 
+      // Suppress console.error for this expected error
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
       const result = await counter.countFile(file)
 
       expect(result).toBeUndefined()
+      consoleErrorSpy.mockRestore()
     })
   })
 

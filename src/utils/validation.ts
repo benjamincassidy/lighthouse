@@ -1,4 +1,4 @@
-import { Project } from '@/types/types'
+import type { Project } from '@/types/types'
 
 /**
  * Validates a project object
