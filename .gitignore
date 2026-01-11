@@ -1,0 +1,36 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Build outputs
+main.js
+main.js.map
+*.js.map
+dist
+
+# Testing
+coverage
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Obsidian dev
+data.json
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment
+.env
+.env.local

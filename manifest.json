@@ -1,0 +1,10 @@
+{
+  "id": "lighthouse",
+  "name": "Lighthouse",
+  "version": "0.0.1",
+  "minAppVersion": "1.4.0",
+  "description": "Project-based writing for Obsidian. Manage multiple writing projects with word counts, filtered views, and distraction-free writing.",
+  "author": "Benjamin",
+  "authorUrl": "https://github.com/yourusername/obsidian-lighthouse",
+  "isDesktopOnly": false
+}
