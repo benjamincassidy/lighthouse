@@ -1,1 +1,46 @@
 /* Global styles for Lighthouse plugin */
+
+/* Modal Styles */
+.lighthouse-modal-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+.lighthouse-folder-list {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lighthouse-folder-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background-color: var(--background-secondary);
+  border-radius: 4px;
+}
+
+.lighthouse-folder-path {
+  flex: 1;
+  font-size: 0.9em;
+  color: var(--text-normal);
+}
+
+.lighthouse-folder-remove {
+  padding: 0 8px;
+  font-size: 1.2em;
+  line-height: 1;
+  background-color: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.lighthouse-folder-remove:hover {
+  color: var(--text-error);
+}

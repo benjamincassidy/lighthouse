@@ -42,6 +42,7 @@ export class ProjectManager {
   async createProject(name: string, rootPath: string): Promise<Project> {
     const project = this.storage.createProject(name, rootPath)
     await this.storage.saveProject(project)
+    updateProjectInStore(project)
     return project
   }
 

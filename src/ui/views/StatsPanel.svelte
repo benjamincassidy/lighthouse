@@ -1,6 +1,9 @@
 <script lang="ts">
+  import { onMount } from 'svelte'
+
   import { activeProject } from '@/core/stores'
   import type LighthousePlugin from '@/main'
+  import type { Project } from '@/types/types'
 
   import type { TFile } from 'obsidian'
 
@@ -14,7 +17,23 @@
   let sessionWordCount = 0
   let todayWordCount = 0
 
-  $: project = $activeProject
+  let project: Project | undefined = undefined
+  let updateDebounceTimer: number | null = null
+
+  // Baseline word counts for session and today tracking
+  let sessionStartWordCount = 0
+  let todayStartWordCount = 0
+  let todayStartDate: string = new Date().toDateString()
+
+  // Safely subscribe to store
+  $: {
+    try {
+      project = $activeProject
+    } catch (e) {
+      console.error('Lighthouse StatsPanel: Error accessing activeProject store:', e)
+      project = undefined
+    }
+  }
   $: projectGoal = project?.wordCountGoal
 
   // Calculate progress percentage
@@ -23,42 +42,124 @@
 
   // Update stats when active file changes
   async function updateStats() {
-    const activeFile = plugin.app.workspace.getActiveFile()
+    console.log('Lighthouse StatsPanel: updateStats called, project:', project?.name)
 
+    const activeFile = plugin.app.workspace.getActiveFile()
+    console.log('Lighthouse StatsPanel: Active file:', activeFile?.path)
+
+    // Reset file/folder counts if no active markdown file
     if (!activeFile || activeFile.extension !== 'md') {
       currentFile = null
       fileWordCount = 0
       folderWordCount = 0
-      return
+      console.log('Lighthouse StatsPanel: No active markdown file')
+      // Don't return - still calculate project word count below
+    } else {
+      currentFile = activeFile
+
+      // Get file word count
+      const fileResult = await plugin.hierarchicalCounter.countFile(activeFile)
+      fileWordCount = fileResult?.words || 0
+      console.log('Lighthouse StatsPanel: File word count:', fileWordCount)
+
+      // Get folder word count - count the entire folder, not filtered by project
+      const folder = activeFile.parent
+      if (folder) {
+        const folderResult = await plugin.hierarchicalCounter.countFolder(folder.path)
+        folderWordCount = folderResult?.wordCount || 0
+        console.log(
+          'Lighthouse StatsPanel: Folder word count:',
+          folderWordCount,
+          'folder:',
+          folder.path,
+        )
+      } else {
+        folderWordCount = 0
+        console.log('Lighthouse StatsPanel: No folder for folder count')
+      }
     }
 
-    currentFile = activeFile
-
-    // Get file word count
-    const fileResult = await plugin.hierarchicalCounter.countFile(activeFile)
-    fileWordCount = fileResult?.wordCount || 0
-
-    // Get folder word count
-    const folder = activeFile.parent
-    if (folder && project) {
-      const folderResult = await plugin.hierarchicalCounter.countFolder(folder, project)
-      folderWordCount = folderResult.totalWords
-    }
-
-    // Get project word count
+    // Always get project word count if we have a project
     if (project) {
       const projectResult = await plugin.hierarchicalCounter.countProject(project)
       projectWordCount = projectResult.totalWords
+      console.log('Lighthouse StatsPanel: Project word count:', projectWordCount)
+
+      // Update session and today stats
+      updateSessionAndTodayStats()
+    } else {
+      projectWordCount = 0
+      sessionWordCount = 0
+      todayWordCount = 0
     }
   }
 
-  // Listen for file changes
-  function setupListeners() {
+  // Update session and today word count deltas
+  function updateSessionAndTodayStats() {
+    const currentDate = new Date().toDateString()
+
+    // Check if day has changed
+    if (currentDate !== todayStartDate) {
+      console.log('Lighthouse StatsPanel: New day detected, resetting today baseline')
+      todayStartDate = currentDate
+      todayStartWordCount = projectWordCount
+      // Also reset session on new day
+      sessionStartWordCount = projectWordCount
+    }
+
+    // Calculate deltas
+    sessionWordCount = Math.max(0, projectWordCount - sessionStartWordCount)
+    todayWordCount = Math.max(0, projectWordCount - todayStartWordCount)
+
+    console.log(
+      'Lighthouse StatsPanel: Session words:',
+      sessionWordCount,
+      'Today words:',
+      todayWordCount,
+    )
+  }
+
+  // Debounced update for editor changes (typing)
+  function debouncedUpdate() {
+    if (updateDebounceTimer !== null) {
+      // eslint-disable-next-line no-undef
+      window.clearTimeout(updateDebounceTimer)
+    }
+    // eslint-disable-next-line no-undef
+    updateDebounceTimer = window.setTimeout(() => {
+      console.log('Lighthouse StatsPanel: Debounced update triggered, clearing caches')
+      // Clear caches so we get fresh counts
+      plugin.hierarchicalCounter.clearAllCaches()
+      updateStats()
+      updateDebounceTimer = null
+    }, 200) // Update 200ms after user stops typing
+  }
+
+  // Setup listeners when component mounts
+  onMount(() => {
+    if (!plugin) {
+      console.error('Lighthouse: StatsPanel plugin is undefined')
+      return
+    }
+
+    console.log('Lighthouse StatsPanel: Mounted with project:', project?.name)
+
     const workspace = plugin.app.workspace
 
-    // Update when active file changes
+    // Update when active leaf changes
     plugin.registerEvent(
       workspace.on('active-leaf-change', () => {
+        console.log('Lighthouse StatsPanel: Active leaf changed, clearing caches')
+        plugin.hierarchicalCounter.clearAllCaches()
+        updateStats()
+      }),
+    )
+
+    // Update when file is opened
+    plugin.registerEvent(
+      workspace.on('file-open', () => {
+        console.log('Lighthouse StatsPanel: File opened, clearing caches')
+        plugin.hierarchicalCounter.clearAllCaches()
         updateStats()
       }),
     )
@@ -66,25 +167,47 @@
     // Update when file is modified
     plugin.registerEvent(
       workspace.on('editor-change', () => {
-        updateStats()
+        console.log('Lighthouse StatsPanel: Editor changed')
+        debouncedUpdate() // Use debounced version for typing
       }),
     )
 
-    // Initial update
+    // Initial update - wait a tick for stores and workspace to be ready
+    // eslint-disable-next-line no-undef
+    setTimeout(async () => {
+      console.log('Lighthouse StatsPanel: Initial update, project:', project?.name)
+      await updateStats()
+      // Set baseline for session and today after initial load
+      if (project) {
+        sessionStartWordCount = projectWordCount
+        todayStartWordCount = projectWordCount
+        console.log(
+          'Lighthouse StatsPanel: Set baselines - session:',
+          sessionStartWordCount,
+          'today:',
+          todayStartWordCount,
+        )
+      }
+    }, 100)
+
+    // Also trigger update after a longer delay to catch late-loading files
+    // eslint-disable-next-line no-undef
+    setTimeout(() => {
+      console.log('Lighthouse StatsPanel: Delayed update check')
+      updateStats()
+    }, 500)
+  })
+
+  // Update when project changes
+  $: if (plugin && project) {
+    console.log('Lighthouse StatsPanel: Project changed to:', project.name)
     updateStats()
   }
 
-  // Setup listeners when component mounts
-  $: if (plugin) {
-    setupListeners()
-  }
-
-  // Update stats when project changes
-  $: if (project) {
-    updateStats()
-  }
-
-  function formatNumber(num: number): string {
+  function formatNumber(num: number | undefined): string {
+    if (num === undefined || num === null) {
+      return '0'
+    }
     return num.toLocaleString()
   }
 </script>

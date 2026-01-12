@@ -2,6 +2,7 @@
   import { activeProject, projects } from '@/core/stores'
   import type LighthousePlugin from '@/main'
   import type { Project } from '@/types/types'
+  import { ProjectModal } from '@/ui/modals/ProjectModal'
 
   export let plugin: LighthousePlugin
 
@@ -19,16 +20,26 @@
     sourceFolders: 0,
   }
 
-  $: allProjects = $projects
+  $: allProjects = projects ? $projects : []
   $: currentProject = $activeProject
 
   // Update stats when project changes
-  $: if (currentProject) {
+  $: if (plugin && currentProject) {
     updateProjectStats(currentProject)
   }
 
   async function updateProjectStats(project: Project) {
+    if (!plugin) {
+      console.error('Lighthouse Dashboard: plugin is undefined')
+      return
+    }
+
     try {
+      console.log('Lighthouse Dashboard: Updating stats for project:', project.name, {
+        contentFolders: project.contentFolders,
+        sourceFolders: project.sourceFolders,
+        rootPath: project.rootPath,
+      })
       const result = await plugin.hierarchicalCounter.countProject(project)
       projectStats = {
         totalFiles: result.fileCount,
@@ -36,8 +47,9 @@
         contentFolders: project.contentFolders.length,
         sourceFolders: project.sourceFolders.length,
       }
-    } catch {
-      // Silently handle error
+      console.log('Lighthouse Dashboard: Stats updated:', projectStats)
+    } catch (error) {
+      console.error('Lighthouse Dashboard: Error updating stats:', error)
     }
   }
 
@@ -45,8 +57,9 @@
     await plugin.projectManager.setActiveProject(projectId)
   }
 
-  async function createNewProject() {
-    // TODO: Open modal to create new project
+  function createNewProject() {
+    const modal = new ProjectModal(plugin, 'create')
+    modal.open()
   }
 
   function openProjectFolder() {
@@ -57,7 +70,10 @@
     }
   }
 
-  function formatNumber(num: number): string {
+  function formatNumber(num: number | undefined): string {
+    if (num === undefined || num === null) {
+      return '0'
+    }
     return num.toLocaleString()
   }
 

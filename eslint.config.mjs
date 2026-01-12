@@ -60,6 +60,7 @@ export default tseslint.config(
       },
       globals: {
         CustomEvent: 'readonly',
+        console: 'readonly',
       },
     },
   },

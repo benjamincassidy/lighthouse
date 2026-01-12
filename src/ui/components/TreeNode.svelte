@@ -1,6 +1,8 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte'
 
+  import type { TFile } from 'obsidian'
+
   interface TreeNode {
     name: string
     path: string
@@ -13,7 +15,7 @@
   export let node: TreeNode
   export let depth: number = 0
 
-  const dispatch = createEventDispatcher()
+  const dispatch = createEventDispatcher<{ select: { file: TFile } }>()
 
   function handleClick() {
     if (node.type === 'folder') {

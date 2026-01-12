@@ -21,11 +21,13 @@
   let treeNodes: TreeNode[] = []
   let currentProject: Project | undefined
 
-  $: currentProject = $activeProject
+  $: currentProject = activeProject ? $activeProject : undefined
 
   // Rebuild tree when active project or view mode changes
   $: {
-    if (currentProject && !showFullVault) {
+    if (!plugin) {
+      treeNodes = []
+    } else if (currentProject && !showFullVault) {
       buildProjectTree(currentProject)
     } else if (showFullVault) {
       buildFullVaultTree()
@@ -35,16 +37,32 @@
   }
 
   function buildProjectTree(project: Project) {
+    if (!plugin) {
+      console.error('Lighthouse: ProjectExplorer plugin is undefined')
+      treeNodes = []
+      return
+    }
+
     const vault = plugin.app.vault
     const rootFolder = vault.getAbstractFileByPath(project.rootPath)
 
     if (!rootFolder || !('children' in rootFolder)) {
+      console.warn('Lighthouse: Root folder not found:', project.rootPath)
       treeNodes = []
       return
     }
 
     // Get all content and source folders
     const allFolders = [...project.contentFolders, ...project.sourceFolders]
+
+    // If no folders specified, show root folder contents
+    if (allFolders.length === 0) {
+      console.log('Lighthouse: No content/source folders, showing root:', project.rootPath)
+      const node = buildTreeNode(rootFolder as TFolder, project)
+      treeNodes = node ? [node] : []
+      return
+    }
+
     const nodes: TreeNode[] = []
 
     for (const folderPath of allFolders) {
@@ -56,6 +74,8 @@
         if (node) {
           nodes.push(node)
         }
+      } else {
+        console.warn('Lighthouse: Folder not found:', fullPath)
       }
     }
 
@@ -63,6 +83,12 @@
   }
 
   function buildFullVaultTree() {
+    if (!plugin) {
+      console.error('Lighthouse: ProjectExplorer plugin is undefined')
+      treeNodes = []
+      return
+    }
+
     const vault = plugin.app.vault
     const root = vault.getRoot()
     const node = buildTreeNode(root, undefined)

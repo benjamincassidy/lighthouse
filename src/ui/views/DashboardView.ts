@@ -30,11 +30,13 @@ export class DashboardView extends ItemView {
     const container = this.containerEl.children[1]
     container.empty()
 
+    const props: { plugin: LighthousePlugin } = {
+      plugin: this.plugin,
+    }
+
     this.component = new Dashboard({
       target: container,
-      props: {
-        plugin: this.plugin,
-      },
+      props,
     })
   }
 

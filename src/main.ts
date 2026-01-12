@@ -5,6 +5,7 @@ import { HierarchicalCounter } from '@/core/HierarchicalCounter'
 import { ProjectManager } from '@/core/ProjectManager'
 import { WordCounter } from '@/core/WordCounter'
 import { ZenMode } from '@/core/ZenMode'
+import { ProjectModal } from '@/ui/modals/ProjectModal'
 import { DEFAULT_SETTINGS, LighthouseSettingTab, type LighthouseSettings } from '@/ui/SettingsTab'
 import { DASHBOARD_VIEW_TYPE, DashboardView } from '@/ui/views/DashboardView'
 import { PROJECT_EXPLORER_VIEW_TYPE, ProjectExplorerView } from '@/ui/views/ProjectExplorerView'
@@ -36,7 +37,8 @@ export default class LighthousePlugin extends Plugin {
     this.zenMode = new ZenMode(this.app)
     await this.projectManager.initialize()
 
-    // Register views
+    // Register views AFTER stores are initialized
+    // This prevents race condition when Obsidian restores saved workspace layouts
     this.registerView(DASHBOARD_VIEW_TYPE, (leaf) => new DashboardView(leaf, this))
     this.registerView(PROJECT_EXPLORER_VIEW_TYPE, (leaf) => new ProjectExplorerView(leaf, this))
     this.registerView(STATS_PANEL_VIEW_TYPE, (leaf) => new StatsPanelView(leaf, this))
@@ -97,6 +99,42 @@ export default class LighthousePlugin extends Plugin {
         },
       ],
     })
+
+    // Add command to create new project
+    this.addCommand({
+      id: 'lighthouse-create-project',
+      name: 'Create New Project',
+      callback: () => {
+        const modal = new ProjectModal(this, 'create')
+        modal.open()
+      },
+    })
+
+    // Register context menu for folders
+    this.registerEvent(
+      this.app.workspace.on('file-menu', (menu, file) => {
+        // Only show for folders
+        if (file instanceof this.app.vault.adapter.constructor || !('children' in file)) {
+          return
+        }
+
+        menu.addItem((item) => {
+          item
+            .setTitle('Create Lighthouse Project')
+            .setIcon('lightbulb')
+            .onClick(() => {
+              // Extract folder name without path
+              const folderName = file.name || file.path.split('/').pop() || 'New Project'
+
+              const modal = new ProjectModal(this, 'create', undefined, {
+                name: folderName,
+                rootPath: file.path,
+              })
+              modal.open()
+            })
+        })
+      }),
+    )
 
     // Add settings tab
     this.addSettingTab(new LighthouseSettingTab(this.app, this))

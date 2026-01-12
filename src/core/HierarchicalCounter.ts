@@ -27,9 +27,13 @@ export class HierarchicalCounter {
    * Calculate word count for a specific file
    */
   async countFile(file: TFile, options?: WordCountOptions): Promise<WordCountResult | undefined> {
+    console.log('HierarchicalCounter.countFile called for:', file.path)
     try {
       const content = await this.vault.cachedRead(file)
-      return this.wordCounter.countFile(file, content, options)
+      console.log('HierarchicalCounter.countFile: content length:', content.length)
+      const result = this.wordCounter.countFile(file, content, options)
+      console.log('HierarchicalCounter.countFile result:', result)
+      return result
     } catch (error) {
       console.error(`Error counting file ${file.path}:`, error)
       return undefined
@@ -43,18 +47,27 @@ export class HierarchicalCounter {
     folderPath: string,
     options?: WordCountOptions,
   ): Promise<FolderStats | undefined> {
+    console.log('HierarchicalCounter.countFolder called for:', folderPath)
     // Check cache
     const cached = this.folderStatsCache.get(folderPath)
     if (cached) {
+      console.log('HierarchicalCounter.countFolder: using cached result:', cached)
       return cached
     }
 
     const folder = this.vault.getAbstractFileByPath(folderPath)
     if (!folder || !('children' in folder)) {
+      console.log('HierarchicalCounter.countFolder: folder not found or not a folder')
       return undefined
     }
 
+    console.log(
+      'HierarchicalCounter.countFolder: calculating stats for folder with',
+      (folder as TFolder).children.length,
+      'children',
+    )
     const stats = await this.calculateFolderStats(folder as TFolder, options)
+    console.log('HierarchicalCounter.countFolder: calculated stats:', stats)
     this.folderStatsCache.set(folderPath, stats)
 
     return stats
@@ -65,11 +78,20 @@ export class HierarchicalCounter {
    * Only includes content folders, excludes source folders
    */
   async countProject(project: Project, options?: WordCountOptions): Promise<ProjectStats> {
+    console.log(
+      'HierarchicalCounter.countProject called for:',
+      project.name,
+      'with',
+      project.contentFolders.length,
+      'content folders',
+    )
     // Check cache
     const cached = this.projectStatsCache.get(project.id)
     if (cached) {
+      console.log('HierarchicalCounter.countProject: using cached result:', cached)
       return cached
     }
+    console.log('HierarchicalCounter.countProject: calculating fresh stats')
 
     const folderStats = new Map<string, FolderStats>()
     let totalWords = 0

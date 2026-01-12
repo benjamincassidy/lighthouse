@@ -202,10 +202,18 @@ export class FolderManager {
     }
 
     const normalized = this.normalizePath(relativePath)
+
+    // If path starts with '/', it's already absolute
     if (normalized.startsWith('/')) {
       return normalized.slice(1)
     }
 
+    // If path already starts with rootPath, it's already absolute
+    if (normalized.startsWith(rootPath)) {
+      return normalized
+    }
+
+    // Otherwise, treat as relative and prepend rootPath
     return this.normalizePath(`${rootPath}/${normalized}`)
   }
 

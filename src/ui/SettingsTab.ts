@@ -1,6 +1,7 @@
 import { App, PluginSettingTab, Setting } from 'obsidian'
 
 import type LighthousePlugin from '@/main'
+import { ProjectModal } from '@/ui/modals/ProjectModal'
 
 export interface LighthouseSettings {
   // Zen Mode Settings
@@ -92,6 +93,16 @@ export class LighthouseSettingTab extends PluginSettingTab {
         .setCta()
         .onClick(() => {
           this.plugin.activateDashboard()
+        }),
+    )
+
+    new Setting(containerEl).setName('Create new project').addButton((button) =>
+      button
+        .setButtonText('Create Project')
+        .setCta()
+        .onClick(() => {
+          const modal = new ProjectModal(this.plugin, 'create')
+          modal.open()
         }),
     )
 

@@ -30,12 +30,14 @@ export class ProjectExplorerView extends ItemView {
     const container = this.containerEl.children[1]
     container.empty()
 
+    const props: { plugin: LighthousePlugin; showFullVault: boolean } = {
+      plugin: this.plugin,
+      showFullVault: false,
+    }
+
     this.component = new ProjectExplorer({
       target: container,
-      props: {
-        plugin: this.plugin,
-        showFullVault: false,
-      },
+      props,
     })
   }
 

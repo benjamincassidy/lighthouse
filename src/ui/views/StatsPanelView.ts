@@ -30,11 +30,13 @@ export class StatsPanelView extends ItemView {
     const container = this.containerEl.children[1]
     container.empty()
 
+    const props: { plugin: LighthousePlugin } = {
+      plugin: this.plugin,
+    }
+
     this.component = new StatsPanel({
       target: container,
-      props: {
-        plugin: this.plugin,
-      },
+      props,
     })
   }
 
