@@ -3,7 +3,6 @@
 
   import { activeProject } from '@/core/stores'
   import type LighthousePlugin from '@/main'
-  import type { Project } from '@/types/types'
 
   import type { TFile } from 'obsidian'
 

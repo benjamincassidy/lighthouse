@@ -1,8 +1,6 @@
 <script lang="ts">
   import TreeNode from './TreeNode.svelte'
 
-  import type { TFile } from 'obsidian'
-
   interface TreeNode {
     name: string
     path: string
