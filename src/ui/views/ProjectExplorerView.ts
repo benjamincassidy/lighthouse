@@ -1,4 +1,5 @@
 import { ItemView, WorkspaceLeaf } from 'obsidian'
+import { mount, unmount } from 'svelte'
 
 import type LighthousePlugin from '@/main'
 import ProjectExplorer from '@/ui/views/ProjectExplorer.svelte'
@@ -6,7 +7,8 @@ import ProjectExplorer from '@/ui/views/ProjectExplorer.svelte'
 export const PROJECT_EXPLORER_VIEW_TYPE = 'lighthouse-project-explorer'
 
 export class ProjectExplorerView extends ItemView {
-  private component: ProjectExplorer | null = null
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private component: any = null
   private plugin: LighthousePlugin
 
   constructor(leaf: WorkspaceLeaf, plugin: LighthousePlugin) {
@@ -30,20 +32,18 @@ export class ProjectExplorerView extends ItemView {
     const container = this.containerEl.children[1]
     container.empty()
 
-    const props: { plugin: LighthousePlugin; showFullVault: boolean } = {
-      plugin: this.plugin,
-      showFullVault: false,
-    }
-
-    this.component = new ProjectExplorer({
+    this.component = mount(ProjectExplorer, {
       target: container,
-      props,
+      props: {
+        plugin: this.plugin,
+        showFullVault: false,
+      },
     })
   }
 
   async onClose(): Promise<void> {
     if (this.component) {
-      this.component.$destroy()
+      unmount(this.component)
       this.component = null
     }
   }

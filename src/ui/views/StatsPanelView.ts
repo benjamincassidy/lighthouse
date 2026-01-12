@@ -1,4 +1,5 @@
 import { ItemView, WorkspaceLeaf } from 'obsidian'
+import { mount, unmount } from 'svelte'
 
 import type LighthousePlugin from '@/main'
 import StatsPanel from '@/ui/views/StatsPanel.svelte'
@@ -6,7 +7,8 @@ import StatsPanel from '@/ui/views/StatsPanel.svelte'
 export const STATS_PANEL_VIEW_TYPE = 'lighthouse-stats-panel'
 
 export class StatsPanelView extends ItemView {
-  private component: StatsPanel | null = null
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private component: any = null
   private plugin: LighthousePlugin
 
   constructor(leaf: WorkspaceLeaf, plugin: LighthousePlugin) {
@@ -30,19 +32,17 @@ export class StatsPanelView extends ItemView {
     const container = this.containerEl.children[1]
     container.empty()
 
-    const props: { plugin: LighthousePlugin } = {
-      plugin: this.plugin,
-    }
-
-    this.component = new StatsPanel({
+    this.component = mount(StatsPanel, {
       target: container,
-      props,
+      props: {
+        plugin: this.plugin,
+      },
     })
   }
 
   async onClose(): Promise<void> {
     if (this.component) {
-      this.component.$destroy()
+      unmount(this.component)
       this.component = null
     }
   }
