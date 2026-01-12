@@ -15,16 +15,18 @@
     isExpanded?: boolean
   }
 
-  export let plugin: LighthousePlugin
-  export let showFullVault = false
+  interface Props {
+    plugin: LighthousePlugin
+    showFullVault?: boolean
+  }
 
-  let treeNodes: TreeNode[] = []
-  let currentProject: Project | undefined
+  let { plugin, showFullVault = false }: Props = $props()
 
-  $: currentProject = activeProject ? $activeProject : undefined
+  let treeNodes = $state<TreeNode[]>([])
+  let currentProject = $derived(activeProject ? $activeProject : undefined)
 
   // Rebuild tree when active project or view mode changes
-  $: {
+  $effect(() => {
     if (!plugin) {
       treeNodes = []
     } else if (currentProject && !showFullVault) {
@@ -34,7 +36,7 @@
     } else {
       treeNodes = []
     }
-  }
+  })
 
   function buildProjectTree(project: Project) {
     if (!plugin) {
@@ -151,7 +153,7 @@
       return false
     }
     toggleNodeByPath(treeNodes)
-    treeNodes = treeNodes // Trigger reactivity
+    treeNodes = [...treeNodes] // Trigger reactivity in Svelte 5
   }
 
   async function handleOpen(event: CustomEvent<{ path: string }>) {
@@ -179,7 +181,7 @@
     <button
       class="clickable-icon"
       aria-label={showFullVault ? 'Show project files' : 'Show all files'}
-      on:click={toggleViewMode}
+      onclick={toggleViewMode}
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -218,7 +220,7 @@
   {:else}
     <div class="lighthouse-tree">
       {#each treeNodes as node (node.path)}
-        <TreeNodeComponent {node} depth={0} on:toggle={handleToggle} on:open={handleOpen} />
+        <TreeNodeComponent {node} depth={0} ontoggle={handleToggle} onopen={handleOpen} />
       {/each}
     </div>
   {/if}

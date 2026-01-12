@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte'
+  import TreeNode from './TreeNode.svelte'
 
   import type { TFile } from 'obsidian'
 
@@ -12,20 +12,24 @@
     isExpanded?: boolean
   }
 
-  export let node: TreeNode
-  export let depth: number = 0
+  interface Props {
+    node: TreeNode
+    depth?: number
+    ontoggle?: (e: CustomEvent<{ path: string }>) => void
+    onopen?: (e: CustomEvent<{ path: string }>) => void
+  }
 
-  const dispatch = createEventDispatcher<{ select: { file: TFile } }>()
+  let { node, depth = 0, ontoggle, onopen }: Props = $props()
 
   function handleClick() {
-    if (node.type === 'folder') {
-      dispatch('toggle', { path: node.path })
-    } else {
-      dispatch('open', { path: node.path })
+    if (node.type === 'folder' && ontoggle) {
+      ontoggle(new CustomEvent('toggle', { detail: { path: node.path } }))
+    } else if (node.type === 'file' && onopen) {
+      onopen(new CustomEvent('open', { detail: { path: node.path } }))
     }
   }
 
-  $: paddingLeft = `${depth * 20 + 8}px`
+  let paddingLeft = $derived(`${depth * 20 + 8}px`)
 </script>
 
 <div class="lighthouse-tree-node" style="padding-left: {paddingLeft}">
@@ -33,8 +37,8 @@
     class="lighthouse-tree-node-content"
     role="button"
     tabindex="0"
-    on:click={handleClick}
-    on:keydown={handleClick}
+    onclick={handleClick}
+    onkeydown={handleClick}
   >
     {#if node.type === 'folder'}
       <span class="lighthouse-tree-node-icon">
@@ -90,7 +94,7 @@
 
   {#if node.type === 'folder' && node.isExpanded && node.children}
     {#each node.children as child (child.path)}
-      <svelte:self node={child} depth={depth + 1} on:toggle on:open />
+      <TreeNode node={child} depth={depth + 1} {ontoggle} {onopen} />
     {/each}
   {/if}
 </div>

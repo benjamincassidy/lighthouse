@@ -7,38 +7,41 @@
 
   import type { TFile } from 'obsidian'
 
-  export let plugin: LighthousePlugin
+  interface Props {
+    plugin: LighthousePlugin
+  }
 
-  let currentFile: TFile | null = null
-  let fileWordCount = 0
-  let folderWordCount = 0
-  let projectWordCount = 0
-  let projectGoal: number | undefined = undefined
-  let sessionWordCount = 0
-  let todayWordCount = 0
+  let { plugin }: Props = $props()
 
-  let project: Project | undefined = undefined
-  let updateDebounceTimer: number | null = null
+  let currentFile = $state<TFile | null>(null)
+  let fileWordCount = $state(0)
+  let folderWordCount = $state(0)
+  let projectWordCount = $state(0)
+  let sessionWordCount = $state(0)
+  let todayWordCount = $state(0)
+  let updateDebounceTimer = $state<number | null>(null)
 
   // Baseline word counts for session and today tracking
-  let sessionStartWordCount = 0
-  let todayStartWordCount = 0
-  let todayStartDate: string = new Date().toDateString()
+  let sessionStartWordCount = $state(0)
+  let todayStartWordCount = $state(0)
+  let todayStartDate = $state(new Date().toDateString())
 
-  // Safely subscribe to store
-  $: {
+  // Derived values
+  let project = $derived.by(() => {
     try {
-      project = $activeProject
+      return activeProject ? $activeProject : undefined
     } catch (e) {
       console.error('Lighthouse StatsPanel: Error accessing activeProject store:', e)
-      project = undefined
+      return undefined
     }
-  }
-  $: projectGoal = project?.wordCountGoal
+  })
+
+  let projectGoal = $derived(project?.wordCountGoal)
 
   // Calculate progress percentage
-  $: progressPercent =
-    projectGoal && projectWordCount > 0 ? Math.min((projectWordCount / projectGoal) * 100, 100) : 0
+  let progressPercent = $derived(
+    projectGoal && projectWordCount > 0 ? Math.min((projectWordCount / projectGoal) * 100, 100) : 0,
+  )
 
   // Update stats when active file changes
   async function updateStats() {
@@ -199,10 +202,12 @@
   })
 
   // Update when project changes
-  $: if (plugin && project) {
-    console.log('Lighthouse StatsPanel: Project changed to:', project.name)
-    updateStats()
-  }
+  $effect(() => {
+    if (plugin && project) {
+      console.log('Lighthouse StatsPanel: Project changed to:', project.name)
+      updateStats()
+    }
+  })
 
   function formatNumber(num: number | undefined): string {
     if (num === undefined || num === null) {

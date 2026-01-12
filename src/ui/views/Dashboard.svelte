@@ -4,29 +4,33 @@
   import type { Project } from '@/types/types'
   import { ProjectModal } from '@/ui/modals/ProjectModal'
 
-  export let plugin: LighthousePlugin
+  interface Props {
+    plugin: LighthousePlugin
+  }
 
-  let allProjects: Project[] = []
-  let currentProject: Project | undefined
-  let projectStats: {
+  let { plugin }: Props = $props()
+
+  let projectStats = $state<{
     totalFiles: number
     totalWords: number
     contentFolders: number
     sourceFolders: number
-  } = {
+  }>({
     totalFiles: 0,
     totalWords: 0,
     contentFolders: 0,
     sourceFolders: 0,
-  }
+  })
 
-  $: allProjects = projects ? $projects : []
-  $: currentProject = $activeProject
+  let allProjects = $derived(projects ? $projects : [])
+  let currentProject = $derived($activeProject)
 
   // Update stats when project changes
-  $: if (plugin && currentProject) {
-    updateProjectStats(currentProject)
-  }
+  $effect(() => {
+    if (plugin && currentProject) {
+      updateProjectStats(currentProject)
+    }
+  })
 
   async function updateProjectStats(project: Project) {
     if (!plugin) {
@@ -95,7 +99,7 @@
     <div class="lighthouse-dashboard-section-header">
       <h3>Active Project</h3>
       {#if allProjects.length > 0}
-        <button class="lighthouse-button lighthouse-button-small" on:click={createNewProject}>
+        <button class="lighthouse-button lighthouse-button-small" onclick={createNewProject}>
           + New
         </button>
       {/if}
@@ -104,7 +108,7 @@
     {#if allProjects.length === 0}
       <div class="lighthouse-dashboard-empty">
         <p>No projects yet</p>
-        <button class="lighthouse-button lighthouse-button-primary" on:click={createNewProject}>
+        <button class="lighthouse-button lighthouse-button-primary" onclick={createNewProject}>
           Create Your First Project
         </button>
       </div>
@@ -113,7 +117,7 @@
         <select
           class="lighthouse-select"
           value={currentProject?.id || ''}
-          on:change={(e) => switchProject(e.currentTarget.value)}
+          onchange={(e) => switchProject(e.currentTarget.value)}
         >
           <option value="">Select a project...</option>
           {#each allProjects as project (project.id)}
@@ -204,18 +208,18 @@
       </div>
 
       <div class="lighthouse-actions">
-        <button class="lighthouse-button lighthouse-button-full" on:click={openProjectFolder}>
+        <button class="lighthouse-button lighthouse-button-full" onclick={openProjectFolder}>
           📁 Open Project Folder
         </button>
         <button
           class="lighthouse-button lighthouse-button-full"
-          on:click={() => plugin.activateProjectExplorer()}
+          onclick={() => plugin.activateProjectExplorer()}
         >
           🗂️ Open File Explorer
         </button>
         <button
           class="lighthouse-button lighthouse-button-full"
-          on:click={() => plugin.activateStatsPanel()}
+          onclick={() => plugin.activateStatsPanel()}
         >
           📊 Open Writing Stats
         </button>
