@@ -46,7 +46,7 @@
       })
       const result = await plugin.hierarchicalCounter.countProject(project)
       projectStats = {
-        totalFiles: result.fileCount,
+        totalFiles: result.totalFiles,
         totalWords: result.totalWords,
         contentFolders: project.contentFolders.length,
         sourceFolders: project.sourceFolders.length,
@@ -66,11 +66,30 @@
     modal.open()
   }
 
-  function openProjectFolder() {
+  function editProject() {
     if (!currentProject) return
-    const folder = plugin.app.vault.getAbstractFileByPath(currentProject.rootPath)
-    if (folder && 'children' in folder) {
-      plugin.app.workspace.revealLeaf(plugin.app.workspace.getLeaf())
+    const modal = new ProjectModal(plugin, 'edit', currentProject)
+    modal.open()
+  }
+
+  async function deleteProject() {
+    if (!currentProject) return
+
+    // eslint-disable-next-line no-undef
+    const confirmed = confirm(
+      `Are you sure you want to delete the project "${currentProject.name}"?\n\n` +
+        `This will only remove the project configuration. Your files will not be deleted.`,
+    )
+
+    if (!confirmed) return
+
+    try {
+      await plugin.projectManager.deleteProject(currentProject.id)
+      // Success - the store will update automatically and UI will react
+    } catch (error) {
+      console.error('Error deleting project:', error)
+      // eslint-disable-next-line no-undef
+      alert('Failed to delete project. See console for details.')
     }
   }
 
@@ -208,9 +227,6 @@
       </div>
 
       <div class="lighthouse-actions">
-        <button class="lighthouse-button lighthouse-button-full" onclick={openProjectFolder}>
-          📁 Open Project Folder
-        </button>
         <button
           class="lighthouse-button lighthouse-button-full"
           onclick={() => plugin.activateProjectExplorer()}
@@ -222,6 +238,25 @@
           onclick={() => plugin.activateStatsPanel()}
         >
           📊 Open Writing Stats
+        </button>
+      </div>
+    </div>
+
+    <!-- Project Management -->
+    <div class="lighthouse-dashboard-section">
+      <div class="lighthouse-dashboard-section-header">
+        <h3>Project Management</h3>
+      </div>
+
+      <div class="lighthouse-actions">
+        <button class="lighthouse-button lighthouse-button-full" onclick={editProject}>
+          ✏️ Edit Project
+        </button>
+        <button
+          class="lighthouse-button lighthouse-button-full lighthouse-button-danger"
+          onclick={deleteProject}
+        >
+          🗑️ Delete Project
         </button>
       </div>
     </div>
@@ -310,6 +345,16 @@
     width: 100%;
     text-align: left;
     margin-bottom: var(--size-2-2);
+  }
+
+  .lighthouse-button-danger {
+    color: var(--text-error);
+    border-color: var(--background-modifier-error);
+  }
+
+  .lighthouse-button-danger:hover {
+    background: var(--background-modifier-error);
+    color: var(--text-on-accent);
   }
 
   .lighthouse-project-selector {

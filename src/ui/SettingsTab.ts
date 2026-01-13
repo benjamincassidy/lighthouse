@@ -114,6 +114,35 @@ export class LighthouseSettingTab extends PluginSettingTab {
         }),
     )
 
+    const activeProject = this.plugin.projectManager.getActiveProject()
+    if (activeProject) {
+      new Setting(containerEl)
+        .setName('Edit active project')
+        .setDesc(`Edit "${activeProject.name}"`)
+        .addButton((button) =>
+          button.setButtonText('Edit').onClick(() => {
+            const modal = new ProjectModal(this.plugin, 'edit', activeProject)
+            modal.open()
+          }),
+        )
+        .addButton((button) =>
+          button
+            .setButtonText('Delete')
+            .setWarning()
+            .onClick(async () => {
+              const confirmed = confirm(
+                `Are you sure you want to delete the project "${activeProject.name}"?\n\n` +
+                  `This will only remove the project configuration. Your files will not be deleted.`,
+              )
+
+              if (confirmed) {
+                await this.plugin.projectManager.deleteProject(activeProject.id)
+                this.display() // Refresh the settings display
+              }
+            }),
+        )
+    }
+
     // Divider
     containerEl.createEl('div', { cls: 'setting-item-divider' })
   }
