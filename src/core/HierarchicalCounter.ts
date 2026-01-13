@@ -1,8 +1,8 @@
+import { MarkdownView, type App, type TFile, type TFolder, type Vault } from 'obsidian'
+
 import { FolderManager } from '@/core/FolderManager'
 import { WordCounter, type WordCountOptions, type WordCountResult } from '@/core/WordCounter'
 import type { FolderStats, Project, ProjectStats } from '@/types/types'
-
-import type { TFile, TFolder, Vault } from 'obsidian'
 
 /**
  * HierarchicalCounter aggregates word counts at file, folder, and project levels
@@ -12,28 +12,42 @@ export class HierarchicalCounter {
   private wordCounter: WordCounter
   private folderManager: FolderManager
   private vault: Vault
-  private folderStatsCache: Map<string, FolderStats>
-  private projectStatsCache: Map<string, ProjectStats>
+  private app: App
 
-  constructor(vault: Vault, wordCounter: WordCounter, folderManager: FolderManager) {
+  constructor(vault: Vault, wordCounter: WordCounter, folderManager: FolderManager, app: App) {
     this.vault = vault
     this.wordCounter = wordCounter
     this.folderManager = folderManager
-    this.folderStatsCache = new Map()
-    this.projectStatsCache = new Map()
+    this.app = app
   }
 
   /**
    * Calculate word count for a specific file
    */
   async countFile(file: TFile, options?: WordCountOptions): Promise<WordCountResult | undefined> {
-    console.log('HierarchicalCounter.countFile called for:', file.path)
     try {
-      const content = await this.vault.cachedRead(file)
-      console.log('HierarchicalCounter.countFile: content length:', content.length)
-      const result = this.wordCounter.countFile(file, content, options)
-      console.log('HierarchicalCounter.countFile result:', result)
-      return result
+      let content: string
+
+      // Try to get content from active editor first (for unsaved changes)
+      if (this.app) {
+        const activeFile = this.app.workspace.getActiveFile()
+        if (activeFile?.path === file.path) {
+          // Get content from editor to include unsaved changes
+          // Use getActiveViewOfType for more reliable editor access
+          const view = this.app.workspace.getActiveViewOfType(MarkdownView)
+          if (view?.editor) {
+            content = view.editor.getValue()
+          } else {
+            content = await this.vault.cachedRead(file)
+          }
+        } else {
+          content = await this.vault.cachedRead(file)
+        }
+      } else {
+        content = await this.vault.cachedRead(file)
+      }
+
+      return this.wordCounter.countFile(file, content, options)
     } catch (error) {
       console.error(`Error counting file ${file.path}:`, error)
       return undefined
@@ -47,28 +61,12 @@ export class HierarchicalCounter {
     folderPath: string,
     options?: WordCountOptions,
   ): Promise<FolderStats | undefined> {
-    console.log('HierarchicalCounter.countFolder called for:', folderPath)
-    // Check cache
-    const cached = this.folderStatsCache.get(folderPath)
-    if (cached) {
-      console.log('HierarchicalCounter.countFolder: using cached result:', cached)
-      return cached
-    }
-
     const folder = this.vault.getAbstractFileByPath(folderPath)
     if (!folder || !('children' in folder)) {
-      console.log('HierarchicalCounter.countFolder: folder not found or not a folder')
       return undefined
     }
 
-    console.log(
-      'HierarchicalCounter.countFolder: calculating stats for folder with',
-      (folder as TFolder).children.length,
-      'children',
-    )
     const stats = await this.calculateFolderStats(folder as TFolder, options)
-    console.log('HierarchicalCounter.countFolder: calculated stats:', stats)
-    this.folderStatsCache.set(folderPath, stats)
 
     return stats
   }
@@ -78,21 +76,6 @@ export class HierarchicalCounter {
    * Only includes content folders, excludes source folders
    */
   async countProject(project: Project, options?: WordCountOptions): Promise<ProjectStats> {
-    console.log(
-      'HierarchicalCounter.countProject called for:',
-      project.name,
-      'with',
-      project.contentFolders.length,
-      'content folders',
-    )
-    // Check cache
-    const cached = this.projectStatsCache.get(project.id)
-    if (cached) {
-      console.log('HierarchicalCounter.countProject: using cached result:', cached)
-      return cached
-    }
-    console.log('HierarchicalCounter.countProject: calculating fresh stats')
-
     const folderStats = new Map<string, FolderStats>()
     let totalWords = 0
     let totalFiles = 0
@@ -114,8 +97,6 @@ export class HierarchicalCounter {
       totalFiles,
       folderStats,
     }
-
-    this.projectStatsCache.set(project.id, projectStats)
 
     return projectStats
   }
@@ -157,55 +138,5 @@ export class HierarchicalCounter {
       fileCount,
       children,
     }
-  }
-
-  /**
-   * Clear cache for a specific folder
-   */
-  clearFolderCache(folderPath: string): void {
-    this.folderStatsCache.delete(folderPath)
-  }
-
-  /**
-   * Clear cache for a specific project
-   */
-  clearProjectCache(projectId: string): void {
-    this.projectStatsCache.delete(projectId)
-  }
-
-  /**
-   * Clear all caches
-   */
-  clearAllCaches(): void {
-    this.folderStatsCache.clear()
-    this.projectStatsCache.clear()
-    this.wordCounter.clearAllCaches()
-  }
-
-  /**
-   * Invalidate caches for a project and its folders
-   */
-  invalidateProjectCaches(project: Project): void {
-    this.clearProjectCache(project.id)
-
-    // Clear content folder caches
-    for (const contentFolder of project.contentFolders) {
-      const fullPath = this.folderManager.resolveProjectPath(project.rootPath, contentFolder)
-      this.clearFolderCache(fullPath)
-    }
-  }
-
-  /**
-   * Get cached stats without recalculating
-   */
-  getCachedProjectStats(projectId: string): ProjectStats | undefined {
-    return this.projectStatsCache.get(projectId)
-  }
-
-  /**
-   * Get cached folder stats without recalculating
-   */
-  getCachedFolderStats(folderPath: string): FolderStats | undefined {
-    return this.folderStatsCache.get(folderPath)
   }
 }

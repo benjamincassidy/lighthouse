@@ -17,22 +17,19 @@
 
   interface Props {
     plugin: LighthousePlugin
-    showFullVault?: boolean
   }
 
-  let { plugin, showFullVault = false }: Props = $props()
+  let { plugin }: Props = $props()
 
   let treeNodes = $state<TreeNode[]>([])
   let currentProject = $derived(activeProject ? $activeProject : undefined)
 
-  // Rebuild tree when active project or view mode changes
+  // Rebuild tree when active project changes
   $effect(() => {
     if (!plugin) {
       treeNodes = []
-    } else if (currentProject && !showFullVault) {
+    } else if (currentProject) {
       buildProjectTree(currentProject)
-    } else if (showFullVault) {
-      buildFullVaultTree()
     } else {
       treeNodes = []
     }
@@ -82,19 +79,6 @@
     }
 
     treeNodes = nodes
-  }
-
-  function buildFullVaultTree() {
-    if (!plugin) {
-      console.error('Lighthouse: ProjectExplorer plugin is undefined')
-      treeNodes = []
-      return
-    }
-
-    const vault = plugin.app.vault
-    const root = vault.getRoot()
-    const node = buildTreeNode(root, undefined)
-    treeNodes = node ? [node] : []
   }
 
   function buildTreeNode(folder: TFolder, project?: Project): TreeNode | null {
@@ -163,52 +147,20 @@
       await plugin.app.workspace.getLeaf().openFile(file as TFile)
     }
   }
-
-  function toggleViewMode() {
-    showFullVault = !showFullVault
-  }
 </script>
 
 <div class="lighthouse-explorer">
   <div class="lighthouse-explorer-header">
     <h3>
-      {#if currentProject && !showFullVault}
+      {#if currentProject}
         {currentProject.name}
       {:else}
-        Vault Explorer
+        Project Explorer
       {/if}
     </h3>
-    <button
-      class="clickable-icon"
-      aria-label={showFullVault ? 'Show project files' : 'Show all files'}
-      onclick={toggleViewMode}
-    >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="16"
-        height="16"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      >
-        {#if showFullVault}
-          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-          <polyline points="9 22 9 12 15 12 15 22" />
-        {:else}
-          <circle cx="12" cy="12" r="10" />
-          <line x1="2" y1="12" x2="22" y2="12" />
-          <path
-            d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"
-          />
-        {/if}
-      </svg>
-    </button>
   </div>
 
-  {#if !currentProject && !showFullVault}
+  {#if !currentProject}
     <div class="lighthouse-empty-state">
       <p>No active project</p>
       <p class="lighthouse-empty-state-hint">Select a project to see its files</p>

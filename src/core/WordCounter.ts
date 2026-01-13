@@ -32,12 +32,10 @@ const DEFAULT_OPTIONS: Required<WordCountOptions> = {
  * with support for excluding frontmatter, code blocks, and other elements
  */
 export class WordCounter {
-  private cache: Map<string, { content: string; result: WordCountResult }>
   private debounceTimers: Map<string, NodeJS.Timeout>
   private readonly debounceMs: number
 
   constructor(debounceMs = 300) {
-    this.cache = new Map()
     this.debounceTimers = new Map()
     this.debounceMs = debounceMs
   }
@@ -73,24 +71,10 @@ export class WordCounter {
   }
 
   /**
-   * Count words in a file with caching
+   * Count words in a file
    */
-  countFile(file: TFile, content: string, options: WordCountOptions = {}): WordCountResult {
-    const cacheKey = file.path
-
-    // Check cache
-    const cached = this.cache.get(cacheKey)
-    if (cached && cached.content === content) {
-      return cached.result
-    }
-
-    // Calculate new count
-    const result = this.countText(content, options)
-
-    // Update cache
-    this.cache.set(cacheKey, { content, result })
-
-    return result
+  countFile(_file: TFile, content: string, options: WordCountOptions = {}): WordCountResult {
+    return this.countText(content, options)
   }
 
   /**
@@ -118,22 +102,6 @@ export class WordCounter {
     }, this.debounceMs)
 
     this.debounceTimers.set(cacheKey, timer)
-  }
-
-  /**
-   * Clear cache for a specific file
-   */
-  clearCache(filePath: string): void {
-    this.cache.delete(filePath)
-  }
-
-  /**
-   * Clear all caches
-   */
-  clearAllCaches(): void {
-    this.cache.clear()
-    this.debounceTimers.forEach((timer) => clearTimeout(timer))
-    this.debounceTimers.clear()
   }
 
   /**

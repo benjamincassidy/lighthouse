@@ -21,9 +21,10 @@
   let updateDebounceTimer = $state<number | null>(null)
 
   // Baseline word counts for session and today tracking
-  let sessionStartWordCount = $state(0)
-  let todayStartWordCount = $state(0)
-  let todayStartDate = $state(new Date().toDateString())
+  // Initialize to high number to prevent flash on first render
+  let sessionStartWordCount = $state(Number.MAX_SAFE_INTEGER)
+  let todayStartWordCount = $state(plugin.settings.todayWordCountBaseline)
+  let todayStartDate = $state(plugin.settings.todayWordCountDate)
 
   // Derived values
   let project = $derived.by(() => {
@@ -44,17 +45,13 @@
 
   // Update stats when active file changes
   async function updateStats() {
-    console.log('Lighthouse StatsPanel: updateStats called, project:', project?.name)
-
     const activeFile = plugin.app.workspace.getActiveFile()
-    console.log('Lighthouse StatsPanel: Active file:', activeFile?.path)
 
     // Reset file/folder counts if no active markdown file
     if (!activeFile || activeFile.extension !== 'md') {
       currentFile = null
       fileWordCount = 0
       folderWordCount = 0
-      console.log('Lighthouse StatsPanel: No active markdown file')
       // Don't return - still calculate project word count below
     } else {
       currentFile = activeFile
@@ -62,22 +59,14 @@
       // Get file word count
       const fileResult = await plugin.hierarchicalCounter.countFile(activeFile)
       fileWordCount = fileResult?.words || 0
-      console.log('Lighthouse StatsPanel: File word count:', fileWordCount)
 
       // Get folder word count - count the entire folder, not filtered by project
       const folder = activeFile.parent
       if (folder) {
         const folderResult = await plugin.hierarchicalCounter.countFolder(folder.path)
         folderWordCount = folderResult?.wordCount || 0
-        console.log(
-          'Lighthouse StatsPanel: Folder word count:',
-          folderWordCount,
-          'folder:',
-          folder.path,
-        )
       } else {
         folderWordCount = 0
-        console.log('Lighthouse StatsPanel: No folder for folder count')
       }
     }
 
@@ -85,7 +74,6 @@
     if (project) {
       const projectResult = await plugin.hierarchicalCounter.countProject(project)
       projectWordCount = projectResult.totalWords
-      console.log('Lighthouse StatsPanel: Project word count:', projectWordCount)
 
       // Update session and today stats
       updateSessionAndTodayStats()
@@ -102,23 +90,26 @@
 
     // Check if day has changed
     if (currentDate !== todayStartDate) {
-      console.log('Lighthouse StatsPanel: New day detected, resetting today baseline')
       todayStartDate = currentDate
       todayStartWordCount = projectWordCount
       // Also reset session on new day
       sessionStartWordCount = projectWordCount
+
+      // Persist to settings
+      plugin.settings.todayWordCountBaseline = todayStartWordCount
+      plugin.settings.todayWordCountDate = todayStartDate
+      plugin.saveSettings()
     }
 
-    // Calculate deltas
+    // If we've deleted words below the session baseline, adjust the baseline down
+    // This ensures the counter responds immediately to new typing after deletions
+    if (projectWordCount < sessionStartWordCount) {
+      sessionStartWordCount = projectWordCount
+    }
+
+    // Calculate deltas - clamp to 0 (no negative counts)
     sessionWordCount = Math.max(0, projectWordCount - sessionStartWordCount)
     todayWordCount = Math.max(0, projectWordCount - todayStartWordCount)
-
-    console.log(
-      'Lighthouse StatsPanel: Session words:',
-      sessionWordCount,
-      'Today words:',
-      todayWordCount,
-    )
   }
 
   // Debounced update for editor changes (typing)
@@ -129,9 +120,6 @@
     }
     // eslint-disable-next-line no-undef
     updateDebounceTimer = window.setTimeout(() => {
-      console.log('Lighthouse StatsPanel: Debounced update triggered, clearing caches')
-      // Clear caches so we get fresh counts
-      plugin.hierarchicalCounter.clearAllCaches()
       updateStats()
       updateDebounceTimer = null
     }, 200) // Update 200ms after user stops typing
@@ -144,15 +132,11 @@
       return
     }
 
-    console.log('Lighthouse StatsPanel: Mounted with project:', project?.name)
-
     const workspace = plugin.app.workspace
 
     // Update when active leaf changes
     plugin.registerEvent(
       workspace.on('active-leaf-change', () => {
-        console.log('Lighthouse StatsPanel: Active leaf changed, clearing caches')
-        plugin.hierarchicalCounter.clearAllCaches()
         updateStats()
       }),
     )
@@ -160,8 +144,6 @@
     // Update when file is opened
     plugin.registerEvent(
       workspace.on('file-open', () => {
-        console.log('Lighthouse StatsPanel: File opened, clearing caches')
-        plugin.hierarchicalCounter.clearAllCaches()
         updateStats()
       }),
     )
@@ -169,7 +151,6 @@
     // Update when file is modified
     plugin.registerEvent(
       workspace.on('editor-change', () => {
-        console.log('Lighthouse StatsPanel: Editor changed')
         debouncedUpdate() // Use debounced version for typing
       }),
     )
@@ -177,25 +158,31 @@
     // Initial update - wait a tick for stores and workspace to be ready
     // eslint-disable-next-line no-undef
     setTimeout(async () => {
-      console.log('Lighthouse StatsPanel: Initial update, project:', project?.name)
+      // Get initial word count
       await updateStats()
-      // Set baseline for session and today after initial load
+
+      // Now set correct baselines after getting word count
       if (project) {
         sessionStartWordCount = projectWordCount
-        todayStartWordCount = projectWordCount
-        console.log(
-          'Lighthouse StatsPanel: Set baselines - session:',
-          sessionStartWordCount,
-          'today:',
-          todayStartWordCount,
-        )
+
+        // Only update today baseline if it's a new day
+        const currentDate = new Date().toDateString()
+        if (currentDate !== plugin.settings.todayWordCountDate) {
+          todayStartWordCount = projectWordCount
+          todayStartDate = currentDate
+          plugin.settings.todayWordCountBaseline = todayStartWordCount
+          plugin.settings.todayWordCountDate = todayStartDate
+          plugin.saveSettings()
+        }
+
+        // Recalculate session/today stats now that baselines are set
+        updateSessionAndTodayStats()
       }
     }, 100)
 
     // Also trigger update after a longer delay to catch late-loading files
     // eslint-disable-next-line no-undef
     setTimeout(() => {
-      console.log('Lighthouse StatsPanel: Delayed update check')
       updateStats()
     }, 500)
   })

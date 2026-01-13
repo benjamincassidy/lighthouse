@@ -5,7 +5,7 @@ import { HierarchicalCounter } from '@/core/HierarchicalCounter'
 import { WordCounter } from '@/core/WordCounter'
 import type { Project } from '@/types/types'
 
-import type { TFile, TFolder, Vault } from 'obsidian'
+import type { App, TFile, TFolder, Vault } from 'obsidian'
 
 describe('HierarchicalCounter', () => {
   let counter: HierarchicalCounter
@@ -87,9 +87,15 @@ describe('HierarchicalCounter', () => {
       adapter: { constructor: Object },
     } as unknown as Vault
 
+    const mockApp = {
+      workspace: {
+        getActiveFile: () => null,
+      },
+    } as unknown as App
+
     wordCounter = new WordCounter()
     folderManager = new FolderManager(mockVault)
-    counter = new HierarchicalCounter(mockVault, wordCounter, folderManager)
+    counter = new HierarchicalCounter(mockVault, wordCounter, folderManager, mockApp)
   })
 
   describe('countFile', () => {
@@ -143,13 +149,6 @@ describe('HierarchicalCounter', () => {
       expect(result?.children).toHaveLength(1) // subfolder
     })
 
-    it('should cache folder results', async () => {
-      const result1 = await counter.countFolder('projects/novel/chapters')
-      const result2 = await counter.countFolder('projects/novel/chapters')
-
-      expect(result1).toBe(result2) // Same object reference
-    })
-
     it('should return undefined for non-existent folder', async () => {
       const result = await counter.countFolder('nonexistent')
 
@@ -180,15 +179,6 @@ describe('HierarchicalCounter', () => {
       expect(result.folderStats.size).toBe(0)
     })
 
-    it('should cache project results', async () => {
-      const project = createTestProject()
-
-      const result1 = await counter.countProject(project)
-      const result2 = await counter.countProject(project)
-
-      expect(result1).toBe(result2) // Same object reference
-    })
-
     it('should aggregate multiple content folders', async () => {
       const project = createTestProject()
       project.contentFolders = ['chapters', 'scenes']
@@ -212,52 +202,6 @@ describe('HierarchicalCounter', () => {
       expect(result.folderStats.has('chapters')).toBe(true)
       expect(result.folderStats.has('scenes')).toBe(true)
       expect(result.totalFiles).toBeGreaterThanOrEqual(2)
-    })
-  })
-
-  describe('cache management', () => {
-    it('should clear folder cache', async () => {
-      await counter.countFolder('projects/novel/chapters')
-
-      counter.clearFolderCache('projects/novel/chapters')
-
-      const cached = counter.getCachedFolderStats('projects/novel/chapters')
-      expect(cached).toBeUndefined()
-    })
-
-    it('should clear project cache', async () => {
-      const project = createTestProject()
-      await counter.countProject(project)
-
-      counter.clearProjectCache(project.id)
-
-      const cached = counter.getCachedProjectStats(project.id)
-      expect(cached).toBeUndefined()
-    })
-
-    it('should clear all caches', async () => {
-      const project = createTestProject()
-      await counter.countProject(project)
-      await counter.countFolder('projects/novel/chapters')
-
-      counter.clearAllCaches()
-
-      expect(counter.getCachedProjectStats(project.id)).toBeUndefined()
-      expect(counter.getCachedFolderStats('projects/novel/chapters')).toBeUndefined()
-    })
-
-    it('should invalidate project and folder caches', async () => {
-      const project = createTestProject()
-      await counter.countProject(project)
-
-      counter.invalidateProjectCaches(project)
-
-      expect(counter.getCachedProjectStats(project.id)).toBeUndefined()
-      expect(
-        counter.getCachedFolderStats(
-          folderManager.resolveProjectPath(project.rootPath, 'chapters'),
-        ),
-      ).toBeUndefined()
     })
   })
 

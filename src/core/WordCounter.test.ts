@@ -173,17 +173,7 @@ Another paragraph with [a link](http://example.com).
       expect(result.words).toBe(2)
     })
 
-    it('should cache results', () => {
-      const content = 'Hello world test'
-
-      const result1 = counter.countFile(mockFile, content)
-      const result2 = counter.countFile(mockFile, content)
-
-      expect(result1).toBe(result2) // Same object reference
-      expect(result1.words).toBe(3)
-    })
-
-    it('should invalidate cache when content changes', () => {
+    it('should count different content correctly', () => {
       const content1 = 'Hello world'
       const content2 = 'Hello world test more'
 
@@ -266,53 +256,6 @@ Another paragraph with [a link](http://example.com).
 
       expect(callback1).toHaveBeenCalledTimes(1)
       expect(callback2).toHaveBeenCalledTimes(1)
-    })
-  })
-
-  describe('cache management', () => {
-    const mockFile: TFile = {
-      path: 'test.md',
-      name: 'test.md',
-    } as TFile
-
-    it('should clear cache for specific file', () => {
-      const content = 'Hello world'
-
-      counter.countFile(mockFile, content)
-      counter.clearCache(mockFile.path)
-
-      // Cache should be empty, so counting again creates new result
-      const result = counter.countFile(mockFile, content)
-      expect(result.words).toBe(2)
-    })
-
-    it('should clear all caches', () => {
-      const file1: TFile = { path: 'file1.md', name: 'file1.md' } as TFile
-      const file2: TFile = { path: 'file2.md', name: 'file2.md' } as TFile
-
-      counter.countFile(file1, 'Content one')
-      counter.countFile(file2, 'Content two')
-
-      counter.clearAllCaches()
-
-      // After clearing, counting should work normally
-      const result1 = counter.countFile(file1, 'Content one')
-      const result2 = counter.countFile(file2, 'Content two')
-
-      expect(result1.words).toBe(2)
-      expect(result2.words).toBe(2)
-    })
-
-    it('should clear pending debounce timers', () => {
-      const callback = vi.fn()
-
-      counter.countFileDebounced(mockFile, 'Test', callback)
-      counter.clearAllCaches()
-
-      vi.advanceTimersByTime(300)
-
-      // Should not call callback after clearing
-      expect(callback).not.toHaveBeenCalled()
     })
   })
 

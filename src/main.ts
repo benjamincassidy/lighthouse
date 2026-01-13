@@ -32,6 +32,7 @@ export default class LighthousePlugin extends Plugin {
       this.app.vault,
       this.wordCounter,
       this.folderManager,
+      this.app,
     )
     this.projectManager = new ProjectManager(this)
     this.zenMode = new ZenMode(this.app)

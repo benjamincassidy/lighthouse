@@ -36,7 +36,6 @@ export class ProjectExplorerView extends ItemView {
       target: container,
       props: {
         plugin: this.plugin,
-        showFullVault: false,
       },
     })
   }
