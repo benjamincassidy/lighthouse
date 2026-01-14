@@ -43,26 +43,47 @@ Before creating a release, ensure:
 
 ### 1. Update Version Numbers
 
+**Option A: Use the Release Script (Recommended)**
+
+```bash
+# Automatically updates all version files
+npm run release 1.0.0
+```
+
+This script:
+- Updates `manifest.json`, `package.json`, `versions.json`
+- Regenerates `package-lock.json` with the new version
+- Shows you the next steps
+
+See [scripts/README.md](scripts/README.md) for full documentation.
+
+**Option B: Manual Update**
+
 Update these files to the new version number:
 
 ```bash
-# Example: Releasing version 0.9.0
+# Example: Releasing version 1.0.0
 # manifest.json
 {
-  "version": "0.9.0",
+  "version": "1.0.0",
   ...
 }
 
 # package.json
 {
-  "version": "0.9.0",
+  "version": "1.0.0",
   ...
 }
 
 # versions.json
 {
-  "0.9.0": "1.4.0"
+  "1.0.0": "1.4.0"
 }
+```
+
+Then run:
+```bash
+npm install --legacy-peer-deps
 ```
 
 ### 2. Update CHANGELOG.md

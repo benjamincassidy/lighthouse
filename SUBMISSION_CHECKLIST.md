@@ -84,11 +84,26 @@ This checklist tracks our compliance with [Obsidian's Community Plugin submissio
 When ready to submit to the community plugins repository:
 
 ### 1. Fork the Repository
+
+Go to https://github.com/obsidianmd/obsidian-releases and click "Fork" in the top right.
+
+### 2. Clone Your Fork
+
 ```bash
-# Fork https://github.com/obsidianmd/obsidian-releases
+git clone https://github.com/YOUR_USERNAME/obsidian-releases.git
+cd obsidian-releases
 ```
 
-### 2. Add Plugin to community-plugins.json
+### 3. Create a Branch
+
+```bash
+git checkout -b add-lighthouse-plugin
+```
+
+### 4. Add Plugin to community-plugins.json
+
+Edit `community-plugins.json` and add your plugin in **alphabetical order** by ID:
+
 ```json
 {
   "id": "lighthouse",
@@ -99,10 +114,62 @@ When ready to submit to the community plugins repository:
 }
 ```
 
-### 3. Create Pull Request
-- Title: "Add Lighthouse plugin"
-- Include link to release: https://github.com/benjamincassidy/obsidian-lighthouse/releases/tag/0.9.0
-- Wait for review and approval
+**Important**:
+- Add a comma after the previous plugin entry
+- Maintain alphabetical order by `id`
+- Ensure description ends with period
+- Use exact author name from manifest.json
+
+### 5. Commit and Push
+
+```bash
+git add community-plugins.json
+git commit -m "Add Lighthouse plugin"
+git push origin add-lighthouse-plugin
+```
+
+### 6. Create Pull Request
+
+1. Go to your fork: `https://github.com/YOUR_USERNAME/obsidian-releases`
+2. Click "Pull requests" → "New pull request"
+3. Set base repository: `obsidianmd/obsidian-releases` base: `master`
+4. Set head repository: `YOUR_USERNAME/obsidian-releases` compare: `add-lighthouse-plugin`
+5. Click "Create pull request"
+6. Title: **"Add Lighthouse plugin"**
+7. Use the PR template from `SUBMISSION_PR_TEMPLATE.md`
+8. Submit the PR
+
+### 7. Wait for Review
+
+The Obsidian team will review your submission. They may:
+- Test the plugin
+- Request changes to manifest or description
+- Ask questions about functionality
+- Suggest improvements
+
+**Response time**: Usually within a few days to a week.
+
+### 8. Address Feedback
+
+If changes are requested:
+
+```bash
+# Make changes to your plugin repo
+cd /path/to/obsidian-lighthouse
+# ... make changes ...
+git commit -m "fix: address review feedback"
+git push
+
+# Update the PR if needed
+cd /path/to/obsidian-releases
+# ... make changes to community-plugins.json if requested ...
+git commit -m "Update plugin description"
+git push
+```
+
+### 9. Approval & Merge
+
+Once approved, the Obsidian team will merge your PR. Your plugin will appear in the Community Plugins browser within 24 hours!
 
 ## Additional Quality Checks
 

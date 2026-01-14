@@ -1,8 +1,7 @@
 import js from '@eslint/js'
-import tseslint from 'typescript-eslint'
 import importX from 'eslint-plugin-import-x'
 import svelte from 'eslint-plugin-svelte'
-import obsidianPlugin from 'eslint-plugin-obsidian'
+import tseslint from 'typescript-eslint'
 
 export default tseslint.config(
   js.configs.recommended,
@@ -75,6 +74,32 @@ export default tseslint.config(
     },
   },
   {
-    ignores: ['dist/', 'node_modules/', 'main.js', 'main.js.map', '*.config.mjs', 'docs/'],
+    // Node.js scripts (build tools, release scripts, etc.)
+    files: ['scripts/**/*.js', '*.config.mjs', '*.config.js'],
+    languageOptions: {
+      globals: {
+        // Node.js globals
+        require: 'readonly',
+        module: 'readonly',
+        exports: 'readonly',
+        process: 'readonly',
+        __dirname: 'readonly',
+        __filename: 'readonly',
+        console: 'readonly',
+        Buffer: 'readonly',
+        global: 'readonly',
+      },
+    },
+    rules: {
+      // Allow console.log in build scripts
+      'no-console': 'off',
+      // Allow require() in Node.js scripts
+      '@typescript-eslint/no-require-imports': 'off',
+      // Node.js scripts don't need undef checks
+      'no-undef': 'off',
+    },
+  },
+  {
+    ignores: ['dist/', 'node_modules/', 'main.js', 'main.js.map', 'docs/'],
   },
 )
