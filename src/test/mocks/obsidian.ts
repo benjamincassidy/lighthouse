@@ -31,8 +31,8 @@ export class Plugin {
 }
 
 export class Notice {
-  constructor(message: string, timeout?: number) {
-    console.log(`Notice (${timeout}ms):`, message)
+  constructor(_message: string, _timeout?: number) {
+    // Mock notice - intentionally silent in tests
   }
 }
 

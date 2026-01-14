@@ -194,11 +194,9 @@
       updateStats()
     }, 500)
   })
-
   // Update when project changes
   $effect(() => {
     if (plugin && project) {
-      console.log('Lighthouse StatsPanel: Project changed to:', project.name)
       updateStats()
     }
   })

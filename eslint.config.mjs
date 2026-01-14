@@ -2,6 +2,7 @@ import js from '@eslint/js'
 import tseslint from 'typescript-eslint'
 import importX from 'eslint-plugin-import-x'
 import svelte from 'eslint-plugin-svelte'
+import obsidianPlugin from 'eslint-plugin-obsidian'
 
 export default tseslint.config(
   js.configs.recommended,
@@ -24,6 +25,9 @@ export default tseslint.config(
       '@typescript-eslint/ban-ts-comment': 'off',
       '@typescript-eslint/no-empty-function': 'off',
       'no-prototype-builtins': 'off',
+      '@typescript-eslint/require-await': 'off',
+      // Obsidian policy rules (manual enforcement)
+      'no-console': ['error', { allow: ['warn', 'error', 'debug'] }],
       'import-x/order': [
         'error',
         {
