@@ -1,4 +1,4 @@
-import { App, PluginSettingTab, Setting } from 'obsidian'
+import { App, ButtonComponent, Modal, PluginSettingTab, Setting } from 'obsidian'
 
 import type LighthousePlugin from '@/main'
 import { ProjectModal } from '@/ui/modals/ProjectModal'
@@ -130,15 +130,30 @@ export class LighthouseSettingTab extends PluginSettingTab {
             .setButtonText('Delete')
             .setWarning()
             .onClick(async () => {
-              const confirmed = confirm(
-                `Are you sure you want to delete the project "${activeProject.name}"?\n\n` +
-                  `This will only remove the project configuration. Your files will not be deleted.`,
-              )
+              const modal = new Modal(this.app)
+              modal.titleEl.setText('Delete Project')
+              modal.contentEl.createEl('p', {
+                text: `Are you sure you want to delete the project "${activeProject.name}"?`,
+              })
+              modal.contentEl.createEl('p', {
+                text: 'This will only remove the project configuration. Your files will not be deleted.',
+                cls: 'mod-muted',
+              })
 
-              if (confirmed) {
-                await this.plugin.projectManager.deleteProject(activeProject.id)
-                this.display() // Refresh the settings display
-              }
+              new ButtonComponent(modal.contentEl)
+                .setButtonText('Cancel')
+                .onClick(() => modal.close())
+
+              new ButtonComponent(modal.contentEl)
+                .setButtonText('Delete')
+                .setWarning()
+                .onClick(async () => {
+                  await this.plugin.projectManager.deleteProject(activeProject.id)
+                  modal.close()
+                  this.display() // Refresh the settings display
+                })
+
+              modal.open()
             }),
         )
     }

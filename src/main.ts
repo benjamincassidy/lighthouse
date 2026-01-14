@@ -46,17 +46,17 @@ export default class LighthousePlugin extends Plugin {
 
     // Add ribbon icon to open dashboard
     this.addRibbonIcon('layout-dashboard', 'Project Dashboard', () => {
-      this.activateDashboard()
+      void this.activateDashboard()
     })
 
     // Add ribbon icon to open project explorer
     this.addRibbonIcon('folder-tree', 'Project Explorer', () => {
-      this.activateProjectExplorer()
+      void this.activateProjectExplorer()
     })
 
     // Add ribbon icon to open stats panel
     this.addRibbonIcon('bar-chart-2', 'Writing Stats', () => {
-      this.activateStatsPanel()
+      void this.activateStatsPanel()
     })
 
     // Add command to open dashboard
@@ -64,7 +64,7 @@ export default class LighthousePlugin extends Plugin {
       id: 'lighthouse-open-dashboard',
       name: 'Open Project Dashboard',
       callback: () => {
-        this.activateDashboard()
+        void this.activateDashboard()
       },
     })
 
@@ -73,7 +73,7 @@ export default class LighthousePlugin extends Plugin {
       id: 'lighthouse-open-project-explorer',
       name: 'Open Project Explorer',
       callback: () => {
-        this.activateProjectExplorer()
+        void this.activateProjectExplorer()
       },
     })
 
@@ -82,7 +82,7 @@ export default class LighthousePlugin extends Plugin {
       id: 'lighthouse-open-stats-panel',
       name: 'Open Writing Stats',
       callback: () => {
-        this.activateStatsPanel()
+        void this.activateStatsPanel()
       },
     })
 
@@ -93,12 +93,6 @@ export default class LighthousePlugin extends Plugin {
       callback: () => {
         this.zenMode.toggleZenMode()
       },
-      hotkeys: [
-        {
-          modifiers: ['Mod', 'Shift'],
-          key: 'z',
-        },
-      ],
     })
 
     // Add command to create new project
