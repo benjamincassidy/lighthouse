@@ -20,7 +20,7 @@ export default class LighthousePlugin extends Plugin {
   zenMode!: ZenMode
 
   async onload() {
-    console.log('Loading Lighthouse plugin')
+    console.debug('Loading Lighthouse plugin')
 
     // Load settings
     await this.loadSettings()
@@ -141,10 +141,10 @@ export default class LighthousePlugin extends Plugin {
     this.addSettingTab(new LighthouseSettingTab(this.app, this))
 
     // Log current state for debugging
-    console.log('Lighthouse: Loaded', this.projectManager.getProjectCount(), 'projects')
+    console.debug('Lighthouse: Loaded', this.projectManager.getProjectCount(), 'projects')
     const activeProject = this.projectManager.getActiveProject()
     if (activeProject) {
-      console.log('Lighthouse: Active project:', activeProject.name)
+      console.debug('Lighthouse: Active project:', activeProject.name)
     }
   }
 
@@ -161,7 +161,7 @@ export default class LighthousePlugin extends Plugin {
     if (this.zenMode.isZenModeActive()) {
       this.zenMode.exitZenMode()
     }
-    console.log('Unloading Lighthouse plugin')
+    console.debug('Unloading Lighthouse plugin')
   }
 
   async activateDashboard(): Promise<void> {

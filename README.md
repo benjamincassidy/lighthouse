@@ -72,16 +72,23 @@ npm run format
 npm run format:check
 ```
 
-## Installation (Future)
+## Installation
 
-Once released, Lighthouse will be available in Obsidian's community plugins.
+### Community Plugins (Coming Soon)
 
-### Manual Installation (For Testing)
+Lighthouse will be available in Obsidian's Community Plugins once approved.
 
-1. Download the latest release from GitHub
-2. Extract `main.js`, `manifest.json`, and `styles.css`
-3. Copy them to your vault's `.obsidian/plugins/lighthouse/` folder
-4. Reload Obsidian and enable the plugin in Settings → Community Plugins
+### Manual Installation (Current)
+
+For testing the alpha release:
+
+1. Download the [latest release](https://github.com/benjamincassidy/obsidian-lighthouse/releases) from GitHub
+2. Extract the contents to your vault's `.obsidian/plugins/lighthouse/` folder:
+   - `main.js`
+   - `manifest.json`
+   - `styles.css`
+3. Reload Obsidian
+4. Enable "Lighthouse" in Settings → Community Plugins
 
 ### Building from Source
 
@@ -103,11 +110,19 @@ Then copy `main.js`, `manifest.json`, and `styles.css` to your vault's plugin fo
 
 ## Documentation
 
-Full documentation is available at [lighthouse-docs.example.com](#) (coming soon)
+Full documentation is available at [benjamincassidy.github.io/obsidian-lighthouse](https://benjamincassidy.github.io/obsidian-lighthouse/)
 
 ## Contributing
 
 Contributions welcome! This is an early-stage project. See [LIGHTHOUSE_PROJECT_BRIEF.md](LIGHTHOUSE_PROJECT_BRIEF.md) for architecture and design decisions.
+
+## Support
+
+If you find Lighthouse helpful, consider:
+- ⭐ Starring the repository
+- 💝 [Sponsoring on GitHub](https://github.com/sponsors/benjamincassidy)
+- 🐛 Reporting bugs and suggesting features
+- 📖 Improving documentation
 
 ## License
 

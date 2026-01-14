@@ -56,7 +56,6 @@
 
     // If no folders specified, show root folder contents
     if (allFolders.length === 0) {
-      console.log('Lighthouse: No content/source folders, showing root:', project.rootPath)
       const node = buildTreeNode(rootFolder as TFolder, project)
       treeNodes = node ? [node] : []
       return

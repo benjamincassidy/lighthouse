@@ -39,11 +39,6 @@
     }
 
     try {
-      console.log('Lighthouse Dashboard: Updating stats for project:', project.name, {
-        contentFolders: project.contentFolders,
-        sourceFolders: project.sourceFolders,
-        rootPath: project.rootPath,
-      })
       const result = await plugin.hierarchicalCounter.countProject(project)
       projectStats = {
         totalFiles: result.totalFiles,
@@ -51,7 +46,6 @@
         contentFolders: project.contentFolders.length,
         sourceFolders: project.sourceFolders.length,
       }
-      console.log('Lighthouse Dashboard: Stats updated:', projectStats)
     } catch (error) {
       console.error('Lighthouse Dashboard: Error updating stats:', error)
     }

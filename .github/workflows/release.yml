@@ -1,0 +1,105 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Run linter
+        run: npm run lint
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build plugin
+        run: npm run build
+
+      - name: Get version from tag
+        id: tag_version
+        run: |
+          echo "TAG_VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Verify version consistency
+        run: |
+          MANIFEST_VERSION=$(node -p "require('./manifest.json').version")
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          TAG_VERSION="${{ steps.tag_version.outputs.VERSION }}"
+
+          echo "Tag version: $TAG_VERSION"
+          echo "Manifest version: $MANIFEST_VERSION"
+          echo "Package.json version: $PACKAGE_VERSION"
+
+          if [ "$MANIFEST_VERSION" != "$TAG_VERSION" ]; then
+            echo "❌ Error: manifest.json version ($MANIFEST_VERSION) does not match tag ($TAG_VERSION)"
+            exit 1
+          fi
+
+          if [ "$PACKAGE_VERSION" != "$TAG_VERSION" ]; then
+            echo "⚠️  Warning: package.json version ($PACKAGE_VERSION) does not match tag ($TAG_VERSION)"
+          fi
+
+          echo "✅ Version verification passed"
+
+      - name: Create release notes
+        id: release_notes
+        run: |
+          # Extract release notes from CHANGELOG.md for this version
+          VERSION="${{ steps.tag_version.outputs.VERSION }}"
+
+          # Create a temporary file for release notes
+          NOTES_FILE=$(mktemp)
+
+          # Extract content between this version and the next version header
+          awk "/^## \[$VERSION\]/{flag=1; next} /^## \[/{flag=0} flag" CHANGELOG.md > "$NOTES_FILE"
+
+          # If we found notes, use them; otherwise use a default message
+          if [ -s "$NOTES_FILE" ]; then
+            echo "Found release notes in CHANGELOG.md"
+            cat "$NOTES_FILE"
+          else
+            echo "No specific release notes found in CHANGELOG.md" > "$NOTES_FILE"
+            echo "See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details." >> "$NOTES_FILE"
+          fi
+
+          # Output the file path
+          echo "notes_file=$NOTES_FILE" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag_version.outputs.TAG_VERSION }}
+          name: Release ${{ steps.tag_version.outputs.VERSION }}
+          body_path: ${{ steps.release_notes.outputs.notes_file }}
+          draft: false
+          prerelease: ${{ contains(steps.tag_version.outputs.VERSION, 'beta') || contains(steps.tag_version.outputs.VERSION, 'alpha') || startsWith(steps.tag_version.outputs.VERSION, '0.') }}
+          files: |
+            main.js
+            manifest.json
+            styles.css
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Release Summary
+        run: |
+          echo "✅ Release ${{ steps.tag_version.outputs.VERSION }} created successfully!"
+          echo "📦 Uploaded files: main.js, manifest.json, styles.css"
+          echo "🔗 Release URL: ${{ steps.create_release.outputs.url }}"
