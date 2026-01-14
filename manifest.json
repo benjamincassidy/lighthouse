@@ -1,9 +1,9 @@
 {
   "id": "lighthouse",
   "name": "Lighthouse",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "minAppVersion": "1.4.0",
-  "description": "Project-based writing for Obsidian. Manage multiple writing projects with word counts, filtered views, and distraction-free writing.",
+  "description": "Project-based writing. Manage multiple writing projects with word counts, filtered views, and distraction-free writing.",
   "author": "benjamin cassidy",
   "authorUrl": "https://github.com/benjamincassidy",
   "fundingUrl": "https://github.com/sponsors/benjamincassidy",
