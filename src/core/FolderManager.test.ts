@@ -30,15 +30,33 @@ describe('FolderManager', () => {
   })
 
   beforeEach(() => {
+    // Create mock folders with hierarchy
+    const rootFolder = createMockFolder('')
+    const projectsFolder = createMockFolder('projects')
+    const novelFolder = createMockFolder('projects/novel')
+    const chaptersFolder = createMockFolder('projects/novel/chapters')
+    const researchFolder = createMockFolder('projects/novel/research')
+    const notesFolder = createMockFolder('projects/novel/notes')
+    const otherFolder = createMockFolder('other')
+
+    // Set up folder hierarchy
+    rootFolder.children = [projectsFolder, otherFolder]
+    projectsFolder.children = [novelFolder]
+    novelFolder.children = [chaptersFolder, researchFolder, notesFolder]
+    chaptersFolder.children = []
+    researchFolder.children = []
+    notesFolder.children = []
+    otherFolder.children = []
+
     // Mock vault with folder structure
     const folderMap = new Map<string, TFolder>([
-      ['', createMockFolder('')],
-      ['projects', createMockFolder('projects')],
-      ['projects/novel', createMockFolder('projects/novel')],
-      ['projects/novel/chapters', createMockFolder('projects/novel/chapters')],
-      ['projects/novel/research', createMockFolder('projects/novel/research')],
-      ['projects/novel/notes', createMockFolder('projects/novel/notes')],
-      ['other', createMockFolder('other')],
+      ['', rootFolder],
+      ['projects', projectsFolder],
+      ['projects/novel', novelFolder],
+      ['projects/novel/chapters', chaptersFolder],
+      ['projects/novel/research', researchFolder],
+      ['projects/novel/notes', notesFolder],
+      ['other', otherFolder],
     ])
 
     mockVault = {
@@ -46,7 +64,7 @@ describe('FolderManager', () => {
         const normalized = path.replace(/^\//, '').replace(/\/$/, '')
         return folderMap.get(normalized) || null
       },
-      getRoot: () => folderMap.get(''),
+      getRoot: () => rootFolder,
       adapter: { constructor: Object },
     } as unknown as Vault
 
@@ -303,6 +321,48 @@ describe('FolderManager', () => {
       const result = manager.makeRelativePath('/projects/novel/', '/chapters/')
 
       expect(result).toBe('chapters')
+    })
+  })
+
+  describe('getAllFolders', () => {
+    it('should return all folders in the vault', () => {
+      const folders = manager.getAllFolders()
+
+      expect(folders.length).toBeGreaterThan(0)
+      expect(folders.some((f) => f.path === '')).toBe(true) // root
+      expect(folders.some((f) => f.path === 'projects')).toBe(true)
+      expect(folders.some((f) => f.path === 'projects/novel')).toBe(true)
+    })
+  })
+
+  describe('getFoldersInPath', () => {
+    it('should return folders under a specific path', () => {
+      const folders = manager.getFoldersInPath('projects/novel')
+
+      expect(folders.length).toBeGreaterThan(0)
+      expect(folders.some((f) => f.path === 'projects/novel')).toBe(true)
+      expect(folders.some((f) => f.path === 'projects/novel/chapters')).toBe(true)
+    })
+
+    it('should return empty array for non-existent path', () => {
+      const folders = manager.getFoldersInPath('non/existent')
+
+      expect(folders).toEqual([])
+    })
+
+    it('should return empty array for file path', () => {
+      // Mock a file instead of folder
+      const originalGet = mockVault.getAbstractFileByPath
+      mockVault.getAbstractFileByPath = (path: string) => {
+        if (path === 'projects/novel/file.md') {
+          return { path, name: 'file.md' } as any
+        }
+        return originalGet(path)
+      }
+
+      const folders = manager.getFoldersInPath('projects/novel/file.md')
+
+      expect(folders).toEqual([])
     })
   })
 })

@@ -23,8 +23,8 @@
   // Baseline word counts for session and today tracking
   // Initialize to high number to prevent flash on first render
   let sessionStartWordCount = $state(Number.MAX_SAFE_INTEGER)
-  let todayStartWordCount = $state(plugin.settings.todayWordCountBaseline)
-  let todayStartDate = $state(plugin.settings.todayWordCountDate)
+  let todayStartWordCount = $state(0)
+  let todayStartDate = $state('')
 
   // Derived values
   let project = $derived.by(() => {
@@ -42,6 +42,14 @@
   let progressPercent = $derived(
     projectGoal && projectWordCount > 0 ? Math.min((projectWordCount / projectGoal) * 100, 100) : 0,
   )
+
+  // Initialize today tracking from settings on mount
+  $effect(() => {
+    if (plugin && todayStartDate === '') {
+      todayStartWordCount = plugin.settings.todayWordCountBaseline
+      todayStartDate = plugin.settings.todayWordCountDate || ''
+    }
+  })
 
   // Update stats when active file changes
   async function updateStats() {
