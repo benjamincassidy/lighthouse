@@ -1,6 +1,6 @@
 {
   "name": "obsidian-lighthouse",
-  "version": "0.9.1",
+  "version": "0.9.2",
   "description": "Project-based writing for Obsidian",
   "main": "main.js",
   "scripts": {

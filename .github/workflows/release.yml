@@ -2,8 +2,11 @@ name: Release
 
 on:
   push:
-    tags:
-      - '*'
+    branches:
+      - main
+    paths:
+      - 'manifest.json'
+      - 'package.json'
 
 permissions:
   contents: write
@@ -15,60 +18,73 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetch all history for version comparison
+
+      - name: Check if version changed
+        id: version_check
+        run: |
+          CURRENT_VERSION=$(node -p "require('./manifest.json').version")
+          echo "Current version: $CURRENT_VERSION"
+
+          # Get the latest release version (if any exist)
+          LATEST_RELEASE=$(gh release list --limit 1 --json tagName --jq '.[0].tagName' 2>/dev/null || echo "none")
+          echo "Latest release: $LATEST_RELEASE"
+
+          if [ "$LATEST_RELEASE" = "none" ] || [ "$LATEST_RELEASE" != "$CURRENT_VERSION" ]; then
+            echo "Version changed or first release - proceeding with release"
+            echo "should_release=true" >> $GITHUB_OUTPUT
+            echo "VERSION=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          else
+            echo "Version unchanged - skipping release"
+            echo "should_release=false" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
+        if: steps.version_check.outputs.should_release == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
 
       - name: Install dependencies
+        if: steps.version_check.outputs.should_release == 'true'
         run: npm ci --legacy-peer-deps
 
       - name: Run linter
+        if: steps.version_check.outputs.should_release == 'true'
         run: npm run lint
 
       - name: Run tests
+        if: steps.version_check.outputs.should_release == 'true'
         run: npm test
 
       - name: Build plugin
+        if: steps.version_check.outputs.should_release == 'true'
         run: npm run build
 
-      - name: Get version from tag
-        id: tag_version
-        run: |
-          TAG="${GITHUB_REF#refs/tags/}"
-          # Remove 'v' prefix if present
-          VERSION="${TAG#v}"
-          echo "TAG_VERSION=$TAG" >> $GITHUB_OUTPUT
-          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-
       - name: Verify version consistency
+        if: steps.version_check.outputs.should_release == 'true'
         run: |
           MANIFEST_VERSION=$(node -p "require('./manifest.json').version")
           PACKAGE_VERSION=$(node -p "require('./package.json').version")
-          TAG_VERSION="${{ steps.tag_version.outputs.VERSION }}"
 
-          echo "Tag version: $TAG_VERSION"
           echo "Manifest version: $MANIFEST_VERSION"
           echo "Package.json version: $PACKAGE_VERSION"
 
-          if [ "$MANIFEST_VERSION" != "$TAG_VERSION" ]; then
-            echo "❌ Error: manifest.json version ($MANIFEST_VERSION) does not match tag ($TAG_VERSION)"
-            exit 1
-          fi
-
-          if [ "$PACKAGE_VERSION" != "$TAG_VERSION" ]; then
-            echo "⚠️  Warning: package.json version ($PACKAGE_VERSION) does not match tag ($TAG_VERSION)"
+          if [ "$MANIFEST_VERSION" != "$PACKAGE_VERSION" ]; then
+            echo "⚠️  Warning: manifest.json version ($MANIFEST_VERSION) does not match package.json ($PACKAGE_VERSION)"
           fi
 
           echo "✅ Version verification passed"
 
       - name: Create release notes
+        if: steps.version_check.outputs.should_release == 'true'
         id: release_notes
         run: |
-          # Extract release notes from CHANGELOG.md for this version
-          VERSION="${{ steps.tag_version.outputs.VERSION }}"
+          VERSION="${{ steps.version_check.outputs.VERSION }}"
 
           # Create a temporary file for release notes
           NOTES_FILE=$(mktemp)
@@ -89,14 +105,15 @@ jobs:
           echo "notes_file=$NOTES_FILE" >> $GITHUB_OUTPUT
 
       - name: Create Release
+        if: steps.version_check.outputs.should_release == 'true'
         id: create_release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.tag_version.outputs.TAG_VERSION }}
-          name: ${{ steps.tag_version.outputs.VERSION }}
+          tag_name: ${{ steps.version_check.outputs.VERSION }}
+          name: ${{ steps.version_check.outputs.VERSION }}
           body_path: ${{ steps.release_notes.outputs.notes_file }}
           draft: false
-          prerelease: ${{ contains(steps.tag_version.outputs.VERSION, 'beta') || contains(steps.tag_version.outputs.VERSION, 'alpha') || startsWith(steps.tag_version.outputs.VERSION, '0.') }}
+          prerelease: false
           files: |
             main.js
             manifest.json
@@ -105,7 +122,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Release Summary
+        if: steps.version_check.outputs.should_release == 'true'
         run: |
-          echo "✅ Release ${{ steps.tag_version.outputs.VERSION }} created successfully!"
+          echo "✅ Release ${{ steps.version_check.outputs.VERSION }} created successfully!"
           echo "📦 Uploaded files: main.js, manifest.json, styles.css"
           echo "🔗 Release URL: ${{ steps.create_release.outputs.url }}"
