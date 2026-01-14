@@ -7,8 +7,7 @@ import StatsPanel from '@/ui/views/StatsPanel.svelte'
 export const STATS_PANEL_VIEW_TYPE = 'lighthouse-stats-panel'
 
 export class StatsPanelView extends ItemView {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private component: any = null
+  private component: ReturnType<typeof mount> | null = null
   private plugin: LighthousePlugin
 
   constructor(leaf: WorkspaceLeaf, plugin: LighthousePlugin) {

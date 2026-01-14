@@ -7,8 +7,7 @@ import Dashboard from '@/ui/views/Dashboard.svelte'
 export const DASHBOARD_VIEW_TYPE = 'lighthouse-dashboard'
 
 export class DashboardView extends ItemView {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private component: any = null
+  private component: ReturnType<typeof mount> | null = null
   private plugin: LighthousePlugin
 
   constructor(leaf: WorkspaceLeaf, plugin: LighthousePlugin) {

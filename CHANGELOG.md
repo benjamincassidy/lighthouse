@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-01-14
+
+### Fixed
+- Remove default hotkeys from commands to avoid conflicts with user settings and Obsidian defaults
+- Replace browser `alert()` and `confirm()` with Obsidian's `Notice` and `Modal` APIs for better UX
+- Fix floating promises by adding `void` operator to async callbacks
+- Remove ESLint disable directives and use proper TypeScript types for Svelte components
+- Fix imports to use proper ES6 imports instead of `require()` statements
+
 ## [1.0.0] - 2026-01-14
 
 - Create release scripting
@@ -118,6 +127,7 @@ This is the first alpha release of Lighthouse. The plugin is functional and read
 
 As this is the first release, no migration is necessary. All project data is stored in plugin settings and uses standard Obsidian markdown files.
 
-[Unreleased]: https://github.com/benjamincassidy/obsidian-lighthouse/compare/1.0.0...HEAD
+[Unreleased]: https://github.com/benjamincassidy/obsidian-lighthouse/compare/1.0.2...HEAD
 [0.9.0]: https://github.com/benjamincassidy/obsidian-lighthouse/releases/tag/0.9.0
 [1.0.0]: https://github.com/benjamincassidy/obsidian-lighthouse/compare/0.9.0...1.0.0
+[1.0.2]: https://github.com/benjamincassidy/obsidian-lighthouse/compare/1.0.0...1.0.2

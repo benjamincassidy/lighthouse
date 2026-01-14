@@ -1,4 +1,4 @@
-import { FuzzySuggestModal, Modal, Setting } from 'obsidian'
+import { FuzzySuggestModal, Modal, Notice, Setting } from 'obsidian'
 
 import type LighthousePlugin from '@/main'
 import type { Project } from '@/types/types'
@@ -300,9 +300,8 @@ export class ProjectModal extends Modal {
     // Validate
     const validation = this.validate()
     if (!validation.valid) {
-      // Show error
-      // TODO: Better error display
-      alert(validation.error)
+      // Show error using Obsidian's Notice
+      new Notice(validation.error || 'Validation failed', 5000)
       return
     }
 

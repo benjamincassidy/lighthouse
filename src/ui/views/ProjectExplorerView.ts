@@ -7,8 +7,7 @@ import ProjectExplorer from '@/ui/views/ProjectExplorer.svelte'
 export const PROJECT_EXPLORER_VIEW_TYPE = 'lighthouse-project-explorer'
 
 export class ProjectExplorerView extends ItemView {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private component: any = null
+  private component: ReturnType<typeof mount> | null = null
   private plugin: LighthousePlugin
 
   constructor(leaf: WorkspaceLeaf, plugin: LighthousePlugin) {
