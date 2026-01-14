@@ -1,0 +1,11 @@
+/* Lighthouse Documentation Custom Styles */
+
+:root {
+  --sl-hue-accent: 210; /* Blue hue inspired by lighthouse beams */
+  --sl-color-accent: hsl(var(--sl-hue-accent), 70%, 50%);
+}
+
+/* Add subtle lighthouse-inspired accent */
+.sl-markdown-content :is(h1, h2, h3) {
+  color: var(--sl-color-text-accent);
+}

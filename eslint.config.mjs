@@ -71,6 +71,6 @@ export default tseslint.config(
     },
   },
   {
-    ignores: ['dist/', 'node_modules/', 'main.js', 'main.js.map', '*.config.mjs'],
+    ignores: ['dist/', 'node_modules/', 'main.js', 'main.js.map', '*.config.mjs', 'docs/'],
   },
 )

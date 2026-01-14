@@ -7,19 +7,27 @@
 
 Lighthouse brings professional writing project management to Obsidian, inspired by Ulysses but without sacrificing Obsidian's power and flexibility. Perfect for novelists, academic writers, and anyone working on long-form writing projects.
 
-## Features (Planned)
+## Features
 
-- **Multiple Projects:** Manage independent writing projects, each with its own configuration
-- **Smart Word Counting:** Hierarchical word counts at file, folder, and project levels
-- **Content vs Source Folders:** Distinguish between content that counts toward your goals and research/reference material
-- **Filtered File Explorer:** View only files belonging to your active project
-- **Project Dashboard:** Customizable stats and insights with optional Dataview integration
-- **Zen Mode:** Distraction-free writing with a single keystroke
-- **Project Templates:** Templater integration with project-aware template variables
+### ✅ Implemented
+
+- **Multiple Projects:** Create and manage independent writing projects with their own configurations
+- **Smart Word Counting:** Real-time hierarchical word counts at file, folder, and project levels
+- **Content vs Source Folders:** Designate folders as "content" (counts toward goals) or "source" (research/reference material)
+- **Project Dashboard:** View project statistics, manage projects, and track progress
+- **Writing Stats Panel:** Persistent sidebar showing current file, folder, and project word counts with session and daily tracking
+- **Project Management:** Create, edit, delete, and switch between projects seamlessly
+- **Filtered File Explorer:** Project-scoped file tree view
+- **Zen Mode:** Distraction-free writing mode
+
+### 🚧 In Progress
+
+- **Project Templates:** Templater integration with project-aware variables (planned)
+- **Dataview Integration:** Enhanced dashboard queries (planned)
 
 ## Development Status
 
-🚧 **Pre-alpha:** This plugin is in early development. Not yet functional.
+**Alpha:** Core features are functional! The plugin is ready for early testing. Documentation is in progress.
 
 ## Development
 
@@ -66,12 +74,36 @@ npm run format:check
 
 ## Installation (Future)
 
-Once released, Lighthouse will be available in Obsidian's community plugins. For now, you can:
+Once released, Lighthouse will be available in Obsidian's community plugins.
 
-1. Clone this repository
-2. Run `npm install && npm run build`
-3. Copy `main.js`, `manifest.json`, and `styles.css` to your vault's `.obsidian/plugins/lighthouse/` folder
-4. Reload Obsidian and enable the plugin
+### Manual Installation (For Testing)
+
+1. Download the latest release from GitHub
+2. Extract `main.js`, `manifest.json`, and `styles.css`
+3. Copy them to your vault's `.obsidian/plugins/lighthouse/` folder
+4. Reload Obsidian and enable the plugin in Settings → Community Plugins
+
+### Building from Source
+
+```bash
+git clone https://github.com/benjamincassidy/obsidian-lighthouse.git
+cd obsidian-lighthouse
+npm install
+npm run build
+```
+
+Then copy `main.js`, `manifest.json`, and `styles.css` to your vault's plugin folder.
+
+## Quick Start
+
+1. **Create a Project:** Open the Command Palette (Cmd/Ctrl+P) and run "Lighthouse: Create Project"
+2. **Configure Folders:** Designate which folders contain your writing (content) vs research (source)
+3. **Start Writing:** Open the Stats Panel from the ribbon or command palette to track your progress
+4. **View Dashboard:** Access the project dashboard to see detailed statistics and manage projects
+
+## Documentation
+
+Full documentation is available at [lighthouse-docs.example.com](#) (coming soon)
 
 ## Contributing
 
