@@ -34,8 +34,11 @@ jobs:
       - name: Get version from tag
         id: tag_version
         run: |
-          echo "TAG_VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-          echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          TAG="${GITHUB_REF#refs/tags/}"
+          # Remove 'v' prefix if present
+          VERSION="${TAG#v}"
+          echo "TAG_VERSION=$TAG" >> $GITHUB_OUTPUT
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Verify version consistency
         run: |
@@ -87,7 +90,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag_version.outputs.TAG_VERSION }}
-          name: Release ${{ steps.tag_version.outputs.VERSION }}
+          name: ${{ steps.tag_version.outputs.VERSION }}
           body_path: ${{ steps.release_notes.outputs.notes_file }}
           draft: false
           prerelease: ${{ contains(steps.tag_version.outputs.VERSION, 'beta') || contains(steps.tag_version.outputs.VERSION, 'alpha') || startsWith(steps.tag_version.outputs.VERSION, '0.') }}
