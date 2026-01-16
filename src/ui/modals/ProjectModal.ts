@@ -1,9 +1,8 @@
 import { FuzzySuggestModal, Modal, Notice, Setting } from 'obsidian'
+import { TFolder, type App } from 'obsidian'
 
 import type LighthousePlugin from '@/main'
 import type { Project } from '@/types/types'
-
-import type { App, TFolder } from 'obsidian'
 
 /**
  * Modal mode - create new or edit existing project
@@ -33,8 +32,8 @@ class FolderSuggestModal extends FuzzySuggestModal<TFolder> {
         if (child instanceof this.app.vault.adapter.constructor) {
           continue
         }
-        if ('children' in child) {
-          collectFolders(child as TFolder)
+        if (child instanceof TFolder) {
+          collectFolders(child)
         }
       }
     }
@@ -73,7 +72,7 @@ class MultiFolderSelector {
 
     // Add button
     const addButton = this.containerEl.createEl('button', {
-      text: '+ Add Folder',
+      text: 'Add folder',
       cls: 'mod-cta',
     })
     addButton.addEventListener('click', () => {
@@ -190,7 +189,7 @@ export class ProjectModal extends Modal {
 
     // Title
     contentEl.createEl('h2', {
-      text: this.mode === 'create' ? 'Create New Project' : 'Edit Project',
+      text: this.mode === 'create' ? 'Create new project' : 'Edit project',
     })
 
     // Project name
@@ -209,7 +208,7 @@ export class ProjectModal extends Modal {
       .setName('Root folder')
       .setDesc('The main folder containing your project files')
       .addButton((button) => {
-        button.setButtonText(this.rootPath || 'Select folder...').onClick(() => {
+        button.setButtonText(this.rootPath || 'Select folder').onClick(() => {
           const modal = new FolderSuggestModal(this.app, (folder) => {
             this.rootPath = folder.path
             button.setButtonText(this.rootPath)
@@ -254,7 +253,7 @@ export class ProjectModal extends Modal {
       .setDesc('Optional target word count for this project')
       .addText((text) => {
         text
-          .setPlaceholder('e.g., 50000')
+          .setPlaceholder('E.g., 50000')
           .setValue(this.wordCountGoal?.toString() || '')
           .onChange((value) => {
             const parsed = parseInt(value, 10)
@@ -281,11 +280,11 @@ export class ProjectModal extends Modal {
     })
 
     const saveButton = buttonContainer.createEl('button', {
-      text: this.mode === 'create' ? 'Create Project' : 'Save Changes',
+      text: this.mode === 'create' ? 'Create project' : 'Save changes',
       cls: 'mod-cta',
     })
     saveButton.addEventListener('click', () => {
-      this.save()
+      void this.save()
     })
 
     const cancelButton = buttonContainer.createEl('button', {

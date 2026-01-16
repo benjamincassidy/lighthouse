@@ -1,17 +1,43 @@
 import js from '@eslint/js'
 import importX from 'eslint-plugin-import-x'
+import obsidianmd from 'eslint-plugin-obsidianmd'
 import svelte from 'eslint-plugin-svelte'
 import tseslint from 'typescript-eslint'
 
 export default tseslint.config(
-  js.configs.recommended,
-  ...tseslint.configs.recommended,
-  ...svelte.configs['flat/recommended'],
   {
+    ignores: [
+      'dist/',
+      'node_modules/',
+      'main.js',
+      'main.js.map',
+      'docs/',
+      'coverage/',
+      'scripts/',
+      '*.config.*',
+      '*.json',
+      '*.md',
+      'version-bump.mjs',
+      'vitest.config.mts',
+    ],
+  },
+  js.configs.recommended,
+  ...tseslint.configs.recommendedTypeChecked,
+  ...svelte.configs['flat/recommended'],
+  ...obsidianmd.configs.recommended,
+  {
+    files: ['**/*.ts'],
     languageOptions: {
       parserOptions: {
         ecmaVersion: 2020,
         sourceType: 'module',
+        project: './tsconfig.json',
+      },
+      globals: {
+        console: 'readonly',
+        document: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
       },
     },
   },
@@ -24,8 +50,6 @@ export default tseslint.config(
       '@typescript-eslint/ban-ts-comment': 'off',
       '@typescript-eslint/no-empty-function': 'off',
       'no-prototype-builtins': 'off',
-      '@typescript-eslint/require-await': 'off',
-      // Obsidian policy rules (manual enforcement)
       'no-console': ['error', { allow: ['warn', 'error', 'debug'] }],
       'import-x/order': [
         'error',
@@ -39,18 +63,10 @@ export default tseslint.config(
             'object',
             'type',
           ],
-          pathGroups: [
-            {
-              pattern: '@/**',
-              group: 'internal',
-            },
-          ],
+          pathGroups: [{ pattern: '@/**', group: 'internal' }],
           pathGroupsExcludedImportTypes: ['builtin'],
           'newlines-between': 'always',
-          alphabetize: {
-            order: 'asc',
-            caseInsensitive: true,
-          },
+          alphabetize: { order: 'asc', caseInsensitive: true },
         },
       ],
     },
@@ -61,24 +77,48 @@ export default tseslint.config(
       parserOptions: {
         parser: tseslint.parser,
       },
+      globals: { CustomEvent: 'readonly', console: 'readonly' },
+    },
+    rules: {
+      // Disable all type-aware TypeScript rules for Svelte (they need special tsconfig)
+      ...Object.fromEntries(
+        Object.keys(tseslint.configs.recommendedTypeChecked[2].rules || {})
+          .filter((rule) => rule.startsWith('@typescript-eslint/'))
+          .map((rule) => [rule, 'off']),
+      ),
+    },
+  },
+  {
+    files: ['**/*.test.ts', '**/*.spec.ts', 'src/test/**/*.ts'],
+    languageOptions: {
       globals: {
-        CustomEvent: 'readonly',
+        vi: 'readonly',
+        describe: 'readonly',
+        it: 'readonly',
+        expect: 'readonly',
+        beforeEach: 'readonly',
+        afterEach: 'readonly',
         console: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
       },
     },
-  },
-  {
-    files: ['**/*.test.ts', '**/*.spec.ts'],
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/require-await': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
+      '@typescript-eslint/unbound-method': 'off',
+      'obsidianmd/no-tfile-tfolder-cast': 'off',
+      'no-undef': 'off',
     },
   },
   {
-    // Node.js scripts (build tools, release scripts, etc.)
     files: ['scripts/**/*.js', '*.config.mjs', '*.config.js'],
     languageOptions: {
       globals: {
-        // Node.js globals
         require: 'readonly',
         module: 'readonly',
         exports: 'readonly',
@@ -91,15 +131,9 @@ export default tseslint.config(
       },
     },
     rules: {
-      // Allow console.log in build scripts
       'no-console': 'off',
-      // Allow require() in Node.js scripts
       '@typescript-eslint/no-require-imports': 'off',
-      // Node.js scripts don't need undef checks
       'no-undef': 'off',
     },
-  },
-  {
-    ignores: ['dist/', 'node_modules/', 'main.js', 'main.js.map', 'docs/'],
   },
 )

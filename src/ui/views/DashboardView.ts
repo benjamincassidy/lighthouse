@@ -20,7 +20,7 @@ export class DashboardView extends ItemView {
   }
 
   getDisplayText(): string {
-    return 'Project Dashboard'
+    return 'Project dashboard'
   }
 
   getIcon(): string {
@@ -41,7 +41,7 @@ export class DashboardView extends ItemView {
 
   async onClose(): Promise<void> {
     if (this.component) {
-      unmount(this.component)
+      void unmount(this.component)
       this.component = null
     }
   }
