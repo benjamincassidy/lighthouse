@@ -32,7 +32,7 @@ const DEFAULT_OPTIONS: Required<WordCountOptions> = {
  * with support for excluding frontmatter, code blocks, and other elements
  */
 export class WordCounter {
-  private debounceTimers: Map<string, NodeJS.Timeout>
+  private debounceTimers: Map<string, ReturnType<typeof setTimeout>>
   private readonly debounceMs: number
 
   constructor(debounceMs = 300) {

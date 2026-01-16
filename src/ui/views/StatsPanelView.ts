@@ -20,7 +20,7 @@ export class StatsPanelView extends ItemView {
   }
 
   getDisplayText(): string {
-    return 'Writing Stats'
+    return 'Writing stats'
   }
 
   getIcon(): string {
@@ -41,7 +41,7 @@ export class StatsPanelView extends ItemView {
 
   async onClose(): Promise<void> {
     if (this.component) {
-      unmount(this.component)
+      void unmount(this.component)
       this.component = null
     }
   }
