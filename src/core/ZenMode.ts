@@ -108,28 +108,28 @@ export class ZenMode {
   private hideStatusBar(): void {
     const statusBar = document.querySelector('.status-bar') as HTMLElement
     if (statusBar) {
-      statusBar.style.display = 'none'
+      statusBar.addClass('lighthouse-hidden')
     }
   }
 
   private showStatusBar(): void {
     const statusBar = document.querySelector('.status-bar') as HTMLElement
     if (statusBar) {
-      statusBar.style.display = ''
+      statusBar.removeClass('lighthouse-hidden')
     }
   }
 
   private hideRibbon(): void {
     const ribbon = document.querySelector('.workspace-ribbon') as HTMLElement
     if (ribbon) {
-      ribbon.style.display = 'none'
+      ribbon.addClass('lighthouse-hidden')
     }
   }
 
   private showRibbon(): void {
     const ribbon = document.querySelector('.workspace-ribbon') as HTMLElement
     if (ribbon) {
-      ribbon.style.display = ''
+      ribbon.removeClass('lighthouse-hidden')
     }
   }
 }

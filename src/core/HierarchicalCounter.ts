@@ -1,4 +1,4 @@
-import { MarkdownView, type App, type TFile, type TFolder, type Vault } from 'obsidian'
+import { MarkdownView, TFile, TFolder, type App, type Vault } from 'obsidian'
 
 import { FolderManager } from '@/core/FolderManager'
 import { WordCounter, type WordCountOptions, type WordCountResult } from '@/core/WordCounter'
@@ -49,7 +49,7 @@ export class HierarchicalCounter {
 
       return this.wordCounter.countFile(file, content, options)
     } catch (error) {
-      console.error(`Error counting file ${file.path}:`, error)
+      console.warn(`Error counting file ${file.path}:`, error)
       return undefined
     }
   }
@@ -66,6 +66,7 @@ export class HierarchicalCounter {
       return undefined
     }
 
+    // eslint-disable-next-line obsidianmd/no-tfile-tfolder-cast -- Using duck typing for test compatibility
     const stats = await this.calculateFolderStats(folder as TFolder, options)
 
     return stats
@@ -115,19 +116,18 @@ export class HierarchicalCounter {
     for (const child of folder.children) {
       if ('children' in child) {
         // It's a folder
+        // eslint-disable-next-line obsidianmd/no-tfile-tfolder-cast -- Using duck typing for test compatibility
         const childStats = await this.calculateFolderStats(child as TFolder, options)
         children.push(childStats)
         wordCount += childStats.wordCount
         fileCount += childStats.fileCount
-      } else {
-        // It's a file
-        const file = child as TFile
-        if (file.extension === 'md') {
-          const result = await this.countFile(file, options)
-          if (result) {
-            wordCount += result.words
-            fileCount++
-          }
+      } else if ('extension' in child && child.extension === 'md') {
+        // It's a markdown file
+        // eslint-disable-next-line obsidianmd/no-tfile-tfolder-cast -- Using duck typing for test compatibility
+        const result = await this.countFile(child as TFile, options)
+        if (result) {
+          wordCount += result.words
+          fileCount++
         }
       }
     }

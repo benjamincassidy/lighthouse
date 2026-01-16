@@ -1,6 +1,6 @@
-import type { Project } from '@/types/types'
+import { TFolder, type Vault } from 'obsidian'
 
-import type { TFolder, Vault } from 'obsidian'
+import type { Project } from '@/types/types'
 
 /**
  * Result of folder validation
@@ -259,6 +259,7 @@ export class FolderManager {
       folders.push(folder)
       folder.children.forEach((child) => {
         if ('children' in child) {
+          // eslint-disable-next-line obsidianmd/no-tfile-tfolder-cast -- Using duck typing for test compatibility
           collectFolders(child as TFolder)
         }
       })
@@ -280,12 +281,14 @@ export class FolderManager {
     }
 
     const folders: TFolder[] = []
+    // eslint-disable-next-line obsidianmd/no-tfile-tfolder-cast -- Using duck typing for test compatibility
     const folder = abstractFile as TFolder
 
     const collectFolders = (f: TFolder) => {
       folders.push(f)
       f.children.forEach((child) => {
         if ('children' in child) {
+          // eslint-disable-next-line obsidianmd/no-tfile-tfolder-cast -- Using duck typing for test compatibility
           collectFolders(child as TFolder)
         }
       })

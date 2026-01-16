@@ -13,17 +13,23 @@
   interface Props {
     node: TreeNode
     depth?: number
-    ontoggle?: (e: CustomEvent<{ path: string }>) => void
-    onopen?: (e: CustomEvent<{ path: string }>) => void
+    ontoggle?: () => void
+    onopen?: () => void
   }
 
   let { node, depth = 0, ontoggle, onopen }: Props = $props()
 
   function handleClick() {
     if (node.type === 'folder' && ontoggle) {
-      ontoggle(new CustomEvent('toggle', { detail: { path: node.path } }))
+      ontoggle()
     } else if (node.type === 'file' && onopen) {
-      onopen(new CustomEvent('open', { detail: { path: node.path } }))
+      onopen()
+    }
+  }
+
+  function handleKeydown(event: { key: string }) {
+    if (event.key === 'Enter' || event.key === ' ') {
+      handleClick()
     }
   }
 
@@ -36,7 +42,7 @@
     role="button"
     tabindex="0"
     onclick={handleClick}
-    onkeydown={handleClick}
+    onkeydown={handleKeydown}
   >
     {#if node.type === 'folder'}
       <span class="lighthouse-tree-node-icon">

@@ -1,5 +1,10 @@
 /* Global styles for Lighthouse plugin */
 
+/* Zen Mode Styles */
+.lighthouse-hidden {
+  display: none !important;
+}
+
 /* Modal Styles */
 .lighthouse-modal-buttons {
   display: flex;

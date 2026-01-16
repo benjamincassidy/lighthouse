@@ -20,7 +20,7 @@ export class ProjectExplorerView extends ItemView {
   }
 
   getDisplayText(): string {
-    return 'Project Explorer'
+    return 'Project explorer'
   }
 
   getIcon(): string {
@@ -41,7 +41,7 @@ export class ProjectExplorerView extends ItemView {
 
   async onClose(): Promise<void> {
     if (this.component) {
-      unmount(this.component)
+      void unmount(this.component)
       this.component = null
     }
   }
