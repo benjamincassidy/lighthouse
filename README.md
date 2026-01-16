@@ -1,31 +1,17 @@
 # Lighthouse
 
-<table>
-
-<tr>
-
-<td style="display: inline-block; height: 100%;">
-
-**Project-based writing for Obsidian.**
-
-Lighthouse brings professional writing project management to Obsidian, inspired by Ulysses but without sacrificing Obsidian's power and flexibility. Perfect for novelists, academic writers, and anyone working on long-form writing projects.
-
-Lighthouse brings professional writing project management to Obsidian, inspired by Ulysses but without sacrificing Obsidian's power and flexibility. Perfect for novelists, academic writers, and anyone working on long-form writing projects.
-
-</td>
-
-<td>
-
-<img src="docs/src/assets/lighthouse.jpeg" alt="Lighthouse" width="300"/>
+<img align="right" src="docs/src/assets/lighthouse.jpeg" alt="Lighthouse" width="300"/>
 
 > "It was done; it was finished. Yes, she thought, laying down her brush in extreme fatigue, I have had my vision."
 > — Virginia Woolf, *To the Lighthouse*
 
-</td>
+<br />
 
-</tr>
+### Project-based writing for Obsidian.
 
-</table>
+Lighthouse brings professional writing project management to Obsidian, inspired by Ulysses but without sacrificing Obsidian's power and flexibility. Perfect for novelists, academic writers, and anyone working on long-form writing projects.
+
+<br clear="right"/>
 
 ---
 
