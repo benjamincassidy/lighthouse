@@ -24,14 +24,14 @@ export class ProjectStorage {
    * Load settings from disk
    */
   async load(): Promise<void> {
-    const data = await this.plugin.loadData()
+    const data = (await this.plugin.loadData()) as Partial<LighthouseSettings> | undefined
     this.settings = Object.assign({}, DEFAULT_SETTINGS, data)
 
     // Validate and clean up projects
     this.settings.projects = this.settings.projects.filter((project) => {
       const errors = validateProject(project)
       if (errors.length > 0) {
-        console.warn(`Invalid project "${project.name}" removed:`, errors)
+        console.error(`Invalid project "${project.name}" removed:`, errors)
         return false
       }
       return true

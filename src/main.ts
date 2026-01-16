@@ -20,8 +20,6 @@ export default class LighthousePlugin extends Plugin {
   zenMode!: ZenMode
 
   async onload() {
-    console.debug('Loading Lighthouse plugin')
-
     // Load settings
     await this.loadSettings()
 
@@ -45,24 +43,24 @@ export default class LighthousePlugin extends Plugin {
     this.registerView(STATS_PANEL_VIEW_TYPE, (leaf) => new StatsPanelView(leaf, this))
 
     // Add ribbon icon to open dashboard
-    this.addRibbonIcon('layout-dashboard', 'Project Dashboard', () => {
+    this.addRibbonIcon('layout-dashboard', 'Project dashboard', () => {
       void this.activateDashboard()
     })
 
     // Add ribbon icon to open project explorer
-    this.addRibbonIcon('folder-tree', 'Project Explorer', () => {
+    this.addRibbonIcon('folder-tree', 'Project explorer', () => {
       void this.activateProjectExplorer()
     })
 
     // Add ribbon icon to open stats panel
-    this.addRibbonIcon('bar-chart-2', 'Writing Stats', () => {
+    this.addRibbonIcon('bar-chart-2', 'Writing stats', () => {
       void this.activateStatsPanel()
     })
 
     // Add command to open dashboard
     this.addCommand({
-      id: 'lighthouse-open-dashboard',
-      name: 'Open Project Dashboard',
+      id: 'open-dashboard',
+      name: 'Open project dashboard',
       callback: () => {
         void this.activateDashboard()
       },
@@ -70,8 +68,8 @@ export default class LighthousePlugin extends Plugin {
 
     // Add command to open project explorer
     this.addCommand({
-      id: 'lighthouse-open-project-explorer',
-      name: 'Open Project Explorer',
+      id: 'open-project-explorer',
+      name: 'Open project explorer',
       callback: () => {
         void this.activateProjectExplorer()
       },
@@ -79,8 +77,8 @@ export default class LighthousePlugin extends Plugin {
 
     // Add command to open stats panel
     this.addCommand({
-      id: 'lighthouse-open-stats-panel',
-      name: 'Open Writing Stats',
+      id: 'open-stats-panel',
+      name: 'Open writing stats',
       callback: () => {
         void this.activateStatsPanel()
       },
@@ -88,8 +86,8 @@ export default class LighthousePlugin extends Plugin {
 
     // Add command to toggle zen mode
     this.addCommand({
-      id: 'lighthouse-toggle-zen-mode',
-      name: 'Toggle Zen Mode',
+      id: 'toggle-zen-mode',
+      name: 'Toggle zen mode',
       callback: () => {
         this.zenMode.toggleZenMode()
       },
@@ -97,8 +95,8 @@ export default class LighthousePlugin extends Plugin {
 
     // Add command to create new project
     this.addCommand({
-      id: 'lighthouse-create-project',
-      name: 'Create New Project',
+      id: 'create-project',
+      name: 'Create new project',
       callback: () => {
         const modal = new ProjectModal(this, 'create')
         modal.open()
@@ -115,7 +113,7 @@ export default class LighthousePlugin extends Plugin {
 
         menu.addItem((item) => {
           item
-            .setTitle('Create Lighthouse Project')
+            .setTitle('Create lighthouse project')
             .setIcon('lightbulb')
             .onClick(() => {
               // Extract folder name without path
@@ -133,17 +131,14 @@ export default class LighthousePlugin extends Plugin {
 
     // Add settings tab
     this.addSettingTab(new LighthouseSettingTab(this.app, this))
-
-    // Log current state for debugging
-    console.debug('Lighthouse: Loaded', this.projectManager.getProjectCount(), 'projects')
-    const activeProject = this.projectManager.getActiveProject()
-    if (activeProject) {
-      console.debug('Lighthouse: Active project:', activeProject.name)
-    }
   }
 
   async loadSettings() {
-    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData())
+    this.settings = Object.assign(
+      {},
+      DEFAULT_SETTINGS,
+      (await this.loadData()) as Partial<LighthouseSettings> | undefined,
+    )
   }
 
   async saveSettings() {
@@ -155,7 +150,6 @@ export default class LighthousePlugin extends Plugin {
     if (this.zenMode.isZenModeActive()) {
       this.zenMode.exitZenMode()
     }
-    console.debug('Unloading Lighthouse plugin')
   }
 
   async activateDashboard(): Promise<void> {
@@ -166,13 +160,13 @@ export default class LighthousePlugin extends Plugin {
     if (!leaf) {
       // Create new leaf as main view
       leaf = workspace.getLeaf('tab')
-      await leaf.setViewState({
+      void leaf.setViewState({
         type: DASHBOARD_VIEW_TYPE,
         active: true,
       })
     }
 
-    workspace.revealLeaf(leaf)
+    void workspace.revealLeaf(leaf)
   }
 
   async activateProjectExplorer(): Promise<void> {
@@ -187,13 +181,13 @@ export default class LighthousePlugin extends Plugin {
         return
       }
       leaf = leftLeaf
-      await leaf.setViewState({
+      void leaf.setViewState({
         type: PROJECT_EXPLORER_VIEW_TYPE,
         active: true,
       })
     }
 
-    workspace.revealLeaf(leaf)
+    void workspace.revealLeaf(leaf)
   }
 
   async activateStatsPanel(): Promise<void> {
@@ -208,12 +202,12 @@ export default class LighthousePlugin extends Plugin {
         return
       }
       leaf = rightLeaf
-      await leaf.setViewState({
+      void leaf.setViewState({
         type: STATS_PANEL_VIEW_TYPE,
         active: true,
       })
     }
 
-    workspace.revealLeaf(leaf)
+    void workspace.revealLeaf(leaf)
   }
 }

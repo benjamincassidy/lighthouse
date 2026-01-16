@@ -52,9 +52,6 @@ export class LighthouseSettingTab extends PluginSettingTab {
 
     containerEl.empty()
 
-    // Header
-    containerEl.createEl('h2', { text: 'Lighthouse Settings' })
-
     // Projects Section
     this.addProjectsSection(containerEl)
 
@@ -69,7 +66,7 @@ export class LighthouseSettingTab extends PluginSettingTab {
   }
 
   private addProjectsSection(containerEl: HTMLElement): void {
-    containerEl.createEl('h3', { text: 'Projects' })
+    new Setting(containerEl).setName('Projects').setHeading()
 
     new Setting(containerEl)
       .setName('Active project')
@@ -97,16 +94,16 @@ export class LighthouseSettingTab extends PluginSettingTab {
 
     new Setting(containerEl).setName('Manage projects').addButton((button) =>
       button
-        .setButtonText('Open Dashboard')
+        .setButtonText('Open dashboard')
         .setCta()
         .onClick(() => {
-          this.plugin.activateDashboard()
+          void this.plugin.activateDashboard()
         }),
     )
 
     new Setting(containerEl).setName('Create new project').addButton((button) =>
       button
-        .setButtonText('Create Project')
+        .setButtonText('Create project')
         .setCta()
         .onClick(() => {
           const modal = new ProjectModal(this.plugin, 'create')
@@ -131,7 +128,7 @@ export class LighthouseSettingTab extends PluginSettingTab {
             .setWarning()
             .onClick(async () => {
               const modal = new Modal(this.app)
-              modal.titleEl.setText('Delete Project')
+              modal.titleEl.setText('Delete project')
               modal.contentEl.createEl('p', {
                 text: `Are you sure you want to delete the project "${activeProject.name}"?`,
               })
@@ -163,7 +160,7 @@ export class LighthouseSettingTab extends PluginSettingTab {
   }
 
   private addZenModeSection(containerEl: HTMLElement): void {
-    containerEl.createEl('h3', { text: 'Zen Mode' })
+    new Setting(containerEl).setName('Zen mode').setHeading()
 
     new Setting(containerEl)
       .setName('Hide status bar')
@@ -194,7 +191,7 @@ export class LighthouseSettingTab extends PluginSettingTab {
   }
 
   private addWordCountSection(containerEl: HTMLElement): void {
-    containerEl.createEl('h3', { text: 'Word Counting' })
+    new Setting(containerEl).setName('Word counting').setHeading()
 
     new Setting(containerEl)
       .setName('Show word count in status bar')
@@ -231,8 +228,6 @@ export class LighthouseSettingTab extends PluginSettingTab {
   }
 
   private addGeneralSection(containerEl: HTMLElement): void {
-    containerEl.createEl('h3', { text: 'General' })
-
     new Setting(containerEl)
       .setName('Debug mode')
       .setDesc('Enable verbose logging to the console for troubleshooting')
@@ -245,13 +240,14 @@ export class LighthouseSettingTab extends PluginSettingTab {
 
     // Plugin info
     containerEl.createEl('div', { cls: 'setting-item-divider' })
-    containerEl.createEl('h3', { text: 'About' })
+    new Setting(containerEl).setName('About').setHeading()
 
     const aboutDiv = containerEl.createEl('div', { cls: 'setting-item-description' })
     aboutDiv.createEl('p', {
-      text: '🏮 Lighthouse - Project-based writing for Obsidian',
+      text: 'Lighthouse: project-based writing for Obsidian',
     })
     aboutDiv.createEl('p', {
+      // eslint-disable-next-line obsidianmd/ui/sentence-case
       text: 'Inspired by Ulysses and Virginia Woolf',
     })
 
@@ -262,7 +258,7 @@ export class LighthouseSettingTab extends PluginSettingTab {
     })
     linksDiv.createSpan({ text: ' • ' })
     linksDiv.createEl('a', {
-      text: 'Report Issues',
+      text: 'Report issues',
       href: 'https://github.com/benjamincassidy/obsidian-lighthouse/issues',
     })
   }
