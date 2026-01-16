@@ -1,11 +1,37 @@
 # Lighthouse
 
-> "It was done; it was finished. Yes, she thought, laying down her brush in extreme fatigue, I have had my vision."
-> — Virginia Woolf, *To the Lighthouse*
+<table>
+
+<tr>
+
+<td style="display: inline-block; height: 100%;">
 
 **Project-based writing for Obsidian.**
 
 Lighthouse brings professional writing project management to Obsidian, inspired by Ulysses but without sacrificing Obsidian's power and flexibility. Perfect for novelists, academic writers, and anyone working on long-form writing projects.
+
+Lighthouse brings professional writing project management to Obsidian, inspired by Ulysses but without sacrificing Obsidian's power and flexibility. Perfect for novelists, academic writers, and anyone working on long-form writing projects.
+
+</td>
+
+<td>
+
+<img src="docs/src/assets/lighthouse.jpeg" alt="Lighthouse" width="300"/>
+
+> "It was done; it was finished. Yes, she thought, laying down her brush in extreme fatigue, I have had my vision."
+> — Virginia Woolf, *To the Lighthouse*
+
+</td>
+
+</tr>
+
+</table>
+
+---
+
+## 📖 [Full Documentation](https://benjamincassidy.github.io/lighthouse/)
+
+Visit the [complete documentation site](https://benjamincassidy.github.io/lighthouse/) for detailed guides, tutorials, and reference materials.
 
 ## Features
 
@@ -107,10 +133,6 @@ Then copy `main.js`, `manifest.json`, and `styles.css` to your vault's plugin fo
 2. **Configure Folders:** Designate which folders contain your writing (content) vs research (source)
 3. **Start Writing:** Open the Stats Panel from the ribbon or command palette to track your progress
 4. **View Dashboard:** Access the project dashboard to see detailed statistics and manage projects
-
-## Documentation
-
-Full documentation is available at [benjamincassidy.github.io/obsidian-lighthouse](https://benjamincassidy.github.io/obsidian-lighthouse/)
 
 ## Contributing
 
