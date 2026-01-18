@@ -11,8 +11,8 @@ describe('ProjectManager', () => {
   beforeEach(async () => {
     // Create a mock plugin with in-memory storage
     mockPlugin = {
-      loadData: async () => ({ projects: [], activeProjectId: undefined }),
-      saveData: async () => undefined,
+      loadData: () => Promise.resolve({ projects: [], activeProjectId: undefined }),
+      saveData: () => Promise.resolve(undefined),
     } as unknown as Plugin
 
     manager = new ProjectManager(mockPlugin)

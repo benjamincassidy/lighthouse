@@ -27,7 +27,7 @@ export class StatsPanelView extends ItemView {
     return 'bar-chart-2'
   }
 
-  onOpen(): Promise<void> {
+  async onOpen(): Promise<void> {
     const container = this.containerEl.children[1]
     container.empty()
 
@@ -37,14 +37,14 @@ export class StatsPanelView extends ItemView {
         plugin: this.plugin,
       },
     })
-    return Promise.resolve()
+    await Promise.resolve()
   }
 
-  onClose(): Promise<void> {
+  async onClose(): Promise<void> {
     if (this.component) {
       void unmount(this.component)
       this.component = null
     }
-    return Promise.resolve()
+    await Promise.resolve()
   }
 }
