@@ -15,8 +15,8 @@ describe('ProjectManager - Store Synchronization', () => {
 
   beforeEach(async () => {
     mockPlugin = {
-      loadData: async () => ({ projects: [], activeProjectId: undefined }),
-      saveData: async () => undefined,
+      loadData: () => Promise.resolve({ projects: [], activeProjectId: undefined }),
+      saveData: () => Promise.resolve(undefined),
     } as unknown as Plugin
 
     manager = new ProjectManager(mockPlugin)
@@ -38,8 +38,8 @@ describe('ProjectManager - Store Synchronization', () => {
       ]
 
       mockPlugin = {
-        loadData: async () => ({ projects: mockProjects, activeProjectId: '1' }),
-        saveData: async () => undefined,
+        loadData: () => Promise.resolve({ projects: mockProjects, activeProjectId: '1' }),
+        saveData: () => Promise.resolve(undefined),
       } as unknown as Plugin
 
       manager = new ProjectManager(mockPlugin)
