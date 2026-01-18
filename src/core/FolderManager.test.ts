@@ -17,7 +17,7 @@ describe('FolderManager', () => {
       parent: null,
       vault: mockVault,
       isRoot: () => path === '',
-    }) as TFolder
+    }) as unknown as TFolder
 
   const createTestProject = (): Project => ({
     id: 'test-id',
@@ -352,7 +352,7 @@ describe('FolderManager', () => {
 
     it('should return empty array for file path', () => {
       // Mock a file instead of folder
-      const originalGet = mockVault.getAbstractFileByPath
+      const originalGet = mockVault.getAbstractFileByPath.bind(mockVault)
       mockVault.getAbstractFileByPath = (path: string) => {
         if (path === 'projects/novel/file.md') {
           return { path, name: 'file.md' } as any

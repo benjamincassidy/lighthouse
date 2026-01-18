@@ -9,12 +9,12 @@ export class Plugin {
     this.manifest = manifest
   }
 
-  async loadData() {
-    return {}
+  loadData() {
+    return Promise.resolve({})
   }
 
-  async saveData(_data: unknown) {
-    return
+  saveData(_data: unknown) {
+    return Promise.resolve()
   }
 
   addCommand(_command: Command) {

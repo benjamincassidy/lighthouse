@@ -105,14 +105,13 @@ export default tseslint.config(
     },
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/require-await': 'off',
       '@typescript-eslint/no-unsafe-assignment': 'off',
       '@typescript-eslint/no-unsafe-call': 'off',
       '@typescript-eslint/no-unsafe-member-access': 'off',
       '@typescript-eslint/no-unsafe-return': 'off',
-      '@typescript-eslint/unbound-method': 'off',
-      'obsidianmd/no-tfile-tfolder-cast': 'off',
       'no-undef': 'off',
+      // Test files need to create mock TFile/TFolder objects
+      'obsidianmd/no-tfile-tfolder-cast': 'off',
     },
   },
   {

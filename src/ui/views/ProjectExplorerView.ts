@@ -27,7 +27,7 @@ export class ProjectExplorerView extends ItemView {
     return 'folder-tree'
   }
 
-  async onOpen(): Promise<void> {
+  onOpen(): Promise<void> {
     const container = this.containerEl.children[1]
     container.empty()
 
@@ -37,12 +37,14 @@ export class ProjectExplorerView extends ItemView {
         plugin: this.plugin,
       },
     })
+    return Promise.resolve()
   }
 
-  async onClose(): Promise<void> {
+  onClose(): Promise<void> {
     if (this.component) {
       void unmount(this.component)
       this.component = null
     }
+    return Promise.resolve()
   }
 }
