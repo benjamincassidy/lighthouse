@@ -81,7 +81,7 @@ describe('HierarchicalCounter', () => {
         return fileMap.get(normalized) || null
       },
       cachedRead: async (file: TFile) => {
-        return (file as any).cachedRead()
+        return await (file as any).cachedRead()
       },
       getRoot: () => rootFolder,
       adapter: { constructor: Object },

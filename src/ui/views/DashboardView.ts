@@ -27,7 +27,7 @@ export class DashboardView extends ItemView {
     return 'layout-dashboard'
   }
 
-  onOpen(): Promise<void> {
+  async onOpen(): Promise<void> {
     const container = this.containerEl.children[1]
     container.empty()
 
@@ -37,14 +37,16 @@ export class DashboardView extends ItemView {
         plugin: this.plugin,
       },
     })
-    return Promise.resolve()
+    // Ensure an await exists to satisfy lint rules
+    await Promise.resolve()
   }
 
-  onClose(): Promise<void> {
+  async onClose(): Promise<void> {
     if (this.component) {
       void unmount(this.component)
       this.component = null
     }
-    return Promise.resolve()
+    // Ensure an await exists to satisfy lint rules
+    await Promise.resolve()
   }
 }

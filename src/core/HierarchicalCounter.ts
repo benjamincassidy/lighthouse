@@ -13,6 +13,26 @@ export class HierarchicalCounter {
   private folderManager: FolderManager
   private vault: Vault
   private app: App
+  /** Type guard: narrow an abstract file to a TFolder using shape properties */
+  private isTFolder(file: unknown): file is TFolder {
+    return (
+      typeof file === 'object' &&
+      file !== null &&
+      'children' in (file as Record<string, unknown>) &&
+      typeof (file as Record<string, unknown>).children !== 'undefined' &&
+      typeof (file as { isRoot?: () => boolean }).isRoot === 'function'
+    )
+  }
+
+  /** Type guard: narrow an abstract file to a TFile using shape properties */
+  private isTFile(file: unknown): file is TFile {
+    return (
+      typeof file === 'object' &&
+      file !== null &&
+      'extension' in (file as Record<string, unknown>) &&
+      typeof (file as Record<string, unknown>).extension === 'string'
+    )
+  }
 
   constructor(vault: Vault, wordCounter: WordCounter, folderManager: FolderManager, app: App) {
     this.vault = vault
@@ -62,12 +82,11 @@ export class HierarchicalCounter {
     options?: WordCountOptions,
   ): Promise<FolderStats | undefined> {
     const folder = this.vault.getAbstractFileByPath(folderPath)
-    if (!folder || !('children' in folder)) {
+    if (!this.isTFolder(folder)) {
       return undefined
     }
 
-    // eslint-disable-next-line obsidianmd/no-tfile-tfolder-cast -- Using duck typing for test compatibility
-    const stats = await this.calculateFolderStats(folder as TFolder, options)
+    const stats = await this.calculateFolderStats(folder, options)
 
     return stats
   }
@@ -114,17 +133,15 @@ export class HierarchicalCounter {
     const children: FolderStats[] = []
 
     for (const child of folder.children) {
-      if ('children' in child) {
+      if (this.isTFolder(child)) {
         // It's a folder
-        // eslint-disable-next-line obsidianmd/no-tfile-tfolder-cast -- Using duck typing for test compatibility
-        const childStats = await this.calculateFolderStats(child as TFolder, options)
+        const childStats = await this.calculateFolderStats(child, options)
         children.push(childStats)
         wordCount += childStats.wordCount
         fileCount += childStats.fileCount
-      } else if ('extension' in child && child.extension === 'md') {
+      } else if (this.isTFile(child) && child.extension === 'md') {
         // It's a markdown file
-        // eslint-disable-next-line obsidianmd/no-tfile-tfolder-cast -- Using duck typing for test compatibility
-        const result = await this.countFile(child as TFile, options)
+        const result = await this.countFile(child, options)
         if (result) {
           wordCount += result.words
           fileCount++

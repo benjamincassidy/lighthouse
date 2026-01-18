@@ -15,6 +15,16 @@ export interface FolderValidationResult {
  */
 export class FolderManager {
   private vault: Vault
+  /** Type guard: narrow an abstract file to a TFolder using shape properties */
+  private isTFolder(file: unknown): file is TFolder {
+    return (
+      typeof file === 'object' &&
+      file !== null &&
+      'children' in (file as Record<string, unknown>) &&
+      typeof (file as Record<string, unknown>).children !== 'undefined' &&
+      typeof (file as { isRoot?: () => boolean }).isRoot === 'function'
+    )
+  }
 
   constructor(vault: Vault) {
     this.vault = vault
@@ -25,7 +35,7 @@ export class FolderManager {
    */
   folderExists(path: string): boolean {
     const abstractFile = this.vault.getAbstractFileByPath(path)
-    return abstractFile !== null && abstractFile instanceof this.vault.adapter.constructor
+    return this.isTFolder(abstractFile)
   }
 
   /**
@@ -258,9 +268,8 @@ export class FolderManager {
     const collectFolders = (folder: TFolder) => {
       folders.push(folder)
       folder.children.forEach((child) => {
-        if ('children' in child) {
-          // eslint-disable-next-line obsidianmd/no-tfile-tfolder-cast -- Using duck typing for test compatibility
-          collectFolders(child as TFolder)
+        if (this.isTFolder(child)) {
+          collectFolders(child)
         }
       })
     }
@@ -276,20 +285,18 @@ export class FolderManager {
    */
   getFoldersInPath(path: string): TFolder[] {
     const abstractFile = this.vault.getAbstractFileByPath(path)
-    if (!abstractFile || !('children' in abstractFile)) {
+    if (!this.isTFolder(abstractFile)) {
       return []
     }
 
     const folders: TFolder[] = []
-    // eslint-disable-next-line obsidianmd/no-tfile-tfolder-cast -- Using duck typing for test compatibility
-    const folder = abstractFile as TFolder
+    const folder = abstractFile
 
     const collectFolders = (f: TFolder) => {
       folders.push(f)
       f.children.forEach((child) => {
-        if ('children' in child) {
-          // eslint-disable-next-line obsidianmd/no-tfile-tfolder-cast -- Using duck typing for test compatibility
-          collectFolders(child as TFolder)
+        if (this.isTFolder(child)) {
+          collectFolders(child)
         }
       })
     }
