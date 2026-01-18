@@ -247,8 +247,7 @@ export class LighthouseSettingTab extends PluginSettingTab {
       text: 'Lighthouse: project-based writing for Obsidian',
     })
     aboutDiv.createEl('p', {
-      // eslint-disable-next-line obsidianmd/ui/sentence-case
-      text: 'Inspired by Ulysses and Virginia Woolf',
+      text: 'A project management tool for writers working on novels, theses, and long-form content',
     })
 
     const linksDiv = containerEl.createEl('div', { cls: 'setting-item-description' })

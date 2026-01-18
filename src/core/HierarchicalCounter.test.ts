@@ -20,7 +20,7 @@ describe('HierarchicalCounter', () => {
       extension: 'md',
       parent: null,
       vault: mockVault,
-      cachedRead: async () => content,
+      cachedRead: () => Promise.resolve(content),
     } as unknown as TFile
   }
 
@@ -32,7 +32,7 @@ describe('HierarchicalCounter', () => {
       parent: null,
       vault: mockVault,
       isRoot: () => path === '',
-    } as TFolder
+    } as unknown as TFolder
 
     // Set parent for children
     children.forEach((child) => {
@@ -101,7 +101,7 @@ describe('HierarchicalCounter', () => {
   describe('countFile', () => {
     it('should count words in a file', async () => {
       const file = createMockFile('test.md', 'Hello world this is a test')
-      mockVault.cachedRead = async () => 'Hello world this is a test'
+      mockVault.cachedRead = () => Promise.resolve('Hello world this is a test')
 
       const result = await counter.countFile(file)
 
@@ -187,11 +187,10 @@ describe('HierarchicalCounter', () => {
       const scenesFolder = createMockFolder('projects/novel/scenes', [
         createMockFile('projects/novel/scenes/scene1.md', 'Scene one content'),
       ])
-      const novelFolder = mockVault.getAbstractFileByPath('projects/novel') as TFolder
+      const novelFolder = mockVault.getAbstractFileByPath('projects/novel') as unknown as TFolder
       novelFolder.children.push(scenesFolder)
 
-      const fileMap = mockVault.getAbstractFileByPath as any
-      const originalGet = fileMap.bind(mockVault)
+      const originalGet = mockVault.getAbstractFileByPath.bind(mockVault)
       mockVault.getAbstractFileByPath = (path: string) => {
         if (path === 'projects/novel/scenes') return scenesFolder
         return originalGet(path)

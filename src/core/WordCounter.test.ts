@@ -163,7 +163,7 @@ Another paragraph with [a link](http://example.com).
     const mockFile: TFile = {
       path: 'test.md',
       name: 'test.md',
-    } as TFile
+    } as unknown as TFile
 
     it('should count words in file', () => {
       const content = 'Hello world'
@@ -185,8 +185,8 @@ Another paragraph with [a link](http://example.com).
     })
 
     it('should handle multiple files independently', () => {
-      const file1: TFile = { path: 'file1.md', name: 'file1.md' } as TFile
-      const file2: TFile = { path: 'file2.md', name: 'file2.md' } as TFile
+      const file1: TFile = { path: 'file1.md', name: 'file1.md' } as unknown as TFile
+      const file2: TFile = { path: 'file2.md', name: 'file2.md' } as unknown as TFile
 
       const result1 = counter.countFile(file1, 'First file content')
       const result2 = counter.countFile(file2, 'Second file')
@@ -200,7 +200,7 @@ Another paragraph with [a link](http://example.com).
     const mockFile: TFile = {
       path: 'test.md',
       name: 'test.md',
-    } as TFile
+    } as unknown as TFile
 
     it('should debounce word count updates', () => {
       const callback = vi.fn()
@@ -244,8 +244,8 @@ Another paragraph with [a link](http://example.com).
     })
 
     it('should handle multiple files independently', () => {
-      const file1: TFile = { path: 'file1.md', name: 'file1.md' } as TFile
-      const file2: TFile = { path: 'file2.md', name: 'file2.md' } as TFile
+      const file1: TFile = { path: 'file1.md', name: 'file1.md' } as unknown as TFile
+      const file2: TFile = { path: 'file2.md', name: 'file2.md' } as unknown as TFile
       const callback1 = vi.fn()
       const callback2 = vi.fn()
 
