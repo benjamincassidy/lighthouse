@@ -152,7 +152,7 @@ export default class LighthousePlugin extends Plugin {
     }
   }
 
-  async activateDashboard(): Promise<void> {
+  activateDashboard(): void {
     const { workspace } = this.app
 
     let leaf = workspace.getLeavesOfType(DASHBOARD_VIEW_TYPE)[0]
@@ -169,7 +169,7 @@ export default class LighthousePlugin extends Plugin {
     void workspace.revealLeaf(leaf)
   }
 
-  async activateProjectExplorer(): Promise<void> {
+  activateProjectExplorer(): void {
     const { workspace } = this.app
 
     let leaf = workspace.getLeavesOfType(PROJECT_EXPLORER_VIEW_TYPE)[0]
@@ -190,7 +190,7 @@ export default class LighthousePlugin extends Plugin {
     void workspace.revealLeaf(leaf)
   }
 
-  async activateStatsPanel(): Promise<void> {
+  activateStatsPanel(): void {
     const { workspace } = this.app
 
     let leaf = workspace.getLeavesOfType(STATS_PANEL_VIEW_TYPE)[0]
