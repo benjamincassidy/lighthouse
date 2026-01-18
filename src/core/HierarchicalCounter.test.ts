@@ -191,10 +191,10 @@ describe('HierarchicalCounter', () => {
       novelFolder.children.push(scenesFolder)
 
       const originalGet = mockVault.getAbstractFileByPath.bind(mockVault)
-      mockVault.getAbstractFileByPath = (path: string) => {
+      mockVault.getAbstractFileByPath = ((path: string) => {
         if (path === 'projects/novel/scenes') return scenesFolder
         return originalGet(path)
-      }
+      }) as any
 
       const result = await counter.countProject(project)
 

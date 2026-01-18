@@ -150,6 +150,7 @@ export class LighthouseSettingTab extends PluginSettingTab {
                   this.display() // Refresh the settings display
                 })
 
+              await Promise.resolve()
               modal.open()
             }),
         )
