@@ -75,17 +75,26 @@ describe('validation utilities', () => {
     })
 
     it('should require content folders to be an array', () => {
-      const errors = validateProject({ ...validProject, contentFolders: 'not-an-array' as any })
+      const errors = validateProject({
+        ...validProject,
+        contentFolders: 'not-an-array' as unknown as string[],
+      })
       expect(errors).toContain('Content folders must be an array')
     })
 
     it('should require source folders to be an array', () => {
-      const errors = validateProject({ ...validProject, sourceFolders: 'not-an-array' as any })
+      const errors = validateProject({
+        ...validProject,
+        sourceFolders: 'not-an-array' as unknown as string[],
+      })
       expect(errors).toContain('Source folders must be an array')
     })
 
     it('should validate word count goal is a number', () => {
-      const errors = validateProject({ ...validProject, wordCountGoal: 'not-a-number' as any })
+      const errors = validateProject({
+        ...validProject,
+        wordCountGoal: 'not-a-number' as unknown as number,
+      })
       expect(errors).toContain('Word count goal must be a number')
     })
 

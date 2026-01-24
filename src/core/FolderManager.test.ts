@@ -3,21 +3,20 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { FolderManager } from '@/core/FolderManager'
 import type { Project } from '@/types/types'
 
-import type { TFolder, Vault } from 'obsidian'
+import type { TFile, TFolder, Vault } from 'obsidian'
 
 describe('FolderManager', () => {
   let manager: FolderManager
   let mockVault: Vault
 
-  const createMockFolder = (path: string): TFolder =>
-    ({
-      path,
-      name: path.split('/').pop() || '',
-      children: [],
-      parent: null,
-      vault: mockVault,
-      isRoot: () => path === '',
-    }) as unknown as TFolder
+  const createMockFolder = (path: string): TFolder => ({
+    path,
+    name: path.split('/').pop() || '',
+    children: [],
+    parent: null,
+    vault: mockVault,
+    isRoot: () => path === '',
+  })
 
   const createTestProject = (): Project => ({
     id: 'test-id',
@@ -355,7 +354,16 @@ describe('FolderManager', () => {
       const originalGet = mockVault.getAbstractFileByPath.bind(mockVault)
       mockVault.getAbstractFileByPath = (path: string) => {
         if (path === 'projects/novel/file.md') {
-          return { path, name: 'file.md' } as any
+          const mockFile: TFile = {
+            path,
+            name: 'file.md',
+            basename: 'file',
+            extension: 'md',
+            stat: { ctime: 0, mtime: 0, size: 0 },
+            vault: mockVault,
+            parent: null,
+          }
+          return mockFile
         }
         return originalGet(path)
       }
