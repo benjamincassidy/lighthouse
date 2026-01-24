@@ -13,28 +13,36 @@ describe('HierarchicalCounter', () => {
   let folderManager: FolderManager
   let mockVault: Vault
 
-  const createMockFile = (path: string, content: string): TFile => {
+  type MockFile = TFile & { cachedRead?: () => Promise<string> }
+  type MockFolder = TFolder
+
+  const createMockFile = (path: string, content: string): MockFile => {
+    const name = path.split('/').pop() || ''
     return {
       path,
-      name: path.split('/').pop() || '',
+      name,
+      basename: name.replace(/\.md$/, ''),
       extension: 'md',
+      stat: { ctime: 0, mtime: 0, size: content.length },
       parent: null,
       vault: mockVault,
       cachedRead: () => Promise.resolve(content),
-    } as unknown as TFile
+    }
   }
 
-  const createMockFolder = (path: string, children: Array<TFile | TFolder> = []): TFolder => {
-    const folder = {
+  const createMockFolder = (
+    path: string,
+    children: Array<MockFile | MockFolder> = [],
+  ): MockFolder => {
+    const folder: MockFolder = {
       path,
       name: path.split('/').pop() || '',
       children,
       parent: null,
       vault: mockVault,
       isRoot: () => path === '',
-    } as unknown as TFolder
+    }
 
-    // Set parent for children
     children.forEach((child) => {
       child.parent = folder
     })
@@ -81,7 +89,10 @@ describe('HierarchicalCounter', () => {
         return fileMap.get(normalized) || null
       },
       cachedRead: async (file: TFile) => {
-        return await (file as any).cachedRead()
+        if ('cachedRead' in file && typeof file.cachedRead === 'function') {
+          return await file.cachedRead()
+        }
+        return ''
       },
       getRoot: () => rootFolder,
       adapter: { constructor: Object },
@@ -112,6 +123,7 @@ describe('HierarchicalCounter', () => {
     it('should return undefined for non-existent file', async () => {
       const file = createMockFile('missing.md', '')
       mockVault.cachedRead = async () => {
+        await Promise.resolve()
         throw new Error('File not found')
       }
 
@@ -139,8 +151,14 @@ describe('HierarchicalCounter', () => {
         createMockFile('projects/novel/chapters/drafts/draft1.md', 'Draft content here'),
       ])
 
-      const chaptersFolder = mockVault.getAbstractFileByPath('projects/novel/chapters') as TFolder
-      chaptersFolder.children.push(subfolder)
+      const chaptersFolder = mockVault.getAbstractFileByPath('projects/novel/chapters')
+      if (
+        chaptersFolder &&
+        'children' in chaptersFolder &&
+        Array.isArray(chaptersFolder.children)
+      ) {
+        ;(chaptersFolder.children as Array<TFile | TFolder>).push(subfolder)
+      }
 
       const result = await counter.countFolder('projects/novel/chapters')
 
@@ -187,14 +205,16 @@ describe('HierarchicalCounter', () => {
       const scenesFolder = createMockFolder('projects/novel/scenes', [
         createMockFile('projects/novel/scenes/scene1.md', 'Scene one content'),
       ])
-      const novelFolder = mockVault.getAbstractFileByPath('projects/novel') as unknown as TFolder
-      novelFolder.children.push(scenesFolder)
+      const novelFolder = mockVault.getAbstractFileByPath('projects/novel')
+      if (novelFolder && 'children' in novelFolder && Array.isArray(novelFolder.children)) {
+        ;(novelFolder.children as Array<TFile | TFolder>).push(scenesFolder)
+      }
 
       const originalGet = mockVault.getAbstractFileByPath.bind(mockVault)
-      mockVault.getAbstractFileByPath = ((path: string) => {
+      mockVault.getAbstractFileByPath = (path: string) => {
         if (path === 'projects/novel/scenes') return scenesFolder
         return originalGet(path)
-      }) as any
+      }
 
       const result = await counter.countProject(project)
 
@@ -220,8 +240,14 @@ describe('HierarchicalCounter', () => {
         createMockFile('projects/novel/chapters/arc1/scene1.md', 'Scene content'),
       ])
 
-      const chaptersFolder = mockVault.getAbstractFileByPath('projects/novel/chapters') as TFolder
-      chaptersFolder.children.push(subfolder)
+      const chaptersFolder = mockVault.getAbstractFileByPath('projects/novel/chapters')
+      if (
+        chaptersFolder &&
+        'children' in chaptersFolder &&
+        Array.isArray(chaptersFolder.children)
+      ) {
+        ;(chaptersFolder.children as Array<TFile | TFolder>).push(subfolder)
+      }
 
       const result = await counter.countFolder('projects/novel/chapters')
 

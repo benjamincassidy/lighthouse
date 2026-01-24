@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { WordCounter } from '@/core/WordCounter'
 
-import type { TFile } from 'obsidian'
+import type { TFile, Vault } from 'obsidian'
 
 describe('WordCounter', () => {
   let counter: WordCounter
@@ -163,7 +163,12 @@ Another paragraph with [a link](http://example.com).
     const mockFile: TFile = {
       path: 'test.md',
       name: 'test.md',
-    } as unknown as TFile
+      basename: 'test',
+      extension: 'md',
+      stat: { ctime: 0, mtime: 0, size: 0 },
+      vault: {} as Vault,
+      parent: null,
+    }
 
     it('should count words in file', () => {
       const content = 'Hello world'
@@ -185,8 +190,24 @@ Another paragraph with [a link](http://example.com).
     })
 
     it('should handle multiple files independently', () => {
-      const file1: TFile = { path: 'file1.md', name: 'file1.md' } as unknown as TFile
-      const file2: TFile = { path: 'file2.md', name: 'file2.md' } as unknown as TFile
+      const file1: TFile = {
+        path: 'file1.md',
+        name: 'file1.md',
+        basename: 'file1',
+        extension: 'md',
+        stat: { ctime: 0, mtime: 0, size: 0 },
+        vault: {} as Vault,
+        parent: null,
+      }
+      const file2: TFile = {
+        path: 'file2.md',
+        name: 'file2.md',
+        basename: 'file2',
+        extension: 'md',
+        stat: { ctime: 0, mtime: 0, size: 0 },
+        vault: {} as Vault,
+        parent: null,
+      }
 
       const result1 = counter.countFile(file1, 'First file content')
       const result2 = counter.countFile(file2, 'Second file')
@@ -200,7 +221,12 @@ Another paragraph with [a link](http://example.com).
     const mockFile: TFile = {
       path: 'test.md',
       name: 'test.md',
-    } as unknown as TFile
+      basename: 'test',
+      extension: 'md',
+      stat: { ctime: 0, mtime: 0, size: 0 },
+      vault: {} as Vault,
+      parent: null,
+    }
 
     it('should debounce word count updates', () => {
       const callback = vi.fn()
@@ -244,8 +270,24 @@ Another paragraph with [a link](http://example.com).
     })
 
     it('should handle multiple files independently', () => {
-      const file1: TFile = { path: 'file1.md', name: 'file1.md' } as unknown as TFile
-      const file2: TFile = { path: 'file2.md', name: 'file2.md' } as unknown as TFile
+      const file1: TFile = {
+        path: 'file1.md',
+        name: 'file1.md',
+        basename: 'file1',
+        extension: 'md',
+        stat: { ctime: 0, mtime: 0, size: 0 },
+        vault: {} as Vault,
+        parent: null,
+      }
+      const file2: TFile = {
+        path: 'file2.md',
+        name: 'file2.md',
+        basename: 'file2',
+        extension: 'md',
+        stat: { ctime: 0, mtime: 0, size: 0 },
+        vault: {} as Vault,
+        parent: null,
+      }
       const callback1 = vi.fn()
       const callback2 = vi.fn()
 
