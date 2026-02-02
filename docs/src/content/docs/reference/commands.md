@@ -9,21 +9,28 @@ All Lighthouse commands accessible via Command Palette (Cmd/Ctrl+P).
 
 ## Available Commands
 
-### `Lighthouse: Create Project`
+### `Lighthouse: Create New Project`
 Opens the project creation modal to set up a new writing project.
 
-### `Lighthouse: Open Dashboard`
+### `Lighthouse: Switch Project`
+Opens a fuzzy search modal to quickly switch between your projects. Type to filter by project name.
+
+### `Lighthouse: Open Project Dashboard`
 Opens the Project Dashboard view for statistics and management.
 
-### `Lighthouse: Toggle Stats Panel`
-Shows or hides the Writing Stats Panel in the sidebar.
+### `Lighthouse: Open Project Explorer`
+Opens the filtered file explorer showing only files from the active project.
+
+### `Lighthouse: Open Writing Stats`
+Shows the Writing Stats Panel in the right sidebar.
+
+### `Lighthouse: Toggle Zen Mode`
+Enables or disables distraction-free writing mode. Hides sidebars, ribbon, status bar, tabs, breadcrumbs, and navigation controls.
 
 ## Future Commands
 
 Planned commands:
-- `Lighthouse: Switch Project`
 - `Lighthouse: Export Project Stats`
-- `Lighthouse: Toggle Zen Mode`
 - `Lighthouse: Open Project Folder`
 
 *Detailed reference coming soon.*

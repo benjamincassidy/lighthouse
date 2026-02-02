@@ -5,6 +5,16 @@
   display: none !important;
 }
 
+/* Dim tabs in zen mode instead of hiding them */
+body:has(.workspace-tabs.lighthouse-zen-dim) .workspace-tab-header-container {
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+body:has(.workspace-tabs.lighthouse-zen-dim) .workspace-tab-header-container:hover {
+  opacity: 0.6;
+}
+
 /* Modal Styles */
 .lighthouse-modal-buttons {
   display: flex;
@@ -48,4 +58,14 @@
 
 .lighthouse-folder-remove:hover {
   color: var(--text-error);
+}
+
+/* Fix chevron rotation for tree items */
+.tree-item-icon.collapse-icon .svg-icon.right-triangle {
+  transform: rotate(-90deg);
+  transition: transform 100ms ease-in-out;
+}
+
+.tree-item-icon.collapse-icon .svg-icon.right-triangle.is-collapsed {
+  transform: rotate(0deg);
 }

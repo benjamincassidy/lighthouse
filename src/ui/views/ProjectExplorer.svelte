@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { activeProject } from '@/core/stores'
+  import { Menu, type TFile, type TFolder } from 'obsidian'
+
+  import { activeProject, projects } from '@/core/stores'
   import type LighthousePlugin from '@/main'
   import type { Project } from '@/types/types'
   import TreeNodeComponent from '@/ui/components/TreeNode.svelte'
-
-  import type { TFile, TFolder } from 'obsidian'
 
   interface TreeNode {
     name: string
@@ -13,6 +13,7 @@
     children?: TreeNode[]
     wordCount?: number
     isExpanded?: boolean
+    folderType?: 'content' | 'source'
   }
 
   interface Props {
@@ -21,24 +22,44 @@
 
   let { plugin }: Props = $props()
 
-  let treeNodes = $state<TreeNode[]>([])
+  let contentNodes = $state<TreeNode[]>([])
+  let sourceNodes = $state<TreeNode[]>([])
+  let contentCollapsed = $state(false)
+  let sourceCollapsed = $state(false)
   let currentProject = $derived(activeProject ? $activeProject : undefined)
+  let allProjects = $derived(projects ? $projects : [])
+  let activeFilePath = $state<string | null>(null)
+
+  // Track active file changes
+  $effect(() => {
+    const updateActiveFile = () => {
+      const file = plugin.app.workspace.getActiveFile()
+      activeFilePath = file?.path || null
+    }
+
+    updateActiveFile()
+
+    plugin.registerEvent(plugin.app.workspace.on('active-leaf-change', updateActiveFile))
+  })
 
   // Rebuild tree when active project changes
   $effect(() => {
     if (!plugin) {
-      treeNodes = []
+      contentNodes = []
+      sourceNodes = []
     } else if (currentProject) {
       buildProjectTree(currentProject)
     } else {
-      treeNodes = []
+      contentNodes = []
+      sourceNodes = []
     }
   })
 
   function buildProjectTree(project: Project) {
     if (!plugin) {
       console.error('Lighthouse: ProjectExplorer plugin is undefined')
-      treeNodes = []
+      contentNodes = []
+      sourceNodes = []
       return
     }
 
@@ -47,46 +68,59 @@
 
     if (!rootFolder || !('children' in rootFolder)) {
       console.warn('Lighthouse: Root folder not found:', project.rootPath)
-      treeNodes = []
+      contentNodes = []
+      sourceNodes = []
       return
     }
 
-    // Get all content and source folders
-    const allFolders = [...project.contentFolders, ...project.sourceFolders]
+    const content: TreeNode[] = []
+    const source: TreeNode[] = []
 
-    // If no folders specified, show root folder contents
-    if (allFolders.length === 0) {
-      const node = buildTreeNode(rootFolder as TFolder, project)
-      treeNodes = node ? [node] : []
-      return
-    }
-
-    const nodes: TreeNode[] = []
-
-    for (const folderPath of allFolders) {
+    // Build content folder nodes
+    for (const folderPath of project.contentFolders) {
       const fullPath = plugin.folderManager.resolveProjectPath(project.rootPath, folderPath)
       const folder = vault.getAbstractFileByPath(fullPath)
 
       if (folder && 'children' in folder) {
-        const node = buildTreeNode(folder as TFolder, project)
+        const node = buildTreeNode(folder as TFolder, project, 'content')
         if (node) {
-          nodes.push(node)
+          content.push(node)
         }
       } else {
-        console.warn('Lighthouse: Folder not found:', fullPath)
+        console.warn('Lighthouse: Content folder not found:', fullPath)
       }
     }
 
-    treeNodes = nodes
+    // Build source folder nodes
+    for (const folderPath of project.sourceFolders) {
+      const fullPath = plugin.folderManager.resolveProjectPath(project.rootPath, folderPath)
+      const folder = vault.getAbstractFileByPath(fullPath)
+
+      if (folder && 'children' in folder) {
+        const node = buildTreeNode(folder as TFolder, project, 'source')
+        if (node) {
+          source.push(node)
+        }
+      } else {
+        console.warn('Lighthouse: Source folder not found:', fullPath)
+      }
+    }
+
+    contentNodes = content
+    sourceNodes = source
   }
 
-  function buildTreeNode(folder: TFolder, project?: Project): TreeNode | null {
+  function buildTreeNode(
+    folder: TFolder,
+    project?: Project,
+    folderType?: 'content' | 'source',
+  ): TreeNode | null {
     const children: TreeNode[] = []
 
     for (const child of folder.children) {
       if ('children' in child) {
-        // It's a folder
-        const childNode = buildTreeNode(child as TFolder, project)
+        // It's a folder - inherit parent's folder type
+        const childNode = buildTreeNode(child as TFolder, project, folderType)
         if (childNode) {
           children.push(childNode)
         }
@@ -98,6 +132,7 @@
             name: file.name,
             path: file.path,
             type: 'file',
+            folderType,
           })
         }
       }
@@ -117,6 +152,7 @@
       type: 'folder',
       children,
       isExpanded: true,
+      folderType,
     }
   }
 
@@ -135,44 +171,223 @@
       }
       return false
     }
-    toggleNodeByPath(treeNodes)
-    treeNodes = [...treeNodes] // Trigger reactivity in Svelte 5
+
+    if (!toggleNodeByPath(contentNodes)) {
+      toggleNodeByPath(sourceNodes)
+    }
+
+    // Trigger reactivity in Svelte 5
+    contentNodes = [...contentNodes]
+    sourceNodes = [...sourceNodes]
   }
 
   async function handleOpen(event: CustomEvent<{ path: string }>) {
     const path = event.detail.path
     const file = plugin.app.vault.getAbstractFileByPath(path)
     if (file && !('children' in file)) {
-      await plugin.app.workspace.getLeaf().openFile(file as TFile)
+      const leaf = plugin.app.workspace.getLeaf(false)
+      await leaf.openFile(file as TFile)
+    }
+  }
+
+  function handleContextMenu(
+    event: CustomEvent<{ path: string; mouseEvent: globalThis.MouseEvent }>,
+  ) {
+    const { path, mouseEvent } = event.detail
+    const file = plugin.app.vault.getAbstractFileByPath(path)
+
+    if (!file) return
+
+    const menu = new Menu()
+
+    // Let plugins add their menu items first
+    plugin.app.workspace.trigger('file-menu', menu, file, 'file-explorer')
+
+    // Add core file operations
+    if ('children' in file) {
+      // It's a folder
+      menu.addItem((item) => {
+        item
+          .setTitle('New note')
+          .setIcon('document')
+          .onClick(async () => {
+            const newFile = await plugin.app.vault.create(`${file.path}/Untitled.md`, '')
+            const leaf = plugin.app.workspace.getLeaf(false)
+            await leaf.openFile(newFile)
+          })
+      })
+
+      menu.addItem((item) => {
+        item
+          .setTitle('New folder')
+          .setIcon('folder')
+          .onClick(async () => {
+            await plugin.app.vault.createFolder(`${file.path}/New folder`)
+          })
+      })
+    }
+
+    // Rename for both files and folders
+    menu.addItem((item) => {
+      item
+        .setTitle('Rename')
+        .setIcon('pencil')
+        .onClick(() => {
+          // @ts-expect-error - Using internal Obsidian API
+          plugin.app.fileManager.promptForFileRename(file)
+        })
+    })
+
+    // Delete for both files and folders
+    menu.addItem((item) => {
+      item
+        .setTitle('Delete')
+        .setIcon('trash')
+        .onClick(async () => {
+          // @ts-expect-error - Using internal Obsidian API
+          await plugin.app.fileManager.promptForFileDeletion(file)
+        })
+    })
+
+    menu.showAtMouseEvent(mouseEvent)
+  }
+
+  async function switchProject(projectId: string) {
+    if (projectId) {
+      await plugin.projectManager.setActiveProject(projectId)
     }
   }
 </script>
 
 <div class="lighthouse-explorer">
-  <div class="lighthouse-explorer-header">
-    <h3>
-      {#if currentProject}
-        {currentProject.name}
+  <div class="nav-header">
+    <div class="nav-buttons-container">
+      {#if allProjects.length > 0}
+        <select
+          class="dropdown lighthouse-project-picker"
+          value={currentProject?.id || ''}
+          onchange={(e) => switchProject(e.currentTarget.value)}
+        >
+          <option value="">Select project...</option>
+          {#each allProjects as project (project.id)}
+            <option value={project.id}>{project.name}</option>
+          {/each}
+        </select>
       {:else}
-        Project Explorer
+        <div class="nav-folder-title" data-path="">Project Explorer</div>
       {/if}
-    </h3>
+    </div>
   </div>
 
   {#if !currentProject}
-    <div class="lighthouse-empty-state">
-      <p>No active project</p>
-      <p class="lighthouse-empty-state-hint">Select a project to see its files</p>
+    <div class="pane-empty">
+      No active project<br />
+      <span class="pane-empty-message">Select a project to see its files</span>
     </div>
-  {:else if treeNodes.length === 0}
-    <div class="lighthouse-empty-state">
-      <p>No files found</p>
-    </div>
+  {:else if contentNodes.length === 0 && sourceNodes.length === 0}
+    <div class="pane-empty">No files found</div>
   {:else}
-    <div class="lighthouse-tree">
-      {#each treeNodes as node (node.path)}
-        <TreeNodeComponent {node} depth={0} ontoggle={handleToggle} onopen={handleOpen} />
-      {/each}
+    <div class="nav-files-container">
+      {#if contentNodes.length > 0}
+        <div class="tree-item nav-folder mod-root" class:is-collapsed={contentCollapsed}>
+          <div
+            class="tree-item-self is-clickable nav-folder-title"
+            role="button"
+            tabindex="0"
+            onclick={() => (contentCollapsed = !contentCollapsed)}
+            onkeydown={(e) =>
+              (e.key === 'Enter' || e.key === ' ') && (contentCollapsed = !contentCollapsed)}
+          >
+            <div class="tree-item-icon">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="svg-icon lucide-folder"
+              >
+                <path
+                  d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"
+                />
+              </svg>
+            </div>
+            <div class="tree-item-inner">Content</div>
+            <div class="tree-item-flair-outer">
+              <span class="tree-item-flair">{contentNodes.length}</span>
+            </div>
+          </div>
+          {#if !contentCollapsed}
+            <div class="tree-item-children">
+              {#each contentNodes as node (node.path)}
+                <TreeNodeComponent
+                  {node}
+                  depth={0}
+                  {activeFilePath}
+                  ontoggle={handleToggle}
+                  onopen={handleOpen}
+                  oncontextmenu={handleContextMenu}
+                />
+              {/each}
+            </div>
+          {/if}
+        </div>
+      {/if}
+
+      {#if sourceNodes.length > 0}
+        <div class="tree-item nav-folder mod-root" class:is-collapsed={sourceCollapsed}>
+          <div
+            class="tree-item-self is-clickable nav-folder-title"
+            role="button"
+            tabindex="0"
+            onclick={() => (sourceCollapsed = !sourceCollapsed)}
+            onkeydown={(e) =>
+              (e.key === 'Enter' || e.key === ' ') && (sourceCollapsed = !sourceCollapsed)}
+          >
+            <div class="tree-item-icon">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="svg-icon lucide-folder-pen"
+              >
+                <path d="M8.42 10.61a2.1 2.1 0 1 1 2.97 2.97L5.95 19 2 20l.99-3.95 5.43-5.44Z" />
+                <path
+                  d="M2 11.5V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-9.5"
+                />
+              </svg>
+            </div>
+            <div class="tree-item-inner">Source</div>
+            <div class="tree-item-flair-outer">
+              <span class="tree-item-flair">{sourceNodes.length}</span>
+            </div>
+          </div>
+          {#if !sourceCollapsed}
+            <div class="tree-item-children">
+              {#each sourceNodes as node (node.path)}
+                <TreeNodeComponent
+                  {node}
+                  depth={0}
+                  {activeFilePath}
+                  ontoggle={handleToggle}
+                  onopen={handleOpen}
+                  oncontextmenu={handleContextMenu}
+                />
+              {/each}
+            </div>
+          {/if}
+        </div>
+      {/if}
     </div>
   {/if}
 </div>
@@ -184,43 +399,14 @@
     flex-direction: column;
   }
 
-  .lighthouse-explorer-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: var(--size-4-2);
-    border-bottom: 1px solid var(--background-modifier-border);
+  .pane-empty-message {
+    color: var(--text-faint);
+    font-size: var(--font-ui-smaller);
   }
 
-  .lighthouse-explorer-header h3 {
-    margin: 0;
-    font-size: var(--font-ui-medium);
-    font-weight: 600;
-  }
-
-  .lighthouse-empty-state {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: var(--size-4-4);
-    text-align: center;
-    color: var(--text-muted);
-  }
-
-  .lighthouse-empty-state p {
-    margin: 0;
-  }
-
-  .lighthouse-empty-state-hint {
+  .lighthouse-project-picker {
+    width: 100%;
     font-size: var(--font-ui-small);
-    margin-top: var(--size-2-2);
-  }
-
-  .lighthouse-tree {
-    flex: 1;
-    overflow-y: auto;
-    padding: var(--size-2-2);
+    font-weight: 500;
   }
 </style>
