@@ -28,9 +28,9 @@ Visit the [complete documentation site](https://benjamincassidy.github.io/lighth
 - **Content vs Source Folders:** Designate folders as "content" (counts toward goals) or "source" (research/reference material)
 - **Project Dashboard:** View project statistics, manage projects, and track progress
 - **Writing Stats Panel:** Persistent sidebar showing current file, folder, and project word counts with session and daily tracking
-- **Project Management:** Create, edit, delete, and switch between projects seamlessly
+- **Project Management:** Create, edit, delete, and switch between projects with fuzzy search
 - **Filtered File Explorer:** Project-scoped file tree view
-- **Zen Mode:** Distraction-free writing mode
+- **Zen Mode:** Enhanced distraction-free writing mode that hides tabs, breadcrumbs, navigation, sidebars, and status bar
 
 ### 🚧 In Progress
 
@@ -94,7 +94,7 @@ Lighthouse will be available in Obsidian's Community Plugins once approved.
 
 For testing the alpha release:
 
-1. Download the [latest release](https://github.com/benjamincassidy/obsidian-lighthouse/releases) from GitHub
+1. Download the [latest release](https://github.com/benjamincassidy/lighthouse/releases) from GitHub
 2. Extract the contents to your vault's `.obsidian/plugins/lighthouse/` folder:
    - `main.js`
    - `manifest.json`
@@ -105,7 +105,7 @@ For testing the alpha release:
 ### Building from Source
 
 ```bash
-git clone https://github.com/benjamincassidy/obsidian-lighthouse.git
+git clone https://github.com/benjamincassidy/lighthouse.git
 cd obsidian-lighthouse
 npm install
 npm run build

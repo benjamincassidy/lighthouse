@@ -13,133 +13,111 @@
   interface Props {
     node: TreeNode
     depth?: number
-    ontoggle?: () => void
-    onopen?: () => void
+    activeFilePath?: string | null
+    ontoggle?: (_event: CustomEvent<{ path: string }>) => void
+    onopen?: (_event: CustomEvent<{ path: string }>) => void
+    oncontextmenu?: (
+      _event: CustomEvent<{ path: string; mouseEvent: globalThis.MouseEvent }>,
+    ) => void
   }
 
-  let { node, depth = 0, ontoggle, onopen }: Props = $props()
+  let { node, depth = 0, activeFilePath = null, ontoggle, onopen, oncontextmenu }: Props = $props()
+
+  let isActive = $derived(node.type === 'file' && node.path === activeFilePath)
 
   function handleClick() {
     if (node.type === 'folder' && ontoggle) {
-      ontoggle()
+      ontoggle(new CustomEvent('toggle', { detail: { path: node.path } }))
     } else if (node.type === 'file' && onopen) {
-      onopen()
+      onopen(new CustomEvent('open', { detail: { path: node.path } }))
     }
   }
 
-  function handleKeydown(event: { key: string }) {
-    if (event.key === 'Enter' || event.key === ' ') {
+  function handleKeydown(_event: { key: string }) {
+    if (_event.key === 'Enter' || _event.key === ' ') {
       handleClick()
     }
   }
 
-  let paddingLeft = $derived(`${depth * 20 + 8}px`)
+  function handleContextMenu(_event: globalThis.MouseEvent) {
+    _event.preventDefault()
+    _event.stopPropagation()
+    if (oncontextmenu) {
+      oncontextmenu(
+        new CustomEvent('contextmenu', {
+          detail: { path: node.path, mouseEvent: _event },
+        }),
+      )
+    }
+  }
+
+  let paddingLeft = $derived(`${depth}px`)
 </script>
 
-<div class="lighthouse-tree-node" style="padding-left: {paddingLeft}">
+<div class="tree-item" style="padding-left: {paddingLeft}">
   <div
-    class="lighthouse-tree-node-content"
+    class="tree-item-self is-clickable"
+    class:is-active={isActive}
     role="button"
     tabindex="0"
     onclick={handleClick}
     onkeydown={handleKeydown}
+    oncontextmenu={handleContextMenu}
   >
     {#if node.type === 'folder'}
-      <span class="lighthouse-tree-node-icon">
-        {#if node.isExpanded}
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <path d="M6 9l6 6 6-6" />
-          </svg>
-        {:else}
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <path d="M9 18l6-6-6-6" />
-          </svg>
-        {/if}
-      </span>
-      <span class="lighthouse-tree-node-name">{node.name}</span>
-    {:else}
-      <span class="lighthouse-tree-node-icon">
+      <div class="tree-item-icon collapse-icon">
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          width="16"
-          height="16"
+          width="24"
+          height="24"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
           stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="svg-icon right-triangle"
+          class:is-collapsed={node.isExpanded}
         >
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-          <polyline points="14 2 14 8 20 8" />
+          <path d="M3 8L12 17L21 8" />
         </svg>
-      </span>
-      <span class="lighthouse-tree-node-name">{node.name}</span>
+      </div>
+      <div class="tree-item-inner">{node.name}</div>
+    {:else}
+      <div class="tree-item-icon collapse-icon">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="0"
+          class="svg-icon"
+        ></svg>
+      </div>
+      <div class="tree-item-inner">{node.name}</div>
     {/if}
 
     {#if node.wordCount !== undefined}
-      <span class="lighthouse-tree-node-count">{node.wordCount}</span>
+      <div class="tree-item-flair-outer">
+        <span class="tree-item-flair">{node.wordCount}</span>
+      </div>
     {/if}
   </div>
 
   {#if node.type === 'folder' && node.isExpanded && node.children}
-    {#each node.children as child (child.path)}
-      <TreeNode node={child} depth={depth + 1} {ontoggle} {onopen} />
-    {/each}
+    <div class="tree-item-children">
+      {#each node.children as child (child.path)}
+        <TreeNode
+          node={child}
+          depth={depth + 1}
+          {activeFilePath}
+          {ontoggle}
+          {onopen}
+          {oncontextmenu}
+        />
+      {/each}
+    </div>
   {/if}
 </div>
-
-<style>
-  .lighthouse-tree-node {
-    user-select: none;
-  }
-
-  .lighthouse-tree-node-content {
-    display: flex;
-    align-items: center;
-    gap: var(--size-2-2);
-    padding: var(--size-2-1) var(--size-2-2);
-    border-radius: var(--radius-s);
-    cursor: pointer;
-    transition: background-color 0.1s;
-  }
-
-  .lighthouse-tree-node-content:hover {
-    background-color: var(--background-modifier-hover);
-  }
-
-  .lighthouse-tree-node-icon {
-    display: flex;
-    align-items: center;
-    flex-shrink: 0;
-    color: var(--text-muted);
-  }
-
-  .lighthouse-tree-node-name {
-    flex: 1;
-    font-size: var(--font-ui-small);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .lighthouse-tree-node-count {
-    font-size: var(--font-ui-smaller);
-    color: var(--text-muted);
-    font-variant-numeric: tabular-nums;
-  }
-</style>

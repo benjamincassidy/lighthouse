@@ -65,6 +65,15 @@ export class ZenMode {
     // Hide ribbon
     this.hideRibbon()
 
+    // Hide tabs
+    this.hideTabs()
+
+    // Hide sidebar toggles
+    this.hideSidebarToggles()
+
+    // Hide breadcrumbs and navigation
+    this.hideNavigation()
+
     this.state.isActive = true
 
     // Trigger workspace layout change event
@@ -93,6 +102,15 @@ export class ZenMode {
 
     // Show ribbon
     this.showRibbon()
+
+    // Show tabs
+    this.showTabs()
+
+    // Show sidebar toggles
+    this.showSidebarToggles()
+
+    // Show breadcrumbs and navigation
+    this.showNavigation()
 
     this.state.isActive = false
 
@@ -130,6 +148,56 @@ export class ZenMode {
     const ribbon = document.querySelector('.workspace-ribbon') as HTMLElement
     if (ribbon) {
       ribbon.removeClass('lighthouse-hidden')
+    }
+  }
+
+  private hideTabs(): void {
+    const tabs = document.querySelector('.workspace-tabs') as HTMLElement
+    if (tabs) {
+      tabs.addClass('lighthouse-zen-dim')
+    }
+  }
+
+  private showTabs(): void {
+    const tabs = document.querySelector('.workspace-tabs') as HTMLElement
+    if (tabs) {
+      tabs.removeClass('lighthouse-zen-dim')
+    }
+  }
+
+  private hideSidebarToggles(): void {
+    const leftToggle = document.querySelector('.sidebar-toggle-button.mod-left') as HTMLElement
+    const rightToggle = document.querySelector('.sidebar-toggle-button.mod-right') as HTMLElement
+    if (leftToggle) {
+      leftToggle.addClass('lighthouse-hidden')
+    }
+    if (rightToggle) {
+      rightToggle.addClass('lighthouse-hidden')
+    }
+  }
+
+  private showSidebarToggles(): void {
+    const leftToggle = document.querySelector('.sidebar-toggle-button.mod-left') as HTMLElement
+    const rightToggle = document.querySelector('.sidebar-toggle-button.mod-right') as HTMLElement
+    if (leftToggle) {
+      leftToggle.removeClass('lighthouse-hidden')
+    }
+    if (rightToggle) {
+      rightToggle.removeClass('lighthouse-hidden')
+    }
+  }
+
+  private hideNavigation(): void {
+    const viewHeader = document.querySelector('.view-header') as HTMLElement
+    if (viewHeader) {
+      viewHeader.addClass('lighthouse-hidden')
+    }
+  }
+
+  private showNavigation(): void {
+    const viewHeader = document.querySelector('.view-header') as HTMLElement
+    if (viewHeader) {
+      viewHeader.removeClass('lighthouse-hidden')
     }
   }
 }

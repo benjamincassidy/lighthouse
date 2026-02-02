@@ -1,43 +1,12 @@
 import { App, ButtonComponent, Modal, PluginSettingTab, Setting } from 'obsidian'
 
 import type LighthousePlugin from '@/main'
+import { DEFAULT_SETTINGS, type LighthouseSettings } from '@/types/settings'
 import { ProjectModal } from '@/ui/modals/ProjectModal'
 
-export interface LighthouseSettings {
-  // Zen Mode Settings
-  zenModeHideStatusBar: boolean
-  zenModeHideRibbon: boolean
-
-  // Word Count Settings
-  showWordCountInStatusBar: boolean
-  excludeCodeBlocks: boolean
-  excludeFrontmatter: boolean
-
-  // Writing Stats Tracking
-  todayWordCountBaseline: number
-  todayWordCountDate: string
-
-  // General Settings
-  debugMode: boolean
-}
-
-export const DEFAULT_SETTINGS: LighthouseSettings = {
-  // Zen Mode
-  zenModeHideStatusBar: true,
-  zenModeHideRibbon: true,
-
-  // Word Count
-  showWordCountInStatusBar: true,
-  excludeCodeBlocks: true,
-  excludeFrontmatter: true,
-
-  // Writing Stats Tracking
-  todayWordCountBaseline: 0,
-  todayWordCountDate: '', // Empty string ensures first load triggers baseline initialization
-
-  // General
-  debugMode: false,
-}
+// Re-export for backward compatibility
+export type { LighthouseSettings }
+export { DEFAULT_SETTINGS }
 
 export class LighthouseSettingTab extends PluginSettingTab {
   plugin: LighthousePlugin
@@ -254,12 +223,12 @@ export class LighthouseSettingTab extends PluginSettingTab {
     const linksDiv = containerEl.createEl('div', { cls: 'setting-item-description' })
     linksDiv.createEl('a', {
       text: 'Documentation',
-      href: 'https://github.com/benjamincassidy/obsidian-lighthouse',
+      href: 'https://benjamincassidy.github.io/lighthouse',
     })
     linksDiv.createSpan({ text: ' • ' })
     linksDiv.createEl('a', {
       text: 'Report issues',
-      href: 'https://github.com/benjamincassidy/obsidian-lighthouse/issues',
+      href: 'https://github.com/benjamincassidy/lighthouse/issues',
     })
   }
 }

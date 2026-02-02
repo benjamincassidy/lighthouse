@@ -24,7 +24,7 @@ export class ProjectExplorerView extends ItemView {
   }
 
   getIcon(): string {
-    return 'folder-tree'
+    return 'lightbulb'
   }
 
   async onOpen(): Promise<void> {

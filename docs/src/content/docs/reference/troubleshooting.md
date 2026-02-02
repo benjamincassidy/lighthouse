@@ -22,7 +22,7 @@ description: Common issues and solutions
 2. Look for error messages
 3. Verify Obsidian version is 1.0.0 or later
 4. Try reinstalling the plugin
-5. Report issues on [GitHub](https://github.com/benjamincassidy/obsidian-lighthouse/issues)
+5. Report issues on [GitHub](https://github.com/benjamincassidy/lighthouse/issues)
 
 ## Word Count Issues
 
@@ -45,9 +45,9 @@ description: Common issues and solutions
 ### Session/Today counts reset unexpectedly
 
 **Solutions:**
-- Session counts reset when Obsidian restarts (expected)
-- Today counts should persist; if not, check Settings → Lighthouse
-- Ensure your `.obsidian/plugins/lighthouse/data.json` is writable
+- Session counts reset when Obsidian restarts (expected behavior)
+- Today counts persist across restarts and reset at midnight
+- If today counts aren't resetting at midnight, check your system date/time
 
 ## Project Issues
 
@@ -61,11 +61,17 @@ description: Common issues and solutions
 
 ### Project disappeared after restart
 
-**Solution:**
+**Note:** This issue was fixed in version 1.0.4.
+
+**If you're on an older version:**
+- Upgrade to 1.0.4 or later to prevent this issue
+- Your project data should persist correctly after upgrading
+
+**If still experiencing issues on 1.0.4+:**
 - Check if `.obsidian/plugins/lighthouse/data.json` exists
-- Verify file permissions allow reading
-- Check if vault syncing deleted the file
-- Projects may need to be recreated if config was lost
+- Verify file permissions allow reading/writing
+- Check if vault syncing is interfering with the file
+- Report on GitHub with version info
 
 ## Performance Issues
 
@@ -81,7 +87,7 @@ description: Common issues and solutions
 
 If you can't resolve an issue:
 
-1. Check existing [GitHub Issues](https://github.com/benjamincassidy/obsidian-lighthouse/issues)
+1. Check existing [GitHub Issues](https://github.com/benjamincassidy/lighthouse/issues)
 2. Open a new issue with:
    - Obsidian version
    - Lighthouse version

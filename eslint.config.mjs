@@ -86,6 +86,8 @@ export default tseslint.config(
           .filter((rule) => rule.startsWith('@typescript-eslint/'))
           .map((rule) => [rule, 'off']),
       ),
+      // Allow unused parameters in function type signatures
+      'no-unused-vars': ['error', { args: 'none', varsIgnorePattern: '^_' }],
     },
   },
   {
