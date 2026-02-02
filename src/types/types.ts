@@ -41,8 +41,3 @@ export interface FolderStats {
   fileCount: number
   children: FolderStats[]
 }
-
-export interface LighthouseSettings {
-  projects: Project[]
-  activeProjectId?: string
-}

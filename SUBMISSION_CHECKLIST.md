@@ -22,7 +22,7 @@ This checklist tracks our compliance with [Obsidian's Community Plugin submissio
   - [X] `manifest.json` ✅ (426 bytes)
   - [X] `styles.css` ✅ (831 bytes)
 
-**Verified:** https://github.com/benjamincassidy/obsidian-lighthouse/releases/tag/0.9.0
+**Verified:** https://github.com/benjamincassidy/lighthouse/releases/tag/0.9.0
 
 - [X] GitHub release name matches the exact version number specified in my manifest.json
   - Release name: `0.9.0` ✅
@@ -110,7 +110,7 @@ Edit `community-plugins.json` and add your plugin in **alphabetical order** by I
   "name": "Lighthouse",
   "author": "benjamin cassidy",
   "description": "Project-based writing for Obsidian. Manage multiple writing projects with word counts, filtered views, and distraction-free writing.",
-  "repo": "benjamincassidy/obsidian-lighthouse"
+  "repo": "benjamincassidy/lighthouse"
 }
 ```
 
@@ -155,7 +155,7 @@ If changes are requested:
 
 ```bash
 # Make changes to your plugin repo
-cd /path/to/obsidian-lighthouse
+cd /path/to/lighthouse
 # ... make changes ...
 git commit -m "fix: address review feedback"
 git push

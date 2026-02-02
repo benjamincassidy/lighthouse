@@ -107,7 +107,7 @@ Add a new version section:
 Add comparison link at bottom:
 
 ```markdown
-[0.9.0]: https://github.com/benjamincassidy/obsidian-lighthouse/releases/tag/0.9.0
+[0.9.0]: https://github.com/benjamincassidy/lighthouse/releases/tag/0.9.0
 ```
 
 ### 3. Commit and Create PR
@@ -135,9 +135,9 @@ Once the PR is merged to `main`, the workflow will automatically:
 
 ### 5. Monitor the Release
 
-1. Go to GitHub Actions: `https://github.com/benjamincassidy/obsidian-lighthouse/actions`
+1. Go to GitHub Actions: `https://github.com/benjamincassidy/lighthouse/actions`
 2. Watch the "Release" workflow run
-3. If successful, a new release will appear at: `https://github.com/benjamincassidy/obsidian-lighthouse/releases`
+3. If successful, a new release will appear at: `https://github.com/benjamincassidy/lighthouse/releases`
 
 **That's it!** No manual tagging or release creation needed.
 
@@ -200,7 +200,7 @@ To rollback a release:
 If the automated workflow fails, you can create a manual release:
 
 1. Build locally: `npm run build`
-2. Go to: `https://github.com/benjamincassidy/obsidian-lighthouse/releases/new`
+2. Go to: `https://github.com/benjamincassidy/lighthouse/releases/new`
 3. Create new tag (e.g., `0.9.0`)
 4. Fill in release title and notes
 5. Upload `main.js`, `manifest.json`, and `styles.css`

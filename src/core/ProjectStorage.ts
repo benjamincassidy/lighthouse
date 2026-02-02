@@ -1,12 +1,8 @@
 import { Plugin } from 'obsidian'
 
-import type { LighthouseSettings, Project } from '@/types/types'
+import { DEFAULT_SETTINGS, type LighthouseSettings } from '@/types/settings'
+import type { Project } from '@/types/types'
 import { generateUUID, normalizeVaultPath, validateProject } from '@/utils/validation'
-
-const DEFAULT_SETTINGS: LighthouseSettings = {
-  projects: [],
-  activeProjectId: undefined,
-}
 
 /**
  * Manages project data persistence and storage

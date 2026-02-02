@@ -171,6 +171,7 @@
 
       // Now set correct baselines after getting word count
       if (project) {
+        // ALWAYS reset session baseline on startup - sessions don't persist across restarts
         sessionStartWordCount = projectWordCount
 
         // Only update today baseline if it's a new day
@@ -215,9 +216,9 @@
   </div>
 
   {#if !project}
-    <div class="lighthouse-stats-empty">
-      <p>No active project</p>
-      <p class="lighthouse-stats-hint">Select a project to see stats</p>
+    <div class="pane-empty">
+      No active project<br />
+      <span class="pane-empty-message">Select a project to see stats</span>
     </div>
   {:else}
     <div class="lighthouse-stats-content">
@@ -307,23 +308,9 @@
     font-weight: 600;
   }
 
-  .lighthouse-stats-empty {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    color: var(--text-muted);
-  }
-
-  .lighthouse-stats-empty p {
-    margin: 0;
-  }
-
-  .lighthouse-stats-hint {
-    font-size: var(--font-ui-small);
-    margin-top: var(--size-2-2);
+  .pane-empty-message {
+    color: var(--text-faint);
+    font-size: var(--font-ui-smaller);
   }
 
   .lighthouse-stats-content {

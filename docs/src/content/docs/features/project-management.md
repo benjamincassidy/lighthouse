@@ -49,7 +49,12 @@ The active project is your current working context.
 Select a different project from the dropdown at the top.
 
 ### From Command Palette
-Run `Lighthouse: Switch Project` (if available).
+1. Press Cmd/Ctrl+P
+2. Run `Lighthouse: Switch Project`
+3. Type to search for your project
+4. Press Enter to switch
+
+The fuzzy search makes it easy to find projects quickly, even if you have many.
 
 Your active project persists across sessions.
 

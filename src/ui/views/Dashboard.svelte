@@ -112,8 +112,21 @@
     <div class="lighthouse-dashboard-section-header">
       <h3>Active Project</h3>
       {#if allProjects.length > 0}
-        <button class="lighthouse-button lighthouse-button-small" onclick={createNewProject}>
-          + New
+        <button class="clickable-icon" onclick={createNewProject} aria-label="New project">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="svg-icon lucide-plus"
+            ><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"
+            ></line></svg
+          >
         </button>
       {/if}
     </div>
@@ -121,14 +134,12 @@
     {#if allProjects.length === 0}
       <div class="lighthouse-dashboard-empty">
         <p>No projects yet</p>
-        <button class="lighthouse-button lighthouse-button-primary" onclick={createNewProject}>
-          Create Your First Project
-        </button>
+        <button class="mod-cta" onclick={createNewProject}> Create Your First Project </button>
       </div>
     {:else}
       <div class="lighthouse-project-selector">
         <select
-          class="lighthouse-select"
+          class="dropdown"
           value={currentProject?.id || ''}
           onchange={(e) => switchProject(e.currentTarget.value)}
         >
@@ -214,28 +225,6 @@
       </div>
     </div>
 
-    <!-- Quick Actions -->
-    <div class="lighthouse-dashboard-section">
-      <div class="lighthouse-dashboard-section-header">
-        <h3>Quick Actions</h3>
-      </div>
-
-      <div class="lighthouse-actions">
-        <button
-          class="lighthouse-button lighthouse-button-full"
-          onclick={() => plugin.activateProjectExplorer()}
-        >
-          🗂️ Open File Explorer
-        </button>
-        <button
-          class="lighthouse-button lighthouse-button-full"
-          onclick={() => plugin.activateStatsPanel()}
-        >
-          📊 Open Writing Stats
-        </button>
-      </div>
-    </div>
-
     <!-- Project Management -->
     <div class="lighthouse-dashboard-section">
       <div class="lighthouse-dashboard-section-header">
@@ -243,15 +232,8 @@
       </div>
 
       <div class="lighthouse-actions">
-        <button class="lighthouse-button lighthouse-button-full" onclick={editProject}>
-          ✏️ Edit Project
-        </button>
-        <button
-          class="lighthouse-button lighthouse-button-full lighthouse-button-danger"
-          onclick={deleteProject}
-        >
-          🗑️ Delete Project
-        </button>
+        <button class="mod-cta" onclick={editProject}> ✏️ Edit Project </button>
+        <button class="mod-warning" onclick={deleteProject}> 🗑️ Delete Project </button>
       </div>
     </div>
   {/if}
@@ -305,64 +287,12 @@
     font-size: var(--font-ui-medium);
   }
 
-  .lighthouse-button {
-    padding: var(--size-4-2) var(--size-4-4);
-    border: 1px solid var(--background-modifier-border);
-    background: var(--background-primary);
-    color: var(--text-normal);
-    border-radius: var(--radius-s);
-    cursor: pointer;
-    font-size: var(--font-ui-small);
-    font-weight: 500;
-  }
-
-  .lighthouse-button:hover {
-    background: var(--background-modifier-hover);
-  }
-
-  .lighthouse-button-small {
-    padding: var(--size-2-2) var(--size-4-2);
-    font-size: var(--font-ui-smaller);
-  }
-
-  .lighthouse-button-primary {
-    background: var(--interactive-accent);
-    color: var(--text-on-accent);
-    border-color: var(--interactive-accent);
-  }
-
-  .lighthouse-button-primary:hover {
-    background: var(--interactive-accent-hover);
-  }
-
-  .lighthouse-button-full {
-    width: 100%;
-    text-align: left;
-    margin-bottom: var(--size-2-2);
-  }
-
-  .lighthouse-button-danger {
-    color: var(--text-error);
-    border-color: var(--background-modifier-error);
-  }
-
-  .lighthouse-button-danger:hover {
-    background: var(--background-modifier-error);
-    color: var(--text-on-accent);
-  }
-
   .lighthouse-project-selector {
     margin-bottom: var(--size-4-2);
   }
 
-  .lighthouse-select {
+  .lighthouse-project-selector .dropdown {
     width: 100%;
-    padding: var(--size-4-2);
-    border: 1px solid var(--background-modifier-border);
-    background: var(--background-primary);
-    color: var(--text-normal);
-    border-radius: var(--radius-s);
-    font-size: var(--font-ui-small);
   }
 
   .lighthouse-stats-grid {
@@ -474,5 +404,10 @@
   .lighthouse-actions {
     display: flex;
     flex-direction: column;
+    gap: var(--size-2-2);
+  }
+
+  .lighthouse-actions button {
+    width: 100%;
   }
 </style>

@@ -5,8 +5,10 @@ import { HierarchicalCounter } from '@/core/HierarchicalCounter'
 import { ProjectManager } from '@/core/ProjectManager'
 import { WordCounter } from '@/core/WordCounter'
 import { ZenMode } from '@/core/ZenMode'
+import { DEFAULT_SETTINGS, type LighthouseSettings } from '@/types/settings'
 import { ProjectModal } from '@/ui/modals/ProjectModal'
-import { DEFAULT_SETTINGS, LighthouseSettingTab, type LighthouseSettings } from '@/ui/SettingsTab'
+import { ProjectSwitcherModal } from '@/ui/modals/ProjectSwitcher'
+import { LighthouseSettingTab } from '@/ui/SettingsTab'
 import { DASHBOARD_VIEW_TYPE, DashboardView } from '@/ui/views/DashboardView'
 import { PROJECT_EXPLORER_VIEW_TYPE, ProjectExplorerView } from '@/ui/views/ProjectExplorerView'
 import { STATS_PANEL_VIEW_TYPE, StatsPanelView } from '@/ui/views/StatsPanelView'
@@ -48,7 +50,7 @@ export default class LighthousePlugin extends Plugin {
     })
 
     // Add ribbon icon to open project explorer
-    this.addRibbonIcon('folder-tree', 'Project explorer', () => {
+    this.addRibbonIcon('lightbulb', 'Project explorer', () => {
       void this.activateProjectExplorer()
     })
 
@@ -99,6 +101,16 @@ export default class LighthousePlugin extends Plugin {
       name: 'Create new project',
       callback: () => {
         const modal = new ProjectModal(this, 'create')
+        modal.open()
+      },
+    })
+
+    // Add command to switch project
+    this.addCommand({
+      id: 'switch-project',
+      name: 'Switch project',
+      callback: () => {
+        const modal = new ProjectSwitcherModal(this)
         modal.open()
       },
     })
@@ -209,5 +221,35 @@ export default class LighthousePlugin extends Plugin {
     }
 
     void workspace.revealLeaf(leaf)
+  }
+
+  toggleProjectExplorer(): void {
+    const { workspace } = this.app
+    const leaf = workspace.getLeavesOfType(PROJECT_EXPLORER_VIEW_TYPE)[0]
+
+    if (leaf) {
+      leaf.detach()
+    } else {
+      this.activateProjectExplorer()
+    }
+  }
+
+  toggleStatsPanel(): void {
+    const { workspace } = this.app
+    const leaf = workspace.getLeavesOfType(STATS_PANEL_VIEW_TYPE)[0]
+
+    if (leaf) {
+      leaf.detach()
+    } else {
+      this.activateStatsPanel()
+    }
+  }
+
+  isProjectExplorerOpen(): boolean {
+    return this.app.workspace.getLeavesOfType(PROJECT_EXPLORER_VIEW_TYPE).length > 0
+  }
+
+  isStatsPanelOpen(): boolean {
+    return this.app.workspace.getLeavesOfType(STATS_PANEL_VIEW_TYPE).length > 0
   }
 }

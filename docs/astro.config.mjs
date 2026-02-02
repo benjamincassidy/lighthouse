@@ -15,11 +15,11 @@ export default defineConfig({
 					name: 'GitHub',
 					icon: 'github',
 					label: 'GitHub',
-					href: 'https://github.com/benjamincassidy/obsidian-lighthouse',
+					href: 'https://github.com/benjamincassidy/lighthouse',
 				},
 			],
 			editLink: {
-				baseUrl: 'https://github.com/benjamincassidy/obsidian-lighthouse/edit/main/docs/',
+				baseUrl: 'https://github.com/benjamincassidy/lighthouse/edit/main/docs/',
 			},
 			sidebar: [
 				{

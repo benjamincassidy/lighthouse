@@ -93,8 +93,8 @@ If no conventional commits are found, a skeleton entry is created for you to fil
 The script automatically maintains comparison links at the bottom of CHANGELOG.md:
 
 ```markdown
-[Unreleased]: https://github.com/benjamincassidy/obsidian-lighthouse/compare/1.0.0...HEAD
-[1.0.0]: https://github.com/benjamincassidy/obsidian-lighthouse/compare/0.9.0...1.0.0
+[Unreleased]: https://github.com/benjamincassidy/lighthouse/compare/1.0.0...HEAD
+[1.0.0]: https://github.com/benjamincassidy/lighthouse/compare/0.9.0...1.0.0
 ```
 
 ## Complete Release Process

@@ -16,7 +16,7 @@ Lighthouse is currently in **alpha** and not yet available in the Obsidian Commu
 
 ### Option 1: Download Release (Recommended)
 
-1. Go to the [Lighthouse GitHub Releases](https://github.com/benjamincassidy/obsidian-lighthouse/releases) page
+1. Go to the [Lighthouse GitHub Releases](https://github.com/benjamincassidy/lighthouse/releases) page
 2. Download the latest release `.zip` file
 3. Extract the archive
 4. Copy `main.js`, `manifest.json`, and `styles.css` to your vault:
@@ -34,7 +34,7 @@ If you want the latest development version:
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/benjamincassidy/obsidian-lighthouse.git
+   git clone https://github.com/benjamincassidy/lighthouse.git
    cd obsidian-lighthouse
    ```
 
@@ -78,7 +78,7 @@ Once installed and enabled, you should see:
 1. Check the Obsidian console (Cmd/Ctrl+Shift+I) for error messages
 2. Ensure you're running Obsidian v1.0.0 or later
 3. Try reinstalling the plugin files
-4. Report persistent issues on [GitHub Issues](https://github.com/benjamincassidy/obsidian-lighthouse/issues)
+4. Report persistent issues on [GitHub Issues](https://github.com/benjamincassidy/lighthouse/issues)
 
 ## Next Steps
 

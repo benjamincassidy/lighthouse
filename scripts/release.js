@@ -140,7 +140,7 @@ function updateChangelog(version, oldVersion) {
   }
 
   // Update comparison links at bottom
-  const repo = 'benjamincassidy/obsidian-lighthouse'
+  const repo = 'benjamincassidy/lighthouse'
   const linkPattern = new RegExp(
     `\\[Unreleased\\]: https://github.com/${repo}/compare/(.+?)\\.\\.\\.HEAD`,
   )
