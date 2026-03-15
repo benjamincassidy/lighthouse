@@ -6,6 +6,7 @@
   import type { Project } from '@/types/types'
   import TreeNodeComponent from '@/ui/components/TreeNode.svelte'
   import { ProjectSwitcherModal } from '@/ui/modals/ProjectSwitcher'
+  import { reorderPaths, sortByFileOrder } from '@/utils/fileOrder'
 
   interface TreeNode {
     name: string
@@ -40,13 +41,22 @@
 
     plugin.registerEvent(plugin.app.workspace.on('active-leaf-change', updateActiveFile))
 
-    // Rebuild tree whenever files/folders are created, deleted, or renamed
+    // Rebuild tree whenever files/folders are created or deleted
     const refreshTree = async () => {
       if (currentProject) await buildProjectTree(currentProject)
     }
     plugin.registerEvent(plugin.app.vault.on('create', refreshTree))
     plugin.registerEvent(plugin.app.vault.on('delete', refreshTree))
-    plugin.registerEvent(plugin.app.vault.on('rename', refreshTree))
+
+    // On rename: keep fileOrder in sync, then rebuild
+    plugin.registerEvent(
+      plugin.app.vault.on('rename', async (file, oldPath) => {
+        if (currentProject) {
+          await plugin.projectManager.updateFileOrderPath(currentProject.id, oldPath, file.path)
+        }
+        await refreshTree()
+      }),
+    )
   })
 
   // Rebuild tree when active project changes
@@ -146,22 +156,46 @@
       }
     }
 
-    // Sort: folders first, then files, alphabetically
-    children.sort((a, b) => {
-      if (a.type !== b.type) {
-        return a.type === 'folder' ? -1 : 1
-      }
-      return a.name.localeCompare(b.name)
-    })
+    // Sort by custom fileOrder; fall back to folders-first alphabetical for
+    // items not yet present in the order array
+    const fileOrder = project?.fileOrder ?? []
+    const sortedChildren = sortByFileOrder(children, fileOrder)
 
     return {
       name: folder.name || 'Root',
       path: folder.path,
       type: 'folder',
-      children,
+      children: sortedChildren,
       isExpanded: true,
       folderType,
     }
+  }
+
+  /** Collect every path (files and folders) from a tree in depth-first order. */
+  function collectTreePaths(nodes: TreeNode[]): string[] {
+    const paths: string[] = []
+    for (const node of nodes) {
+      paths.push(node.path)
+      if (node.children) paths.push(...collectTreePaths(node.children))
+    }
+    return paths
+  }
+
+  /** Handle a drag-and-drop reorder emitted by any TreeNode. */
+  async function handleReorder(
+    event: CustomEvent<{ draggedPath: string; targetPath: string; position: 'before' | 'after' }>,
+  ) {
+    if (!currentProject) return
+    const { draggedPath, targetPath, position } = event.detail
+    const allPaths = collectTreePaths([...contentNodes, ...sourceNodes])
+    const newOrder = reorderPaths(
+      currentProject.fileOrder ?? [],
+      allPaths,
+      draggedPath,
+      targetPath,
+      position,
+    )
+    await plugin.projectManager.reorderProjectFiles(currentProject.id, newOrder)
   }
 
   function handleToggle(event: CustomEvent<{ path: string }>) {
@@ -407,6 +441,7 @@
                   onopen={handleOpen}
                   onfilemenu={handleContextMenu}
                   oncreatenote={handleCreateNoteInFolder}
+                  onreorder={handleReorder}
                 />
               {/each}
             </div>
@@ -484,6 +519,7 @@
                   onopen={handleOpen}
                   onfilemenu={handleContextMenu}
                   oncreatenote={handleCreateNoteInFolder}
+                  onreorder={handleReorder}
                 />
               {/each}
             </div>
