@@ -31,6 +31,17 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* File status dot: 6px colored circle shown beside filenames in the Explorer */
+.lh-status-dot {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 5px;
+  align-self: center;
+}
+
 /* ─────────────────────────────────────────────────────────────────────────── */
 
 /* Zen Mode Styles */
