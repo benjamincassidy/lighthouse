@@ -218,31 +218,18 @@ describe('ZenMode — typewriter scroll', () => {
 describe('ZenMode — focus mode', () => {
   let mockApp: ReturnType<typeof makeApp>
   let zenMode: ZenMode
-  let mockEditorEl: {
-    classList: { add: ReturnType<typeof vi.fn>; remove: ReturnType<typeof vi.fn> }
-  }
-  let mockQuerSelectorAll: ReturnType<typeof vi.fn>
-  beforeEach(() => {
-    mockEditorEl = { classList: { add: vi.fn(), remove: vi.fn() } }
+  let mockBodyClassList: { add: ReturnType<typeof vi.fn>; remove: ReturnType<typeof vi.fn> }
 
-    mockQuerSelectorAll = vi.fn().mockImplementation((selector: string) => {
-      if (
-        selector === '.cm-editor' ||
-        selector === '.lh-focus-paragraph' ||
-        selector === '.lh-focus-sentence'
-      ) {
-        return { forEach: (fn: (el: unknown) => void) => fn(mockEditorEl) }
-      }
-      return { forEach: vi.fn() }
-    })
+  beforeEach(() => {
+    mockBodyClassList = { add: vi.fn(), remove: vi.fn() }
 
     vi.stubGlobal('document', {
       body: {
         style: { setProperty: vi.fn(), removeProperty: vi.fn() },
-        classList: { add: vi.fn(), remove: vi.fn() },
+        classList: mockBodyClassList,
       },
       querySelector: vi.fn().mockReturnValue(null),
-      querySelectorAll: mockQuerSelectorAll,
+      querySelectorAll: vi.fn().mockReturnValue({ forEach: vi.fn() }),
     })
 
     mockApp = makeApp()
@@ -253,25 +240,25 @@ describe('ZenMode — focus mode', () => {
     vi.unstubAllGlobals()
   })
 
-  it('adds lh-focus-paragraph class for paragraph mode', () => {
+  it('adds lh-focus-paragraph class to body for paragraph mode', () => {
     ;(zenMode as unknown as { enableFocusMode: (m: string) => void }).enableFocusMode('paragraph')
-    expect(mockEditorEl.classList.add).toHaveBeenCalledWith('lh-focus-paragraph')
+    expect(mockBodyClassList.add).toHaveBeenCalledWith('lh-focus-paragraph')
   })
 
-  it('adds lh-focus-sentence class for sentence mode', () => {
+  it('adds lh-focus-sentence class to body for sentence mode', () => {
     ;(zenMode as unknown as { enableFocusMode: (m: string) => void }).enableFocusMode('sentence')
-    expect(mockEditorEl.classList.add).toHaveBeenCalledWith('lh-focus-sentence')
+    expect(mockBodyClassList.add).toHaveBeenCalledWith('lh-focus-sentence')
   })
 
-  it('removes the active focus class on disableFocusMode', () => {
+  it('removes the active focus class from body on disableFocusMode', () => {
     ;(zenMode as unknown as { enableFocusMode: (m: string) => void }).enableFocusMode('paragraph')
     ;(zenMode as unknown as { disableFocusMode: () => void }).disableFocusMode()
-    expect(mockEditorEl.classList.remove).toHaveBeenCalledWith('lh-focus-paragraph')
+    expect(mockBodyClassList.remove).toHaveBeenCalledWith('lh-focus-paragraph')
   })
 
   it('does nothing on disableFocusMode when no focus mode was active', () => {
     ;(zenMode as unknown as { disableFocusMode: () => void }).disableFocusMode()
-    expect(mockEditorEl.classList.remove).not.toHaveBeenCalled()
+    expect(mockBodyClassList.remove).not.toHaveBeenCalled()
   })
 
   it('clears activeFocusClass after disabling so a second disable is a no-op', () => {
@@ -279,6 +266,6 @@ describe('ZenMode — focus mode', () => {
     ;(zenMode as unknown as { disableFocusMode: () => void }).disableFocusMode()
     ;(zenMode as unknown as { disableFocusMode: () => void }).disableFocusMode()
     // classList.remove should only be called once
-    expect(mockEditorEl.classList.remove).toHaveBeenCalledTimes(1)
+    expect(mockBodyClassList.remove).toHaveBeenCalledTimes(1)
   })
 })

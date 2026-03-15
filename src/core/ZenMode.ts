@@ -280,18 +280,16 @@ export class ZenMode {
   enableFocusMode(mode: 'paragraph' | 'sentence'): void {
     // Clear any previously applied class first
     this.disableFocusMode()
+    // Apply to body so it covers all current and future .cm-editor instances,
+    // and so CSS is always live-evaluated without timing dependencies.
     const cssClass = mode === 'sentence' ? 'lh-focus-sentence' : 'lh-focus-paragraph'
-    document.querySelectorAll<HTMLElement>('.cm-editor').forEach((el) => {
-      el.classList.add(cssClass)
-    })
+    document.body.classList.add(cssClass)
     this.activeFocusClass = cssClass
   }
 
   disableFocusMode(): void {
     if (this.activeFocusClass) {
-      document.querySelectorAll<HTMLElement>(`.${this.activeFocusClass}`).forEach((el) => {
-        el.classList.remove(this.activeFocusClass!)
-      })
+      document.body.classList.remove(this.activeFocusClass)
       this.activeFocusClass = null
     }
   }
