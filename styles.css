@@ -44,7 +44,7 @@
 
 /* ─────────────────────────────────────────────────────────────────────────── */
 
-/* Zen Mode Styles */
+/* Flow Mode Styles */
 .lighthouse-hidden {
   display: none !important;
 }
@@ -59,24 +59,25 @@ body:has(.workspace-tabs.lighthouse-zen-dim) .workspace-tab-header-container:hov
   opacity: 0.6;
 }
 
-/* Zen Mode — Focus (paragraph / sentence)
+/* Flow Mode — Focus (paragraph / sentence)
    Class applied to body so it covers all editors, including those opened
-   after zen mode is entered */
-body.lh-focus-paragraph .cm-line:not(.cm-activeLine),
-body.lh-focus-sentence .cm-line:not(.cm-activeLine) {
-  opacity: 0.25;
+   after flow mode is entered. !important overrides Obsidian's own .cm-line
+   styles; .cm-content in the path increases specificity and scopes to editor content. */
+body.lh-focus-paragraph .cm-content .cm-line:not(.cm-activeLine),
+body.lh-focus-sentence .cm-content .cm-line:not(.cm-activeLine) {
+  opacity: 0.25 !important;
   transition: opacity 0.15s ease;
 }
 
-/* Zen Mode — Typography (CSS custom properties set on body via ZenMode.applyTypographyOverrides) */
-body.lh-zen-active .cm-editor {
-  font-family: var(--lh-zen-font, inherit);
-  line-height: var(--lh-zen-line-height, inherit);
+/* Flow Mode — Typography (CSS custom properties set on body via FlowMode.applyTypographyOverrides) */
+body.lh-flow-active .cm-editor {
+  font-family: var(--lh-flow-font, inherit);
+  line-height: var(--lh-flow-line-height, inherit);
 }
 
 /* Center the editor only when a line-width constraint is actually active */
-body.lh-zen-active[style*='--lh-zen-line-width'] .cm-editor {
-  max-width: var(--lh-zen-line-width);
+body.lh-flow-active[style*='--lh-flow-line-width'] .cm-editor {
+  max-width: var(--lh-flow-line-width);
   margin-left: auto;
   margin-right: auto;
 }

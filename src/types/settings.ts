@@ -8,14 +8,14 @@ export interface LighthouseSettings {
   projects: Project[]
   activeProjectId: string | undefined
 
-  // Zen Mode Settings
-  zenModeHideStatusBar: boolean
-  zenModeHideRibbon: boolean
-  zenTypewriterScroll: boolean
-  zenFocusMode: 'none' | 'paragraph' | 'sentence'
-  zenFont: string
-  zenLineHeight: number
-  zenLineWidth: number
+  // Flow Mode Settings
+  flowModeHideStatusBar: boolean
+  flowModeHideRibbon: boolean
+  flowTypewriterScroll: boolean
+  flowFocusMode: 'none' | 'paragraph' | 'sentence'
+  flowFont: string
+  flowLineHeight: number
+  flowLineWidth: number
 
   // Word Count Settings
   showWordCountInStatusBar: boolean
@@ -34,14 +34,14 @@ export const DEFAULT_SETTINGS: LighthouseSettings = {
   projects: [],
   activeProjectId: undefined,
 
-  // Zen Mode
-  zenModeHideStatusBar: true,
-  zenModeHideRibbon: true,
-  zenTypewriterScroll: true,
-  zenFocusMode: 'none',
-  zenFont: '',
-  zenLineHeight: 0,
-  zenLineWidth: 0,
+  // Flow Mode
+  flowModeHideStatusBar: true,
+  flowModeHideRibbon: true,
+  flowTypewriterScroll: true,
+  flowFocusMode: 'none',
+  flowFont: '',
+  flowLineHeight: 0,
+  flowLineWidth: 0,
 
   // Word Count
   showWordCountInStatusBar: true,

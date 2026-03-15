@@ -3,19 +3,19 @@ import type { LighthouseSettings } from '@/types/settings'
 import type { App, Editor, EventRef } from 'obsidian'
 
 /**
- * Returns CSS custom property key→value pairs for zen typography overrides.
+ * Returns CSS custom property key→value pairs for flow typography overrides.
  * Only includes properties that have non-default values.
  * These are applied to `document.body` so scoped CSS in styles.css can use them.
  */
 export function buildTypographyVars(settings: LighthouseSettings): Record<string, string> {
   const vars: Record<string, string> = {}
-  if (settings.zenFont) vars['--lh-zen-font'] = settings.zenFont
-  if (settings.zenLineHeight) vars['--lh-zen-line-height'] = String(settings.zenLineHeight)
-  if (settings.zenLineWidth) vars['--lh-zen-line-width'] = `${settings.zenLineWidth}px`
+  if (settings.flowFont) vars['--lh-flow-font'] = settings.flowFont
+  if (settings.flowLineHeight) vars['--lh-flow-line-height'] = String(settings.flowLineHeight)
+  if (settings.flowLineWidth) vars['--lh-flow-line-width'] = `${settings.flowLineWidth}px`
   return vars
 }
 
-export interface ZenModeState {
+export interface FlowModeState {
   isActive: boolean
   previousState: {
     leftSidebarVisible: boolean
@@ -25,10 +25,10 @@ export interface ZenModeState {
   }
 }
 
-export class ZenMode {
+export class FlowMode {
   private app: App
   private getSettings: () => LighthouseSettings
-  private state: ZenModeState
+  private state: FlowModeState
   /** EventRef returned by workspace.on('editor-change') for typewriter scroll */
   private typewriterScrollRef: EventRef | null = null
   /** CSS class currently applied to .cm-editor elements for focus mode */
@@ -48,19 +48,19 @@ export class ZenMode {
     }
   }
 
-  isZenModeActive(): boolean {
+  isFlowModeActive(): boolean {
     return this.state.isActive
   }
 
-  toggleZenMode(): void {
+  toggleFlowMode(): void {
     if (this.state.isActive) {
-      this.exitZenMode()
+      this.exitFlowMode()
     } else {
-      this.enterZenMode()
+      this.enterFlowMode()
     }
   }
 
-  enterZenMode(): void {
+  enterFlowMode(): void {
     if (this.state.isActive) return
 
     const { workspace } = this.app
@@ -85,12 +85,12 @@ export class ZenMode {
     }
 
     // Conditionally hide status bar
-    if (settings.zenModeHideStatusBar) {
+    if (settings.flowModeHideStatusBar) {
       this.hideStatusBar()
     }
 
     // Conditionally hide ribbon
-    if (settings.zenModeHideRibbon) {
+    if (settings.flowModeHideRibbon) {
       this.hideRibbon()
     }
 
@@ -104,13 +104,13 @@ export class ZenMode {
     this.hideNavigation()
 
     // Typewriter scroll
-    if (settings.zenTypewriterScroll) {
+    if (settings.flowTypewriterScroll) {
       this.enableTypewriterScroll()
     }
 
     // Paragraph / sentence focus dimming
-    if (settings.zenFocusMode !== 'none') {
-      this.enableFocusMode(settings.zenFocusMode)
+    if (settings.flowFocusMode !== 'none') {
+      this.enableFocusMode(settings.flowFocusMode)
     }
 
     // Typography overrides
@@ -122,7 +122,7 @@ export class ZenMode {
     workspace.trigger('layout-change')
   }
 
-  exitZenMode(): void {
+  exitFlowMode(): void {
     if (!this.state.isActive) return
 
     const { workspace } = this.app
@@ -304,13 +304,13 @@ export class ZenMode {
     for (const [prop, value] of Object.entries(vars)) {
       document.body.style.setProperty(prop, value)
     }
-    document.body.classList.add('lh-zen-active')
+    document.body.classList.add('lh-flow-active')
   }
 
   removeTypographyOverrides(): void {
-    document.body.style.removeProperty('--lh-zen-font')
-    document.body.style.removeProperty('--lh-zen-line-height')
-    document.body.style.removeProperty('--lh-zen-line-width')
-    document.body.classList.remove('lh-zen-active')
+    document.body.style.removeProperty('--lh-flow-font')
+    document.body.style.removeProperty('--lh-flow-line-height')
+    document.body.style.removeProperty('--lh-flow-line-width')
+    document.body.classList.remove('lh-flow-active')
   }
 }

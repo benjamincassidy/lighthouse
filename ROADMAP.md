@@ -132,14 +132,14 @@ New service: `src/core/WritingSessionTracker.ts`
 - [x] Unit test for `fileStatus.ts` color map
 - [x] CSS: `.lh-status-dot` in `styles.css`
 
-### 1.2 Advanced Zen Mode (FEATURES.md I) ✅
+### 1.2 Advanced Flow Mode (FEATURES.md I) ✅
 
-- [x] **Typewriter scroll** (`zenTypewriterScroll: boolean`): on `enterZenMode`, register `workspace.on('editor-change')` listener that calls `editor.scrollIntoView(cursor, true)` to keep cursor vertically centered. Unregistered via `workspace.offref()` on exit.
-- [x] **Paragraph focus** (`zenFocusMode: 'paragraph'`): adds `.lh-focus-paragraph` class to all `.cm-editor` elements; CSS rule `opacity: 0.25` on all `.cm-line:not(.cm-activeLine)` elements.
-- [x] **Sentence focus** (`zenFocusMode: 'sentence'`): same mechanism with `.lh-focus-sentence` class — uses the same CM active-line CSS hook.
-- [x] **Typography overrides**: on `enterZenMode`, sets CSS custom properties (`--lh-zen-font`, `--lh-zen-line-height`, `--lh-zen-line-width`) on `document.body` and adds `body.lh-zen-active`; scoped CSS in `styles.css` applies them to `.cm-editor`. Removed on exit.
+- [x] **Typewriter scroll** (`flowTypewriterScroll: boolean`): on `enterFlowMode`, register `workspace.on('editor-change')` listener that calls `editor.scrollIntoView(cursor, true)` to keep cursor vertically centered. Unregistered via `workspace.offref()` on exit.
+- [x] **Paragraph focus** (`flowFocusMode: 'paragraph'`): adds `.lh-focus-paragraph` class to all `.cm-editor` elements; CSS rule `opacity: 0.25` on all `.cm-line:not(.cm-activeLine)` elements.
+- [x] **Sentence focus** (`flowFocusMode: 'sentence'`): same mechanism with `.lh-focus-sentence` class — uses the same CM active-line CSS hook.
+- [x] **Typography overrides**: on `enterFlowMode`, sets CSS custom properties (`--lh-flow-font`, `--lh-flow-line-height`, `--lh-flow-line-width`) on `document.body` and adds `body.lh-flow-active`; scoped CSS in `styles.css` applies them to `.cm-editor`. Removed on exit.
 - [x] Settings subsection: "Focus & typography" — typewriter toggle, focus mode dropdown, font input, line height input, max width input
-- [x] Add `zenTypewriterScroll`, `zenFocusMode`, `zenFont`, `zenLineHeight`, `zenLineWidth` to `LighthouseSettings`
+- [x] Add `flowTypewriterScroll`, `flowFocusMode`, `flowFont`, `flowLineHeight`, `flowLineWidth` to `LighthouseSettings`
 - [x] Unit tests: `buildTypographyVars` pure function (7 tests), CSS property injection/cleanup (5 tests), typewriter scroll event registration (4 tests), focus mode class application (5 tests)
 
 ### 1.3 Sprint Mode

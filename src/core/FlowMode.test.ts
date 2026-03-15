@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { buildTypographyVars, ZenMode } from '@/core/ZenMode'
+import { buildTypographyVars, FlowMode } from '@/core/FlowMode'
 import { DEFAULT_SETTINGS } from '@/types/settings'
 import type { LighthouseSettings } from '@/types/settings'
 
@@ -39,38 +39,38 @@ describe('buildTypographyVars', () => {
     expect(vars).toEqual({})
   })
 
-  it('includes --lh-zen-font when zenFont is set', () => {
-    const vars = buildTypographyVars(makeSettings({ zenFont: 'Georgia, serif' }))
-    expect(vars['--lh-zen-font']).toBe('Georgia, serif')
+  it('includes --lh-flow-font when flowFont is set', () => {
+    const vars = buildTypographyVars(makeSettings({ flowFont: 'Georgia, serif' }))
+    expect(vars['--lh-flow-font']).toBe('Georgia, serif')
   })
 
-  it('includes --lh-zen-line-height when zenLineHeight is non-zero', () => {
-    const vars = buildTypographyVars(makeSettings({ zenLineHeight: 1.8 }))
-    expect(vars['--lh-zen-line-height']).toBe('1.8')
+  it('includes --lh-flow-line-height when flowLineHeight is non-zero', () => {
+    const vars = buildTypographyVars(makeSettings({ flowLineHeight: 1.8 }))
+    expect(vars['--lh-flow-line-height']).toBe('1.8')
   })
 
-  it('includes --lh-zen-line-width when zenLineWidth is non-zero', () => {
-    const vars = buildTypographyVars(makeSettings({ zenLineWidth: 700 }))
-    expect(vars['--lh-zen-line-width']).toBe('700px')
+  it('includes --lh-flow-line-width when flowLineWidth is non-zero', () => {
+    const vars = buildTypographyVars(makeSettings({ flowLineWidth: 700 }))
+    expect(vars['--lh-flow-line-width']).toBe('700px')
   })
 
   it('includes all three properties when all are configured', () => {
     const vars = buildTypographyVars(
-      makeSettings({ zenFont: 'Georgia', zenLineHeight: 1.8, zenLineWidth: 700 }),
+      makeSettings({ flowFont: 'Georgia', flowLineHeight: 1.8, flowLineWidth: 700 }),
     )
-    expect(vars['--lh-zen-font']).toBe('Georgia')
-    expect(vars['--lh-zen-line-height']).toBe('1.8')
-    expect(vars['--lh-zen-line-width']).toBe('700px')
+    expect(vars['--lh-flow-font']).toBe('Georgia')
+    expect(vars['--lh-flow-line-height']).toBe('1.8')
+    expect(vars['--lh-flow-line-width']).toBe('700px')
   })
 
-  it('omits --lh-zen-line-height when zenLineHeight is 0', () => {
-    const vars = buildTypographyVars(makeSettings({ zenLineHeight: 0 }))
-    expect(vars).not.toHaveProperty('--lh-zen-line-height')
+  it('omits --lh-flow-line-height when flowLineHeight is 0', () => {
+    const vars = buildTypographyVars(makeSettings({ flowLineHeight: 0 }))
+    expect(vars).not.toHaveProperty('--lh-flow-line-height')
   })
 
-  it('omits --lh-zen-line-width when zenLineWidth is 0', () => {
-    const vars = buildTypographyVars(makeSettings({ zenLineWidth: 0 }))
-    expect(vars).not.toHaveProperty('--lh-zen-line-width')
+  it('omits --lh-flow-line-width when flowLineWidth is 0', () => {
+    const vars = buildTypographyVars(makeSettings({ flowLineWidth: 0 }))
+    expect(vars).not.toHaveProperty('--lh-flow-line-width')
   })
 })
 
@@ -78,9 +78,9 @@ describe('buildTypographyVars', () => {
 // Typography injection / cleanup (DOM mocked via vi.stubGlobal)
 // ---------------------------------------------------------------------------
 
-describe('ZenMode — typography overrides', () => {
+describe('FlowMode — typography overrides', () => {
   let mockApp: ReturnType<typeof makeApp>
-  let zenMode: ZenMode
+  let flowMode: FlowMode
   let mockBodyStyle: {
     setProperty: ReturnType<typeof vi.fn>
     removeProperty: ReturnType<typeof vi.fn>
@@ -104,8 +104,8 @@ describe('ZenMode — typography overrides', () => {
     vi.stubGlobal('document', mockDoc)
 
     mockApp = makeApp()
-    zenMode = new ZenMode(mockApp as unknown as App, () =>
-      makeSettings({ zenFont: 'Georgia', zenLineHeight: 1.8, zenLineWidth: 700 }),
+    flowMode = new FlowMode(mockApp as unknown as App, () =>
+      makeSettings({ flowFont: 'Georgia', flowLineHeight: 1.8, flowLineWidth: 700 }),
     )
   })
 
@@ -114,43 +114,43 @@ describe('ZenMode — typography overrides', () => {
   })
 
   it('sets CSS custom properties on document.body', () => {
-    ;(zenMode as unknown as { applyTypographyOverrides: () => void }).applyTypographyOverrides()
+    ;(flowMode as unknown as { applyTypographyOverrides: () => void }).applyTypographyOverrides()
 
-    expect(mockBodyStyle.setProperty).toHaveBeenCalledWith('--lh-zen-font', 'Georgia')
-    expect(mockBodyStyle.setProperty).toHaveBeenCalledWith('--lh-zen-line-height', '1.8')
-    expect(mockBodyStyle.setProperty).toHaveBeenCalledWith('--lh-zen-line-width', '700px')
+    expect(mockBodyStyle.setProperty).toHaveBeenCalledWith('--lh-flow-font', 'Georgia')
+    expect(mockBodyStyle.setProperty).toHaveBeenCalledWith('--lh-flow-line-height', '1.8')
+    expect(mockBodyStyle.setProperty).toHaveBeenCalledWith('--lh-flow-line-width', '700px')
   })
 
-  it('adds lh-zen-active class to body', () => {
-    ;(zenMode as unknown as { applyTypographyOverrides: () => void }).applyTypographyOverrides()
+  it('adds lh-flow-active class to body', () => {
+    ;(flowMode as unknown as { applyTypographyOverrides: () => void }).applyTypographyOverrides()
 
-    expect(mockBodyClassList.add).toHaveBeenCalledWith('lh-zen-active')
+    expect(mockBodyClassList.add).toHaveBeenCalledWith('lh-flow-active')
   })
 
   it('does not call setProperty when no typography overrides are configured', () => {
-    const noOverrideMode = new ZenMode(mockApp as unknown as App, () => makeSettings())
+    const noOverrideMode = new FlowMode(mockApp as unknown as App, () => makeSettings())
 
     ;(
       noOverrideMode as unknown as { applyTypographyOverrides: () => void }
     ).applyTypographyOverrides()
 
     expect(mockBodyStyle.setProperty).not.toHaveBeenCalled()
-    // lh-zen-active is still added (scoping class is always applied)
-    expect(mockBodyClassList.add).toHaveBeenCalledWith('lh-zen-active')
+    // lh-flow-active is still added (scoping class is always applied)
+    expect(mockBodyClassList.add).toHaveBeenCalledWith('lh-flow-active')
   })
 
   it('removes all CSS custom properties on removeTypographyOverrides', () => {
-    ;(zenMode as unknown as { removeTypographyOverrides: () => void }).removeTypographyOverrides()
+    ;(flowMode as unknown as { removeTypographyOverrides: () => void }).removeTypographyOverrides()
 
-    expect(mockBodyStyle.removeProperty).toHaveBeenCalledWith('--lh-zen-font')
-    expect(mockBodyStyle.removeProperty).toHaveBeenCalledWith('--lh-zen-line-height')
-    expect(mockBodyStyle.removeProperty).toHaveBeenCalledWith('--lh-zen-line-width')
+    expect(mockBodyStyle.removeProperty).toHaveBeenCalledWith('--lh-flow-font')
+    expect(mockBodyStyle.removeProperty).toHaveBeenCalledWith('--lh-flow-line-height')
+    expect(mockBodyStyle.removeProperty).toHaveBeenCalledWith('--lh-flow-line-width')
   })
 
-  it('removes lh-zen-active class from body on removeTypographyOverrides', () => {
-    ;(zenMode as unknown as { removeTypographyOverrides: () => void }).removeTypographyOverrides()
+  it('removes lh-flow-active class from body on removeTypographyOverrides', () => {
+    ;(flowMode as unknown as { removeTypographyOverrides: () => void }).removeTypographyOverrides()
 
-    expect(mockBodyClassList.remove).toHaveBeenCalledWith('lh-zen-active')
+    expect(mockBodyClassList.remove).toHaveBeenCalledWith('lh-flow-active')
   })
 })
 
@@ -158,9 +158,9 @@ describe('ZenMode — typography overrides', () => {
 // Typewriter scroll — event registration
 // ---------------------------------------------------------------------------
 
-describe('ZenMode — typewriter scroll', () => {
+describe('FlowMode — typewriter scroll', () => {
   let mockApp: ReturnType<typeof makeApp>
-  let zenMode: ZenMode
+  let flowMode: FlowMode
 
   beforeEach(() => {
     vi.stubGlobal('document', {
@@ -173,7 +173,7 @@ describe('ZenMode — typewriter scroll', () => {
     })
 
     mockApp = makeApp()
-    zenMode = new ZenMode(mockApp as unknown as App, () => makeSettings())
+    flowMode = new FlowMode(mockApp as unknown as App, () => makeSettings())
   })
 
   afterEach(() => {
@@ -181,7 +181,7 @@ describe('ZenMode — typewriter scroll', () => {
   })
 
   it('registers an editor-change workspace listener on enableTypewriterScroll', () => {
-    ;(zenMode as unknown as { enableTypewriterScroll: () => void }).enableTypewriterScroll()
+    ;(flowMode as unknown as { enableTypewriterScroll: () => void }).enableTypewriterScroll()
 
     expect(mockApp.workspace.on).toHaveBeenCalledWith('editor-change', expect.any(Function))
   })
@@ -191,21 +191,21 @@ describe('ZenMode — typewriter scroll', () => {
     mockApp.workspace.on.mockReturnValue(
       mockRef as unknown as ReturnType<typeof mockApp.workspace.on>,
     )
-    ;(zenMode as unknown as { enableTypewriterScroll: () => void }).enableTypewriterScroll()
-    ;(zenMode as unknown as { disableTypewriterScroll: () => void }).disableTypewriterScroll()
+    ;(flowMode as unknown as { enableTypewriterScroll: () => void }).enableTypewriterScroll()
+    ;(flowMode as unknown as { disableTypewriterScroll: () => void }).disableTypewriterScroll()
 
     expect(mockApp.workspace.offref).toHaveBeenCalledWith(mockRef)
   })
 
   it('does not call offref if typewriter scroll was never enabled', () => {
-    ;(zenMode as unknown as { disableTypewriterScroll: () => void }).disableTypewriterScroll()
+    ;(flowMode as unknown as { disableTypewriterScroll: () => void }).disableTypewriterScroll()
     expect(mockApp.workspace.offref).not.toHaveBeenCalled()
   })
 
   it('clears the ref after disabling so a second disable is a no-op', () => {
-    ;(zenMode as unknown as { enableTypewriterScroll: () => void }).enableTypewriterScroll()
-    ;(zenMode as unknown as { disableTypewriterScroll: () => void }).disableTypewriterScroll()
-    ;(zenMode as unknown as { disableTypewriterScroll: () => void }).disableTypewriterScroll()
+    ;(flowMode as unknown as { enableTypewriterScroll: () => void }).enableTypewriterScroll()
+    ;(flowMode as unknown as { disableTypewriterScroll: () => void }).disableTypewriterScroll()
+    ;(flowMode as unknown as { disableTypewriterScroll: () => void }).disableTypewriterScroll()
 
     expect(mockApp.workspace.offref).toHaveBeenCalledTimes(1)
   })
@@ -215,9 +215,9 @@ describe('ZenMode — typewriter scroll', () => {
 // Focus mode — CSS class application
 // ---------------------------------------------------------------------------
 
-describe('ZenMode — focus mode', () => {
+describe('FlowMode — focus mode', () => {
   let mockApp: ReturnType<typeof makeApp>
-  let zenMode: ZenMode
+  let flowMode: FlowMode
   let mockBodyClassList: { add: ReturnType<typeof vi.fn>; remove: ReturnType<typeof vi.fn> }
 
   beforeEach(() => {
@@ -233,7 +233,7 @@ describe('ZenMode — focus mode', () => {
     })
 
     mockApp = makeApp()
-    zenMode = new ZenMode(mockApp as unknown as App, () => makeSettings())
+    flowMode = new FlowMode(mockApp as unknown as App, () => makeSettings())
   })
 
   afterEach(() => {
@@ -241,30 +241,30 @@ describe('ZenMode — focus mode', () => {
   })
 
   it('adds lh-focus-paragraph class to body for paragraph mode', () => {
-    ;(zenMode as unknown as { enableFocusMode: (m: string) => void }).enableFocusMode('paragraph')
+    ;(flowMode as unknown as { enableFocusMode: (m: string) => void }).enableFocusMode('paragraph')
     expect(mockBodyClassList.add).toHaveBeenCalledWith('lh-focus-paragraph')
   })
 
   it('adds lh-focus-sentence class to body for sentence mode', () => {
-    ;(zenMode as unknown as { enableFocusMode: (m: string) => void }).enableFocusMode('sentence')
+    ;(flowMode as unknown as { enableFocusMode: (m: string) => void }).enableFocusMode('sentence')
     expect(mockBodyClassList.add).toHaveBeenCalledWith('lh-focus-sentence')
   })
 
   it('removes the active focus class from body on disableFocusMode', () => {
-    ;(zenMode as unknown as { enableFocusMode: (m: string) => void }).enableFocusMode('paragraph')
-    ;(zenMode as unknown as { disableFocusMode: () => void }).disableFocusMode()
+    ;(flowMode as unknown as { enableFocusMode: (m: string) => void }).enableFocusMode('paragraph')
+    ;(flowMode as unknown as { disableFocusMode: () => void }).disableFocusMode()
     expect(mockBodyClassList.remove).toHaveBeenCalledWith('lh-focus-paragraph')
   })
 
   it('does nothing on disableFocusMode when no focus mode was active', () => {
-    ;(zenMode as unknown as { disableFocusMode: () => void }).disableFocusMode()
+    ;(flowMode as unknown as { disableFocusMode: () => void }).disableFocusMode()
     expect(mockBodyClassList.remove).not.toHaveBeenCalled()
   })
 
   it('clears activeFocusClass after disabling so a second disable is a no-op', () => {
-    ;(zenMode as unknown as { enableFocusMode: (m: string) => void }).enableFocusMode('paragraph')
-    ;(zenMode as unknown as { disableFocusMode: () => void }).disableFocusMode()
-    ;(zenMode as unknown as { disableFocusMode: () => void }).disableFocusMode()
+    ;(flowMode as unknown as { enableFocusMode: (m: string) => void }).enableFocusMode('paragraph')
+    ;(flowMode as unknown as { disableFocusMode: () => void }).disableFocusMode()
+    ;(flowMode as unknown as { disableFocusMode: () => void }).disableFocusMode()
     // classList.remove should only be called once
     expect(mockBodyClassList.remove).toHaveBeenCalledTimes(1)
   })
