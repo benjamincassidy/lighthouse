@@ -110,6 +110,28 @@ export class ProjectManager {
   }
 
   /**
+   * Update the custom file order for a project.
+   */
+  async reorderProjectFiles(projectId: string, newOrder: string[]): Promise<void> {
+    const project = this.getProject(projectId)
+    if (!project) throw new Error(`Project with ID ${projectId} not found`)
+    await this.updateProject({ ...project, fileOrder: newOrder })
+  }
+
+  /**
+   * Update a single path in the project's fileOrder (e.g. after a vault rename).
+   * No-ops when the project has no fileOrder or the path is not present.
+   */
+  async updateFileOrderPath(projectId: string, oldPath: string, newPath: string): Promise<void> {
+    const project = this.getProject(projectId)
+    if (!project?.fileOrder?.length) return
+    const idx = project.fileOrder.indexOf(oldPath)
+    if (idx === -1) return
+    project.fileOrder[idx] = newPath
+    await this.updateProject(project)
+  }
+
+  /**
    * Check if a project name already exists
    */
   projectNameExists(name: string, excludeId?: string): boolean {
