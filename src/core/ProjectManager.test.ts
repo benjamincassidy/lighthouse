@@ -9,8 +9,24 @@ describe('ProjectManager', () => {
   let mockPlugin: Plugin
 
   beforeEach(async () => {
-    // Create a mock plugin with in-memory storage
+    // In-memory store for the vault adapter mock
+    const store: Record<string, string> = {}
+
+    // Create a mock plugin with in-memory vault adapter storage
     mockPlugin = {
+      app: {
+        vault: {
+          configDir: 'config',
+          adapter: {
+            exists: (path: string) => Promise.resolve(path in store),
+            read: (path: string) => Promise.resolve(store[path] ?? '{}'),
+            write: (_path: string, data: string) => {
+              store[_path] = data
+              return Promise.resolve()
+            },
+          },
+        },
+      },
       loadData: () => Promise.resolve({ projects: [], activeProjectId: undefined }),
       saveData: () => Promise.resolve(undefined),
     } as unknown as Plugin

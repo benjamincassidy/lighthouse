@@ -1,3 +1,5 @@
+import type { LighthouseSettings } from '@/types/settings'
+
 import type { App } from 'obsidian'
 
 export interface ZenModeState {
@@ -6,21 +8,25 @@ export interface ZenModeState {
     leftSidebarVisible: boolean
     rightSidebarVisible: boolean
     statusBarVisible: boolean
+    ribbonVisible: boolean
   }
 }
 
 export class ZenMode {
   private app: App
+  private getSettings: () => LighthouseSettings
   private state: ZenModeState
 
-  constructor(app: App) {
+  constructor(app: App, getSettings: () => LighthouseSettings) {
     this.app = app
+    this.getSettings = getSettings
     this.state = {
       isActive: false,
       previousState: {
         leftSidebarVisible: true,
         rightSidebarVisible: true,
         statusBarVisible: true,
+        ribbonVisible: true,
       },
     }
   }
@@ -41,12 +47,14 @@ export class ZenMode {
     if (this.state.isActive) return
 
     const { workspace } = this.app
+    const settings = this.getSettings()
 
     // Store current state
     this.state.previousState = {
       leftSidebarVisible: !workspace.leftSplit.collapsed,
       rightSidebarVisible: !workspace.rightSplit.collapsed,
       statusBarVisible: this.isStatusBarVisible(),
+      ribbonVisible: this.isRibbonVisible(),
     }
 
     // Hide left sidebar
@@ -59,11 +67,15 @@ export class ZenMode {
       workspace.rightSplit.collapse()
     }
 
-    // Hide status bar
-    this.hideStatusBar()
+    // Conditionally hide status bar
+    if (settings.zenModeHideStatusBar) {
+      this.hideStatusBar()
+    }
 
-    // Hide ribbon
-    this.hideRibbon()
+    // Conditionally hide ribbon
+    if (settings.zenModeHideRibbon) {
+      this.hideRibbon()
+    }
 
     // Hide tabs
     this.hideTabs()
@@ -95,13 +107,15 @@ export class ZenMode {
       workspace.rightSplit.expand()
     }
 
-    // Restore status bar
+    // Restore status bar only if it was hidden by zen mode
     if (this.state.previousState.statusBarVisible) {
       this.showStatusBar()
     }
 
-    // Show ribbon
-    this.showRibbon()
+    // Restore ribbon only if it was hidden by zen mode
+    if (this.state.previousState.ribbonVisible) {
+      this.showRibbon()
+    }
 
     // Show tabs
     this.showTabs()
@@ -121,6 +135,11 @@ export class ZenMode {
   private isStatusBarVisible(): boolean {
     const statusBar = document.querySelector('.status-bar')
     return statusBar ? statusBar.checkVisibility() : true
+  }
+
+  private isRibbonVisible(): boolean {
+    const ribbon = document.querySelector('.workspace-ribbon')
+    return ribbon ? !ribbon.hasClass('lighthouse-hidden') : true
   }
 
   private hideStatusBar(): void {

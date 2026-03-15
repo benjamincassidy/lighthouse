@@ -14,7 +14,20 @@ describe('ProjectManager - Store Synchronization', () => {
   let mockPlugin: Plugin
 
   beforeEach(async () => {
+    const store: Record<string, string> = {}
     mockPlugin = {
+      app: {
+        vault: {
+          adapter: {
+            exists: (path: string) => Promise.resolve(path in store),
+            read: (path: string) => Promise.resolve(store[path] ?? '{}'),
+            write: (_path: string, data: string) => {
+              store[_path] = data
+              return Promise.resolve()
+            },
+          },
+        },
+      },
       loadData: () => Promise.resolve({ projects: [], activeProjectId: undefined }),
       saveData: () => Promise.resolve(undefined),
     } as unknown as Plugin
@@ -25,6 +38,7 @@ describe('ProjectManager - Store Synchronization', () => {
 
   describe('initialization', () => {
     it('should sync stores on initialize', async () => {
+      const store: Record<string, string> = {}
       const mockProjects = [
         {
           id: '1',
@@ -36,8 +50,25 @@ describe('ProjectManager - Store Synchronization', () => {
           updatedAt: new Date().toISOString(),
         },
       ]
+      const initialData = JSON.stringify({ projects: mockProjects, activeProjectId: '1' })
+      // Pre-seed the store so exists() returns true and the data is loaded
+      const configDir = 'config'
+      store[`${configDir}/lighthouse.json`] = initialData
 
       mockPlugin = {
+        app: {
+          vault: {
+            configDir,
+            adapter: {
+              exists: (path: string) => Promise.resolve(path in store),
+              read: (path: string) => Promise.resolve(store[path] ?? '{}'),
+              write: (_path: string, data: string) => {
+                store[_path] = data
+                return Promise.resolve()
+              },
+            },
+          },
+        },
         loadData: () => Promise.resolve({ projects: mockProjects, activeProjectId: '1' }),
         saveData: () => Promise.resolve(undefined),
       } as unknown as Plugin

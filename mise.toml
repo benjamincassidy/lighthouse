@@ -1,0 +1,89 @@
+# Mise configuration for Obsidian Lighthouse plugin
+# https://mise.jdx.dev/
+
+[tools]
+node = "20"  # LTS version for stability
+
+[tasks.dev]
+description = "Run development build with watch mode"
+run = "npm run dev"
+
+[tasks.build]
+description = "Build plugin for production"
+run = "npm run build"
+
+[tasks.test]
+description = "Run all tests"
+run = "npm test"
+alias = "t"
+
+[tasks."test:watch"]
+description = "Run tests in watch mode"
+run = "npm run test:watch"
+alias = "tw"
+
+[tasks."test:ui"]
+description = "Run tests with UI"
+run = "npm run test:ui"
+
+[tasks."test:coverage"]
+description = "Run tests with coverage report"
+run = "npm run test:coverage"
+alias = "cov"
+
+[tasks.lint]
+description = "Lint code"
+run = "npm run lint"
+
+[tasks."lint:fix"]
+description = "Auto-fix linting issues"
+run = "npm run lint:fix"
+alias = "fix"
+
+[tasks.format]
+description = "Format code with Prettier"
+run = "npm run format"
+alias = "fmt"
+
+[tasks."format:check"]
+description = "Check code formatting"
+run = "npm run format:check"
+
+[tasks.check]
+description = "Run all checks (lint, format check, test, build)"
+run = "npm run lint && npm run format:check && npm test && npm run build"
+alias = "c"
+
+[tasks.release]
+description = "Run release process"
+run = "npm run release"
+
+[tasks.install]
+description = "Install dependencies"
+run = "npm install"
+alias = "i"
+
+[tasks.clean]
+description = "Clean build artifacts"
+run = """
+rm -f main.js main.js.map
+rm -rf node_modules/.cache
+rm -rf coverage
+"""
+
+[tasks."clean:all"]
+description = "Clean build artifacts and dependencies"
+run = """
+rm -f main.js main.js.map
+rm -rf node_modules
+rm -rf coverage
+"""
+
+[tasks.setup]
+description = "Initial project setup (install dependencies)"
+run = "npm install"
+depends = ["install"]
+
+# Environment variables
+[env]
+NODE_ENV = "development"

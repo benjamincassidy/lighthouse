@@ -17,10 +17,6 @@ export interface LighthouseSettings {
   excludeCodeBlocks: boolean
   excludeFrontmatter: boolean
 
-  // Writing Stats Tracking
-  todayWordCountBaseline: number
-  todayWordCountDate: string
-
   // General Settings
   debugMode: boolean
 }
@@ -38,10 +34,6 @@ export const DEFAULT_SETTINGS: LighthouseSettings = {
   showWordCountInStatusBar: true,
   excludeCodeBlocks: true,
   excludeFrontmatter: true,
-
-  // Writing Stats Tracking
-  todayWordCountBaseline: 0,
-  todayWordCountDate: '', // Empty string ensures first load triggers baseline initialization
 
   // General
   debugMode: false,

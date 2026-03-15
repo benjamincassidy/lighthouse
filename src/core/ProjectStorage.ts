@@ -4,12 +4,19 @@ import { DEFAULT_SETTINGS, type LighthouseSettings } from '@/types/settings'
 import type { Project } from '@/types/types'
 import { generateUUID, normalizeVaultPath, validateProject } from '@/utils/validation'
 
+// Path is derived from vault.configDir at runtime (avoids hardcoding .obsidian)
+const LIGHTHOUSE_DATA_FILENAME = 'lighthouse.json'
+
 /**
  * Manages project data persistence and storage
  */
 export class ProjectStorage {
   private plugin: Plugin
   private settings: LighthouseSettings
+
+  private get dataPath(): string {
+    return `${this.plugin.app.vault.configDir}/${LIGHTHOUSE_DATA_FILENAME}`
+  }
 
   constructor(plugin: Plugin) {
     this.plugin = plugin
@@ -20,8 +27,23 @@ export class ProjectStorage {
    * Load settings from disk
    */
   async load(): Promise<void> {
-    const data = (await this.plugin.loadData()) as Partial<LighthouseSettings> | undefined
-    this.settings = Object.assign({}, DEFAULT_SETTINGS, data)
+    try {
+      const adapter = this.plugin.app.vault.adapter
+
+      // Check if file exists
+      if (await adapter.exists(this.dataPath)) {
+        const json = await adapter.read(this.dataPath)
+        const data = JSON.parse(json) as Partial<LighthouseSettings>
+        this.settings = Object.assign({}, DEFAULT_SETTINGS, data)
+      } else {
+        // No file yet — copy defaults so mutations don't bleed into the DEFAULT_SETTINGS object
+        this.settings = Object.assign({}, DEFAULT_SETTINGS, { projects: [] })
+      }
+    } catch (error) {
+      console.error('Failed to load Lighthouse settings:', error)
+      // Fall back to defaults on error
+      this.settings = DEFAULT_SETTINGS
+    }
 
     // Validate and clean up projects
     this.settings.projects = this.settings.projects.filter((project) => {
@@ -40,7 +62,14 @@ export class ProjectStorage {
    * Save settings to disk
    */
   async save(): Promise<void> {
-    await this.plugin.saveData(this.settings)
+    try {
+      const adapter = this.plugin.app.vault.adapter
+      const json = JSON.stringify(this.settings, null, 2)
+      await adapter.write(this.dataPath, json)
+    } catch (error) {
+      console.error('Failed to save Lighthouse settings:', error)
+      throw error
+    }
   }
 
   /**
