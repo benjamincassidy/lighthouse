@@ -70,7 +70,11 @@ body:has(.workspace-tabs.lighthouse-zen-dim) .workspace-tab-header-container:hov
 body.lh-zen-active .cm-editor {
   font-family: var(--lh-zen-font, inherit);
   line-height: var(--lh-zen-line-height, inherit);
-  max-width: var(--lh-zen-line-width, none);
+}
+
+/* Center the editor only when a line-width constraint is actually active */
+body.lh-zen-active[style*='--lh-zen-line-width'] .cm-editor {
+  max-width: var(--lh-zen-line-width);
   margin-left: auto;
   margin-right: auto;
 }
