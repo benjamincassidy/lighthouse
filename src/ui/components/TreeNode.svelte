@@ -128,12 +128,13 @@
   }
 </script>
 
-<div class="tree-item" style="padding-left: {paddingLeft}">
+<div class="tree-item lh-drag-host" style="padding-left: {paddingLeft}">
+  {#if dropIndicator === 'before'}
+    <div class="lh-drop-line lh-drop-line-before"></div>
+  {/if}
   <div
     class="tree-item-self is-clickable"
     class:is-active={isActive}
-    class:lh-drop-before={dropIndicator === 'before'}
-    class:lh-drop-after={dropIndicator === 'after'}
     role="button"
     tabindex="0"
     draggable="true"
@@ -201,6 +202,10 @@
     {/if}
   </div>
 
+  {#if dropIndicator === 'after'}
+    <div class="lh-drop-line lh-drop-line-after"></div>
+  {/if}
+
   {#if node.type === 'folder' && node.isExpanded && node.children}
     <div class="tree-item-children">
       {#each node.children as child (child.path)}
@@ -244,12 +249,26 @@
     background: var(--background-modifier-hover);
   }
 
-  /* Drag-and-drop drop indicators */
-  .lh-drop-before {
-    box-shadow: 0 -2px 0 0 var(--text-accent);
+  /* Drag-and-drop drop indicator lines */
+  .lh-drag-host {
+    position: relative;
   }
 
-  .lh-drop-after {
-    box-shadow: 0 2px 0 0 var(--text-accent);
+  .lh-drop-line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--text-accent);
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  .lh-drop-line-before {
+    top: 0;
+  }
+
+  .lh-drop-line-after {
+    bottom: 0;
   }
 </style>

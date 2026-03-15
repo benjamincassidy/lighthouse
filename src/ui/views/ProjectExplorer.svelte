@@ -198,7 +198,8 @@
     await plugin.projectManager.reorderProjectFiles(currentProject.id, newOrder)
   }
 
-  function handleToggle(event: CustomEvent<{ path: string }>) {    // Find and toggle the node
+  function handleToggle(event: CustomEvent<{ path: string }>) {
+    // Find and toggle the node
     const path = event.detail.path
     function toggleNodeByPath(nodes: TreeNode[]): boolean {
       for (const node of nodes) {

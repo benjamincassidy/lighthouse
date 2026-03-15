@@ -24,11 +24,7 @@ describe('sortByFileOrder', () => {
   it('sorts items by their position in fileOrder', () => {
     const order = ['novel/ch3.md', 'novel/ch1.md', 'novel/ch2.md']
     const result = sortByFileOrder(items, order)
-    expect(result.map((i) => i.path)).toEqual([
-      'novel/ch3.md',
-      'novel/ch1.md',
-      'novel/ch2.md',
-    ])
+    expect(result.map((i) => i.path)).toEqual(['novel/ch3.md', 'novel/ch1.md', 'novel/ch2.md'])
   })
 
   it('puts ordered items before unordered items', () => {
@@ -40,11 +36,7 @@ describe('sortByFileOrder', () => {
   it('sorts unordered items alphabetically after ordered items', () => {
     const order = ['novel/ch2.md']
     const result = sortByFileOrder(items, order)
-    expect(result.map((i) => i.path)).toEqual([
-      'novel/ch2.md',
-      'novel/ch1.md',
-      'novel/ch3.md',
-    ])
+    expect(result.map((i) => i.path)).toEqual(['novel/ch2.md', 'novel/ch1.md', 'novel/ch3.md'])
   })
 
   it('does not mutate the input array', () => {

@@ -115,19 +115,14 @@ export class ProjectManager {
   async reorderProjectFiles(projectId: string, newOrder: string[]): Promise<void> {
     const project = this.getProject(projectId)
     if (!project) throw new Error(`Project with ID ${projectId} not found`)
-    project.fileOrder = newOrder
-    await this.updateProject(project)
+    await this.updateProject({ ...project, fileOrder: newOrder })
   }
 
   /**
    * Update a single path in the project's fileOrder (e.g. after a vault rename).
    * No-ops when the project has no fileOrder or the path is not present.
    */
-  async updateFileOrderPath(
-    projectId: string,
-    oldPath: string,
-    newPath: string,
-  ): Promise<void> {
+  async updateFileOrderPath(projectId: string, oldPath: string, newPath: string): Promise<void> {
     const project = this.getProject(projectId)
     if (!project?.fileOrder?.length) return
     const idx = project.fileOrder.indexOf(oldPath)
