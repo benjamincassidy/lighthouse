@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Menu, type TFile, type TFolder } from 'obsidian'
 
-  import { activeProject } from '@/core/stores'
+  import { activeProject, workspaceActive } from '@/core/stores'
   import type LighthousePlugin from '@/main'
   import type { Project } from '@/types/types'
   import TreeNodeComponent from '@/ui/components/TreeNode.svelte'
@@ -298,6 +298,10 @@
     new ProjectSwitcherModal(plugin).open()
   }
 
+  function exitWorkspace() {
+    void plugin.workspaceManager.exitWritingWorkspace()
+  }
+
   async function handleCreateNoteInFolder(event: CustomEvent<{ path: string }>) {
     const folderPath = event.detail.path
     let fileName = 'Untitled.md'
@@ -337,29 +341,68 @@
 </script>
 
 <div class="lighthouse-explorer">
-  <div class="nav-header">
-    <div class="nav-buttons-container">
-      <button
-        class="lighthouse-project-switcher-btn"
-        onclick={openProjectSwitcher}
-        aria-label="Switch project"
+  <div class="lh-workspace-header">
+    <div class="lh-brand-row">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="var(--lh-accent)"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        class="lh-brand-icon"
+        aria-hidden="true"
       >
-        <span class="lighthouse-project-switcher-name">
-          {currentProject?.name ?? 'Select a project…'}
-        </span>
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="12"
-          height="12"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2.5"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          class="lighthouse-project-switcher-chevron"><polyline points="6 9 12 15 18 9" /></svg
-        >
-      </button>
+        <circle cx="12" cy="12" r="4" />
+        <path d="M12 2v2" /><path d="M12 20v2" />
+        <path d="m4.93 4.93 1.41 1.41" /><path d="m17.66 17.66 1.41 1.41" />
+        <path d="M2 12h2" /><path d="M20 12h2" />
+        <path d="m6.34 17.66-1.41 1.41" /><path d="m19.07 4.93-1.41 1.41" />
+      </svg>
+      <span class="lh-brand-name">Lighthouse</span>
+      {#if $workspaceActive}
+        <button class="lh-exit-btn" onclick={exitWorkspace} aria-label="Exit Writing Workspace">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            ><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg
+          >
+        </button>
+      {/if}
+    </div>
+
+    <button class="lh-project-name-btn" onclick={openProjectSwitcher} aria-label="Switch project">
+      <span class="lh-project-name">
+        {currentProject?.name ?? 'Select a project…'}
+      </span>
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="12"
+        height="12"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        class="lh-project-chevron"><polyline points="6 9 12 15 18 9" /></svg
+      >
+    </button>
+
+    <div class="lh-mode-tabs" role="tablist">
+      <button class="lh-mode-tab lh-mode-tab-active" role="tab" aria-selected="true">Write</button>
+      <button class="lh-mode-tab" role="tab" disabled aria-selected="false">Outline</button>
+      <button class="lh-mode-tab" role="tab" disabled aria-selected="false">Corkboard</button>
     </div>
   </div>
 
@@ -542,38 +585,118 @@
     font-size: var(--font-ui-smaller);
   }
 
-  .lighthouse-project-switcher-btn {
+  /* ─── Workspace header ─── */
+  .lh-workspace-header {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px 10px 6px;
+    border-bottom: 1px solid var(--background-modifier-border);
+  }
+
+  .lh-brand-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .lh-brand-icon {
+    flex-shrink: 0;
+  }
+
+  .lh-brand-name {
+    flex: 1;
+    font-size: 0.72em;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+
+  .lh-exit-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-s);
+    cursor: pointer;
+    color: var(--text-muted);
+    line-height: 0;
+  }
+
+  .lh-exit-btn:hover {
+    background: var(--background-modifier-hover);
+    color: var(--text-normal);
+  }
+
+  .lh-project-name-btn {
     display: flex;
     align-items: center;
     gap: 4px;
     width: 100%;
-    padding: 4px 8px;
+    padding: 3px 4px;
     background: transparent;
     border: none;
     border-radius: var(--radius-s);
     cursor: pointer;
     color: var(--text-normal);
-    font-size: var(--font-ui-small);
-    font-weight: 500;
     text-align: left;
   }
 
-  .lighthouse-project-switcher-btn:hover {
+  .lh-project-name-btn:hover {
     background: var(--background-modifier-hover);
   }
 
-  .lighthouse-project-switcher-name {
+  .lh-project-name {
     flex: 1;
+    font-size: var(--font-ui-small);
+    font-weight: 600;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
-  .lighthouse-project-switcher-chevron {
+  .lh-project-chevron {
     flex-shrink: 0;
     color: var(--text-faint);
   }
 
+  .lh-mode-tabs {
+    display: flex;
+    gap: 2px;
+  }
+
+  .lh-mode-tab {
+    flex: 1;
+    padding: 3px 0;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-s);
+    cursor: default;
+    font-size: 0.75em;
+    font-weight: 500;
+    color: var(--text-faint);
+    opacity: 0.5;
+    transition: background 0.1s;
+  }
+
+  .lh-mode-tab-active {
+    background: var(--lh-accent-subtle);
+    color: var(--lh-accent);
+    opacity: 1;
+    cursor: default;
+  }
+
+  .lh-mode-tab:not(:disabled):not(.lh-mode-tab-active):hover {
+    background: var(--background-modifier-hover);
+    opacity: 1;
+  }
+
+  /* ─── Section add button ─── */
   .lh-section-add-btn {
     display: flex;
     align-items: center;

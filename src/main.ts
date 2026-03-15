@@ -4,6 +4,8 @@ import { FolderManager } from '@/core/FolderManager'
 import { HierarchicalCounter } from '@/core/HierarchicalCounter'
 import { ProjectManager } from '@/core/ProjectManager'
 import { WordCounter } from '@/core/WordCounter'
+import { WorkspaceManager } from '@/core/WorkspaceManager'
+import { WritingSessionTracker } from '@/core/WritingSessionTracker'
 import { ZenMode } from '@/core/ZenMode'
 import type { LighthouseSettings } from '@/types/settings'
 import { ProjectModal } from '@/ui/modals/ProjectModal'
@@ -20,6 +22,8 @@ export default class LighthousePlugin extends Plugin {
   wordCounter!: WordCounter
   hierarchicalCounter!: HierarchicalCounter
   zenMode!: ZenMode
+  workspaceManager!: WorkspaceManager
+  sessionTracker!: WritingSessionTracker
 
   async onload() {
     // Initialize core services
@@ -33,6 +37,8 @@ export default class LighthousePlugin extends Plugin {
     )
     this.projectManager = new ProjectManager(this)
     this.zenMode = new ZenMode(this.app, () => this.settings)
+    this.workspaceManager = new WorkspaceManager(this)
+    this.sessionTracker = new WritingSessionTracker(this)
     await this.projectManager.initialize()
     // Settings are owned by ProjectStorage — sync the plugin reference
     this.settings = this.projectManager.getSettings()
@@ -43,19 +49,12 @@ export default class LighthousePlugin extends Plugin {
     this.registerView(PROJECT_EXPLORER_VIEW_TYPE, (leaf) => new ProjectExplorerView(leaf, this))
     this.registerView(STATS_PANEL_VIEW_TYPE, (leaf) => new StatsPanelView(leaf, this))
 
-    // Add ribbon icon to open dashboard
-    this.addRibbonIcon('layout-dashboard', 'Project dashboard', () => {
-      void this.activateDashboard()
-    })
+    // Restore workspace layout from last session
+    await this.workspaceManager.restoreState()
 
-    // Add ribbon icon to open project explorer
-    this.addRibbonIcon('lightbulb', 'Project explorer', () => {
-      void this.activateProjectExplorer()
-    })
-
-    // Add ribbon icon to open stats panel
-    this.addRibbonIcon('bar-chart-2', 'Writing stats', () => {
-      void this.activateStatsPanel()
+    // Single ribbon icon — toggles the Writing Workspace on/off
+    this.addRibbonIcon('compass', 'Toggle writing workspace', () => {
+      void this.workspaceManager.toggleWritingWorkspace()
     })
 
     // Add command to open dashboard
@@ -114,6 +113,23 @@ export default class LighthousePlugin extends Plugin {
       },
     })
 
+    // Add workspace commands
+    this.addCommand({
+      id: 'open-writing-workspace',
+      name: 'Open writing workspace',
+      callback: () => {
+        void this.workspaceManager.enterWritingWorkspace()
+      },
+    })
+
+    this.addCommand({
+      id: 'exit-writing-workspace',
+      name: 'Exit writing workspace',
+      callback: () => {
+        void this.workspaceManager.exitWritingWorkspace()
+      },
+    })
+
     // Register context menu for folders
     this.registerEvent(
       this.app.workspace.on('file-menu', (menu, file) => {
@@ -152,6 +168,10 @@ export default class LighthousePlugin extends Plugin {
     // Exit zen mode if active
     if (this.zenMode.isZenModeActive()) {
       this.zenMode.exitZenMode()
+    }
+    // Clear workspace body attribute on unload
+    if (this.workspaceManager?.isWritingWorkspaceActive()) {
+      document.body.removeAttribute('data-lighthouse-workspace')
     }
   }
 

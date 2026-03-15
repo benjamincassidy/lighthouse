@@ -193,21 +193,21 @@
         <div class="lighthouse-goal-ring-section">
           <div class="lighthouse-goal-ring-container">
             <svg
-              viewBox="0 0 80 80"
-              width="80"
-              height="80"
+              viewBox="0 0 120 120"
+              width="120"
+              height="120"
               class="lighthouse-goal-ring"
               aria-hidden="true"
             >
-              <circle cx="40" cy="40" r="32" class="lighthouse-ring-track" />
+              <circle cx="60" cy="60" r="48" class="lighthouse-ring-track" />
               <circle
-                cx="40"
-                cy="40"
-                r="32"
+                cx="60"
+                cy="60"
+                r="48"
                 class="lighthouse-ring-fill"
-                stroke-dasharray="201.06"
-                stroke-dashoffset={201.06 * (1 - getProgressPercent() / 100)}
-                transform="rotate(-90 40 40)"
+                stroke-dasharray="301.59"
+                stroke-dashoffset={301.59 * (1 - getProgressPercent() / 100)}
+                transform="rotate(-90 60 60)"
               />
             </svg>
             <div class="lighthouse-ring-inner">
@@ -275,11 +275,11 @@
 
   .lighthouse-dashboard-section-header h3 {
     margin: 0;
-    font-size: var(--font-ui-small);
+    font-size: 0.72em;
     font-weight: 600;
-    color: var(--text-muted);
+    color: var(--lh-accent);
     text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.08em;
   }
 
   .lighthouse-header-actions {
@@ -336,10 +336,10 @@
 
   .lighthouse-ring-fill {
     fill: none;
-    stroke: var(--text-accent);
+    stroke: var(--lh-accent);
     stroke-width: 6;
     stroke-linecap: round;
-    transition: stroke-dashoffset 0.4s ease;
+    transition: stroke-dashoffset var(--lh-ring-transition);
   }
 
   .lighthouse-ring-inner {
@@ -367,6 +367,7 @@
     font-weight: 700;
     color: var(--text-normal);
     line-height: 1.1;
+    font-variant-numeric: tabular-nums;
   }
 
   .lighthouse-goal-target {
@@ -408,8 +409,9 @@
   .lighthouse-stat-card-value {
     font-size: var(--font-ui-large);
     font-weight: 600;
-    color: var(--text-accent);
+    color: var(--lh-accent);
     margin-bottom: 2px;
+    font-variant-numeric: tabular-nums;
   }
 
   .lighthouse-stat-card-label {

@@ -1,5 +1,38 @@
 /* Global styles for Lighthouse plugin */
 
+/* ─── Lighthouse Design System ────────────────────────────────────────────── */
+
+:root {
+  /* Lighthouse amber – warm, readable in light + dark Obsidian themes */
+  --lh-accent: #e8a430;
+  --lh-accent-hover: #d4941a;
+  --lh-accent-subtle: rgba(232, 164, 48, 0.12);
+
+  /* Ring primitives */
+  --lh-ring-track: var(--background-modifier-border);
+  --lh-ring-fill: var(--lh-accent);
+  --lh-ring-transition: stroke-dashoffset 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Section label: ALL CAPS, tracked, faint — used as group headers across all panels */
+.lh-section-label {
+  font-size: 0.72em;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+/* Stat value: large numerals with tabular spacing */
+.lh-stat-value {
+  font-size: var(--font-ui-larger);
+  font-weight: 600;
+  color: var(--text-normal);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────── */
+
 /* Zen Mode Styles */
 .lighthouse-hidden {
   display: none !important;

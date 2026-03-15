@@ -58,3 +58,9 @@ export function updateProjectInStore(project: Project): void {
 export function removeProjectFromStore(id: string): void {
   projects.update((current) => current.filter((p) => p.id !== id))
 }
+
+/**
+ * Reactive flag indicating whether the Lighthouse Writing Workspace is active.
+ * Updated by WorkspaceManager; consumed by UI components.
+ */
+export const workspaceActive = writable(false)

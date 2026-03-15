@@ -19,6 +19,9 @@ export interface LighthouseSettings {
 
   // General Settings
   debugMode: boolean
+
+  // Workspace
+  workspaceActive?: boolean
 }
 
 export const DEFAULT_SETTINGS: LighthouseSettings = {
@@ -37,4 +40,7 @@ export const DEFAULT_SETTINGS: LighthouseSettings = {
 
   // General
   debugMode: false,
+
+  // Workspace
+  workspaceActive: false,
 }

@@ -20,12 +20,6 @@
   let todayWordCount = $state(0)
   let updateDebounceTimer = $state<number | null>(null)
 
-  // Baseline word counts for session and today tracking
-  // Initialize to high number to prevent flash on first render
-  let sessionStartWordCount = $state(Number.MAX_SAFE_INTEGER)
-  let todayStartWordCount = $state(0)
-  let todayStartDate = $state('')
-
   // Derived values
   let project = $derived.by(() => {
     try {
@@ -42,14 +36,6 @@
   let progressPercent = $derived(
     projectGoal && projectWordCount > 0 ? Math.min((projectWordCount / projectGoal) * 100, 100) : 0,
   )
-
-  // Initialize today tracking from project data on mount
-  $effect(() => {
-    if (project && todayStartDate === '') {
-      todayStartWordCount = project.todayWordCountBaseline ?? 0
-      todayStartDate = project.todayWordCountDate ?? ''
-    }
-  })
 
   // Update stats when active file changes
   async function updateStats() {
@@ -83,43 +69,17 @@
       const projectResult = await plugin.hierarchicalCounter.countProject(project)
       projectWordCount = projectResult.totalWords
 
-      // Update session and today stats
-      updateSessionAndTodayStats()
+      // Delegate session/today tracking to the shared WritingSessionTracker
+      if (!plugin.sessionTracker.isTrackingProject(project.id)) {
+        await plugin.sessionTracker.initSession(project, projectWordCount)
+      }
+      sessionWordCount = plugin.sessionTracker.getSessionDelta(projectWordCount)
+      todayWordCount = plugin.sessionTracker.getTodayDelta(projectWordCount)
     } else {
       projectWordCount = 0
       sessionWordCount = 0
       todayWordCount = 0
     }
-  }
-
-  // Update session and today word count deltas
-  function updateSessionAndTodayStats() {
-    if (!project) return
-
-    const currentDate = new Date().toISOString().split('T')[0] // YYYY-MM-DD
-
-    // Check if day has changed
-    if (currentDate !== todayStartDate) {
-      todayStartDate = currentDate
-      todayStartWordCount = projectWordCount
-      // Also reset session on new day
-      sessionStartWordCount = projectWordCount
-
-      // Persist to project data
-      project.todayWordCountBaseline = todayStartWordCount
-      project.todayWordCountDate = todayStartDate
-      plugin.projectManager.updateProject(project)
-    }
-
-    // If we've deleted words below the session baseline, adjust the baseline down
-    // This ensures the counter responds immediately to new typing after deletions
-    if (projectWordCount < sessionStartWordCount) {
-      sessionStartWordCount = projectWordCount
-    }
-
-    // Calculate deltas - clamp to 0 (no negative counts)
-    sessionWordCount = Math.max(0, projectWordCount - sessionStartWordCount)
-    todayWordCount = Math.max(0, projectWordCount - todayStartWordCount)
   }
 
   // Debounced update for editor changes (typing)
@@ -168,27 +128,7 @@
     // Initial update - wait a tick for stores and workspace to be ready
     // eslint-disable-next-line no-undef
     setTimeout(async () => {
-      // Get initial word count
       await updateStats()
-
-      // Now set correct baselines after getting word count
-      if (project) {
-        // ALWAYS reset session baseline on startup - sessions don't persist across restarts
-        sessionStartWordCount = projectWordCount
-
-        // Only update today baseline if it's a new day
-        const currentDate = new Date().toISOString().split('T')[0] // YYYY-MM-DD
-        if (currentDate !== project.todayWordCountDate) {
-          todayStartWordCount = projectWordCount
-          todayStartDate = currentDate
-          project.todayWordCountBaseline = todayStartWordCount
-          project.todayWordCountDate = todayStartDate
-          plugin.projectManager.updateProject(project)
-        }
-
-        // Recalculate session/today stats now that baselines are set
-        updateSessionAndTodayStats()
-      }
     }, 100)
 
     // Also trigger update after a longer delay to catch late-loading files
@@ -275,14 +215,14 @@
       <div class="lighthouse-session-stats">
         <div class="lighthouse-stat-group">
           <div class="lighthouse-stat-label">Today</div>
-          <div class="lighthouse-stat-value lighthouse-stat-value-accent">
+          <div class="lighthouse-stat-value lighthouse-stat-value-accent lighthouse-delta">
             +{formatNumber(todayWordCount)}
           </div>
         </div>
         <div class="lighthouse-session-divider"></div>
         <div class="lighthouse-stat-group">
           <div class="lighthouse-stat-label">Session</div>
-          <div class="lighthouse-stat-value lighthouse-stat-value-accent">
+          <div class="lighthouse-stat-value lighthouse-stat-value-accent lighthouse-delta">
             +{formatNumber(sessionWordCount)}
           </div>
         </div>
@@ -338,15 +278,22 @@
     font-size: var(--font-ui-larger);
     font-weight: 600;
     color: var(--text-normal);
+    font-variant-numeric: tabular-nums;
   }
 
   .lighthouse-stat-value-primary {
     font-size: 2em;
-    color: var(--text-accent);
+    color: var(--lh-accent);
+    font-variant-numeric: tabular-nums;
   }
 
   .lighthouse-stat-value-accent {
-    color: var(--text-accent);
+    color: var(--lh-accent);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .lighthouse-delta {
+    font-variant-numeric: tabular-nums;
   }
 
   .lighthouse-stat-sublabel {
@@ -383,7 +330,7 @@
 
   .lighthouse-progress-fill {
     height: 100%;
-    background: var(--text-accent);
+    background: var(--lh-accent);
     border-radius: 4px;
     transition: width 0.3s ease;
   }
