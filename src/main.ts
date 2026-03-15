@@ -5,7 +5,7 @@ import { HierarchicalCounter } from '@/core/HierarchicalCounter'
 import { ProjectManager } from '@/core/ProjectManager'
 import { WordCounter } from '@/core/WordCounter'
 import { ZenMode } from '@/core/ZenMode'
-import { DEFAULT_SETTINGS, type LighthouseSettings } from '@/types/settings'
+import type { LighthouseSettings } from '@/types/settings'
 import { ProjectModal } from '@/ui/modals/ProjectModal'
 import { ProjectSwitcherModal } from '@/ui/modals/ProjectSwitcher'
 import { LighthouseSettingTab } from '@/ui/SettingsTab'
@@ -22,9 +22,6 @@ export default class LighthousePlugin extends Plugin {
   zenMode!: ZenMode
 
   async onload() {
-    // Load settings
-    await this.loadSettings()
-
     // Initialize core services
     this.folderManager = new FolderManager(this.app.vault)
     this.wordCounter = new WordCounter()
@@ -35,8 +32,10 @@ export default class LighthousePlugin extends Plugin {
       this.app,
     )
     this.projectManager = new ProjectManager(this)
-    this.zenMode = new ZenMode(this.app)
+    this.zenMode = new ZenMode(this.app, () => this.settings)
     await this.projectManager.initialize()
+    // Settings are owned by ProjectStorage — sync the plugin reference
+    this.settings = this.projectManager.getSettings()
 
     // Register views AFTER stores are initialized
     // This prevents race condition when Obsidian restores saved workspace layouts
@@ -145,16 +144,8 @@ export default class LighthousePlugin extends Plugin {
     this.addSettingTab(new LighthouseSettingTab(this.app, this))
   }
 
-  async loadSettings() {
-    this.settings = Object.assign(
-      {},
-      DEFAULT_SETTINGS,
-      (await this.loadData()) as Partial<LighthouseSettings> | undefined,
-    )
-  }
-
   async saveSettings() {
-    await this.saveData(this.settings)
+    await this.projectManager.saveSettings()
   }
 
   onunload() {

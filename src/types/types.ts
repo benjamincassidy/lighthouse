@@ -14,6 +14,9 @@ export interface Project {
   dashboardConfig?: DashboardConfig
   templateFolder?: string
   metadata?: Record<string, unknown>
+  // Daily word count tracking (per-project)
+  todayWordCountBaseline?: number
+  todayWordCountDate?: string // ISO date format (YYYY-MM-DD)
 }
 
 export interface DashboardConfig {
