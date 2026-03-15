@@ -144,6 +144,74 @@ export class LighthouseSettingTab extends PluginSettingTab {
       )
 
     new Setting(containerEl)
+      .setName('Typewriter scroll')
+      .setDesc('Keep the cursor vertically centered while typing.')
+      .addToggle((toggle) =>
+        toggle.setValue(this.plugin.settings.zenTypewriterScroll).onChange(async (value) => {
+          this.plugin.settings.zenTypewriterScroll = value
+          await this.plugin.saveSettings()
+        }),
+      )
+
+    new Setting(containerEl).setName('Focus & typography').setHeading()
+
+    new Setting(containerEl)
+      .setName('Focus mode')
+      .setDesc('Dim text outside the current paragraph or sentence to reduce distraction.')
+      .addDropdown((dropdown) =>
+        dropdown
+          .addOption('none', 'None')
+          .addOption('paragraph', 'Paragraph')
+          .addOption('sentence', 'Sentence')
+          .setValue(this.plugin.settings.zenFocusMode)
+          .onChange(async (value) => {
+            this.plugin.settings.zenFocusMode = value as 'none' | 'paragraph' | 'sentence'
+            await this.plugin.saveSettings()
+          }),
+      )
+
+    new Setting(containerEl)
+      .setName('Font family')
+      .setDesc('Override the editor font while zen mode is active. Leave blank to inherit.')
+      .addText((text) =>
+        text
+          .setPlaceholder('Georgia, serif')
+          .setValue(this.plugin.settings.zenFont)
+          .onChange(async (value) => {
+            this.plugin.settings.zenFont = value.trim()
+            await this.plugin.saveSettings()
+          }),
+      )
+
+    new Setting(containerEl)
+      .setName('Line height')
+      .setDesc('Override line height while zen mode is active (e.g. 1.8). Set to 0 to inherit.')
+      .addText((text) =>
+        text
+          .setPlaceholder('0')
+          .setValue(this.plugin.settings.zenLineHeight ? String(this.plugin.settings.zenLineHeight) : '')
+          .onChange(async (value) => {
+            const num = parseFloat(value)
+            this.plugin.settings.zenLineHeight = isNaN(num) || num < 0 ? 0 : num
+            await this.plugin.saveSettings()
+          }),
+      )
+
+    new Setting(containerEl)
+      .setName('Max line width')
+      .setDesc('Constrain the editor width for comfortable reading, in pixels. Set to 0 to inherit.')
+      .addText((text) =>
+        text
+          .setPlaceholder('0')
+          .setValue(this.plugin.settings.zenLineWidth ? String(this.plugin.settings.zenLineWidth) : '')
+          .onChange(async (value) => {
+            const num = parseInt(value, 10)
+            this.plugin.settings.zenLineWidth = isNaN(num) || num < 0 ? 0 : num
+            await this.plugin.saveSettings()
+          }),
+      )
+
+    new Setting(containerEl)
       .setName('Hotkey')
       .setDesc('Assign or change the keyboard shortcut for toggling zen mode.')
       .addButton((button) =>

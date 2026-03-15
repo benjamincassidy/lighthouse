@@ -11,6 +11,11 @@ export interface LighthouseSettings {
   // Zen Mode Settings
   zenModeHideStatusBar: boolean
   zenModeHideRibbon: boolean
+  zenTypewriterScroll: boolean
+  zenFocusMode: 'none' | 'paragraph' | 'sentence'
+  zenFont: string
+  zenLineHeight: number
+  zenLineWidth: number
 
   // Word Count Settings
   showWordCountInStatusBar: boolean
@@ -32,6 +37,11 @@ export const DEFAULT_SETTINGS: LighthouseSettings = {
   // Zen Mode
   zenModeHideStatusBar: true,
   zenModeHideRibbon: true,
+  zenTypewriterScroll: true,
+  zenFocusMode: 'none',
+  zenFont: '',
+  zenLineHeight: 0,
+  zenLineWidth: 0,
 
   // Word Count
   showWordCountInStatusBar: true,

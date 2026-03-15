@@ -59,6 +59,22 @@ body:has(.workspace-tabs.lighthouse-zen-dim) .workspace-tab-header-container:hov
   opacity: 0.6;
 }
 
+/* Zen Mode — Focus (paragraph / sentence) */
+.lh-focus-paragraph .cm-line:not(.cm-activeLine),
+.lh-focus-sentence .cm-line:not(.cm-activeLine) {
+  opacity: 0.25;
+  transition: opacity 0.15s ease;
+}
+
+/* Zen Mode — Typography (CSS custom properties set on body via ZenMode.applyTypographyOverrides) */
+body.lh-zen-active .cm-editor {
+  font-family: var(--lh-zen-font, inherit);
+  line-height: var(--lh-zen-line-height, inherit);
+  max-width: var(--lh-zen-line-width, none);
+  margin-left: auto;
+  margin-right: auto;
+}
+
 /* Modal Styles */
 .lighthouse-modal-buttons {
   display: flex;

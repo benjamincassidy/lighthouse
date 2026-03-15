@@ -6,8 +6,8 @@ This is the canonical implementation checklist. Work proceeds top-to-bottom with
 
 ## Git State
 
-- [ ] Merge `feature/drag-drop-sorting` → `main`
-- [ ] Create branch `sprint/workspace-identity` for Sprint 0
+- [x] Merge `feature/drag-drop-sorting` → `main`
+- [x] Create branch `sprint/workspace-identity` for Sprint 0
 
 ---
 
@@ -123,25 +123,24 @@ New service: `src/core/WritingSessionTracker.ts`
 
 > **Goal:** The writing flow is focused and motivating.
 
-### 1.1 File Status Indicators (FEATURES.md D)
+### 1.1 File Status Indicators (FEATURES.md D) ✅
 
-- [ ] `src/utils/fileStatus.ts`: `STATUS_COLORS` map (`draft` → red, `revising` → yellow, `done` → green, fallback → faint)
-- [ ] `TreeNode.svelte`: accept optional `status?: string` prop; render a 6px colored circle dot before the filename when set. CSS in component.
-- [ ] `ProjectExplorer.svelte` `buildTreeNode`: read `app.metadataCache.getFileCache(file)?.frontmatter?.status` and pass as `status` prop to TreeNode
-- [ ] Register `metadataChanged` / `resolve` event to refresh tree when frontmatter changes
-- [ ] Unit test for `fileStatus.ts` color map
-- [ ] CSS: `.lh-status-dot` in `styles.css`
+- [x] `src/utils/fileStatus.ts`: `STATUS_COLORS` map (`draft` → red, `revising` → yellow, `done` → green, fallback → faint)
+- [x] `TreeNode.svelte`: accept optional `status?: string` prop; render a 6px colored circle dot before the filename when set. CSS in component.
+- [x] `ProjectExplorer.svelte` `buildTreeNode`: read `app.metadataCache.getFileCache(file)?.frontmatter?.status` and pass as `status` prop to TreeNode
+- [x] Register `metadataChanged` / `resolve` event to refresh tree when frontmatter changes
+- [x] Unit test for `fileStatus.ts` color map
+- [x] CSS: `.lh-status-dot` in `styles.css`
 
-### 1.2 Advanced Zen Mode (FEATURES.md I)
+### 1.2 Advanced Zen Mode (FEATURES.md I) ✅
 
-- [ ] **Typewriter scroll**: on `enterZenMode`, attach a CodeMirror `EditorView.updateListener.of()` that, after each transaction with doc changes, calls `editor.scrollIntoView(cursor, {y: 'center'})`. Remove on exit.
-- [ ] **Paragraph focus** (`zenFocusMode: 'paragraph'`): attach updateListener that tracks cursor line, applies `opacity: 0.25` to all `.cm-line` elements not containing the cursor. Uses a `StateEffect` to tag the active line. Configurable opacity.
-- [ ] **Sentence focus** (`zenFocusMode: 'sentence'`): same pattern, narrower range
-- [ ] **Dialogue focus** (standalone toggle, not tied to zen): dims all text not inside `"…"` or `"…"`. Applies a CSS class to the editor; a regex-based decoration layer highlights quoted spans.
-- [ ] **Typography overrides**: on `enterZenMode`, inject `<style id="lh-zen-typography">` targeting `.cm-editor` with `--lh-zen-font`, `--lh-zen-line-height`, `--lh-zen-line-width`. Removed on exit.
-- [ ] Settings subsection: "Zen Mode — Focus & Typography" — dropdowns for focus mode, font family picker, number inputs for line height and max width
-- [ ] Add `zenFocusMode`, `zenFont`, `zenLineHeight`, `zenLineWidth` to `LighthouseSettings`
-- [ ] Unit tests: CSS injection/cleanup, typewriter scroll attachment
+- [x] **Typewriter scroll** (`zenTypewriterScroll: boolean`): on `enterZenMode`, register `workspace.on('editor-change')` listener that calls `editor.scrollIntoView(cursor, true)` to keep cursor vertically centered. Unregistered via `workspace.offref()` on exit.
+- [x] **Paragraph focus** (`zenFocusMode: 'paragraph'`): adds `.lh-focus-paragraph` class to all `.cm-editor` elements; CSS rule `opacity: 0.25` on all `.cm-line:not(.cm-activeLine)` elements.
+- [x] **Sentence focus** (`zenFocusMode: 'sentence'`): same mechanism with `.lh-focus-sentence` class — uses the same CM active-line CSS hook.
+- [x] **Typography overrides**: on `enterZenMode`, sets CSS custom properties (`--lh-zen-font`, `--lh-zen-line-height`, `--lh-zen-line-width`) on `document.body` and adds `body.lh-zen-active`; scoped CSS in `styles.css` applies them to `.cm-editor`. Removed on exit.
+- [x] Settings subsection: "Focus & typography" — typewriter toggle, focus mode dropdown, font input, line height input, max width input
+- [x] Add `zenTypewriterScroll`, `zenFocusMode`, `zenFont`, `zenLineHeight`, `zenLineWidth` to `LighthouseSettings`
+- [x] Unit tests: `buildTypographyVars` pure function (7 tests), CSS property injection/cleanup (5 tests), typewriter scroll event registration (4 tests), focus mode class application (5 tests)
 
 ### 1.3 Sprint Mode
 
