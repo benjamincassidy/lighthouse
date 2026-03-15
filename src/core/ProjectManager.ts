@@ -122,4 +122,18 @@ export class ProjectManager {
   getProjectCount(): number {
     return this.storage.getProjects().length
   }
+
+  /**
+   * Get the current settings object
+   */
+  getSettings() {
+    return this.storage.getSettings()
+  }
+
+  /**
+   * Persist settings to disk
+   */
+  async saveSettings(): Promise<void> {
+    await this.storage.save()
+  }
 }

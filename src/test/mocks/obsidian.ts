@@ -38,7 +38,14 @@ export class Notice {
 
 export interface App {
   workspace: unknown
-  vault: unknown
+  vault: {
+    configDir: string
+    adapter: {
+      exists: (path: string) => Promise<boolean>
+      read: (path: string) => Promise<string>
+      write: (path: string, data: string) => Promise<void>
+    }
+  }
 }
 
 export interface PluginManifest {

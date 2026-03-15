@@ -62,10 +62,10 @@ body:has(.workspace-tabs.lighthouse-zen-dim) .workspace-tab-header-container:hov
 
 /* Fix chevron rotation for tree items */
 .tree-item-icon.collapse-icon .svg-icon.right-triangle {
-  transform: rotate(-90deg);
+  transform: rotate(0deg);
   transition: transform 100ms ease-in-out;
 }
 
 .tree-item-icon.collapse-icon .svg-icon.right-triangle.is-collapsed {
-  transform: rotate(0deg);
+  transform: rotate(-90deg);
 }

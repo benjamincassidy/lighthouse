@@ -43,11 +43,11 @@
     projectGoal && projectWordCount > 0 ? Math.min((projectWordCount / projectGoal) * 100, 100) : 0,
   )
 
-  // Initialize today tracking from settings on mount
+  // Initialize today tracking from project data on mount
   $effect(() => {
-    if (plugin && todayStartDate === '') {
-      todayStartWordCount = plugin.settings.todayWordCountBaseline
-      todayStartDate = plugin.settings.todayWordCountDate || ''
+    if (project && todayStartDate === '') {
+      todayStartWordCount = project.todayWordCountBaseline ?? 0
+      todayStartDate = project.todayWordCountDate ?? ''
     }
   })
 
@@ -94,7 +94,9 @@
 
   // Update session and today word count deltas
   function updateSessionAndTodayStats() {
-    const currentDate = new Date().toDateString()
+    if (!project) return
+
+    const currentDate = new Date().toISOString().split('T')[0] // YYYY-MM-DD
 
     // Check if day has changed
     if (currentDate !== todayStartDate) {
@@ -103,10 +105,10 @@
       // Also reset session on new day
       sessionStartWordCount = projectWordCount
 
-      // Persist to settings
-      plugin.settings.todayWordCountBaseline = todayStartWordCount
-      plugin.settings.todayWordCountDate = todayStartDate
-      plugin.saveSettings()
+      // Persist to project data
+      project.todayWordCountBaseline = todayStartWordCount
+      project.todayWordCountDate = todayStartDate
+      plugin.projectManager.updateProject(project)
     }
 
     // If we've deleted words below the session baseline, adjust the baseline down
@@ -175,13 +177,13 @@
         sessionStartWordCount = projectWordCount
 
         // Only update today baseline if it's a new day
-        const currentDate = new Date().toDateString()
-        if (currentDate !== plugin.settings.todayWordCountDate) {
+        const currentDate = new Date().toISOString().split('T')[0] // YYYY-MM-DD
+        if (currentDate !== project.todayWordCountDate) {
           todayStartWordCount = projectWordCount
           todayStartDate = currentDate
-          plugin.settings.todayWordCountBaseline = todayStartWordCount
-          plugin.settings.todayWordCountDate = todayStartDate
-          plugin.saveSettings()
+          project.todayWordCountBaseline = todayStartWordCount
+          project.todayWordCountDate = todayStartDate
+          plugin.projectManager.updateProject(project)
         }
 
         // Recalculate session/today stats now that baselines are set
@@ -268,23 +270,22 @@
         </div>
       {/if}
 
-      <!-- Session Stats (placeholder for now) -->
+      <!-- Today + Session side by side -->
       <div class="lighthouse-stats-divider"></div>
-
-      <div class="lighthouse-stat-group">
-        <div class="lighthouse-stat-label">Today</div>
-        <div class="lighthouse-stat-value lighthouse-stat-value-accent">
-          +{formatNumber(todayWordCount)}
+      <div class="lighthouse-session-stats">
+        <div class="lighthouse-stat-group">
+          <div class="lighthouse-stat-label">Today</div>
+          <div class="lighthouse-stat-value lighthouse-stat-value-accent">
+            +{formatNumber(todayWordCount)}
+          </div>
         </div>
-        <div class="lighthouse-stat-sublabel">words written</div>
-      </div>
-
-      <div class="lighthouse-stat-group">
-        <div class="lighthouse-stat-label">This Session</div>
-        <div class="lighthouse-stat-value lighthouse-stat-value-accent">
-          +{formatNumber(sessionWordCount)}
+        <div class="lighthouse-session-divider"></div>
+        <div class="lighthouse-stat-group">
+          <div class="lighthouse-stat-label">Session</div>
+          <div class="lighthouse-stat-value lighthouse-stat-value-accent">
+            +{formatNumber(sessionWordCount)}
+          </div>
         </div>
-        <div class="lighthouse-stat-sublabel">words written</div>
       </div>
     </div>
   {/if}
@@ -356,6 +357,20 @@
   .lighthouse-stats-divider {
     height: 1px;
     background: var(--background-modifier-border);
+  }
+
+  .lighthouse-session-stats {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: var(--size-4-2);
+    align-items: center;
+  }
+
+  .lighthouse-session-divider {
+    width: 1px;
+    height: 2em;
+    background: var(--background-modifier-border);
+    justify-self: center;
   }
 
   .lighthouse-progress-bar {

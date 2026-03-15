@@ -103,38 +103,72 @@
 </script>
 
 <div class="lighthouse-dashboard">
-  <div class="lighthouse-dashboard-header">
-    <h2>Project Dashboard</h2>
-  </div>
-
-  <!-- Project Switcher -->
+  <!-- Project Header -->
   <div class="lighthouse-dashboard-section">
     <div class="lighthouse-dashboard-section-header">
       <h3>Active Project</h3>
-      {#if allProjects.length > 0}
+      <div class="lighthouse-header-actions">
+        {#if currentProject}
+          <button class="clickable-icon" onclick={editProject} aria-label="Edit project">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              ><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path
+                d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"
+              /></svg
+            >
+          </button>
+          <button
+            class="clickable-icon lighthouse-danger-action"
+            onclick={deleteProject}
+            aria-label="Delete project"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              ><polyline points="3 6 5 6 21 6" /><path
+                d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"
+              /><path d="M10 11v6" /><path d="M14 11v6" /><path
+                d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"
+              /></svg
+            >
+          </button>
+        {/if}
         <button class="clickable-icon" onclick={createNewProject} aria-label="New project">
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
+            width="15"
+            height="15"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
             stroke-width="2"
             stroke-linecap="round"
             stroke-linejoin="round"
-            class="svg-icon lucide-plus"
-            ><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"
-            ></line></svg
+            ><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg
           >
         </button>
-      {/if}
+      </div>
     </div>
 
     {#if allProjects.length === 0}
       <div class="lighthouse-dashboard-empty">
         <p>No projects yet</p>
-        <button class="mod-cta" onclick={createNewProject}> Create Your First Project </button>
+        <button class="mod-cta" onclick={createNewProject}>Create Your First Project</button>
       </div>
     {:else}
       <div class="lighthouse-project-selector">
@@ -153,87 +187,69 @@
   </div>
 
   {#if currentProject}
-    <!-- Project Stats -->
+    <!-- Goal Ring + Stats -->
     <div class="lighthouse-dashboard-section">
-      <div class="lighthouse-dashboard-section-header">
-        <h3>Statistics</h3>
-      </div>
-
-      <div class="lighthouse-stats-grid">
-        <div class="lighthouse-stat-card">
+      {#if currentProject.wordCountGoal}
+        <div class="lighthouse-goal-ring-section">
+          <div class="lighthouse-goal-ring-container">
+            <svg
+              viewBox="0 0 80 80"
+              width="80"
+              height="80"
+              class="lighthouse-goal-ring"
+              aria-hidden="true"
+            >
+              <circle cx="40" cy="40" r="32" class="lighthouse-ring-track" />
+              <circle
+                cx="40"
+                cy="40"
+                r="32"
+                class="lighthouse-ring-fill"
+                stroke-dasharray="201.06"
+                stroke-dashoffset={201.06 * (1 - getProgressPercent() / 100)}
+                transform="rotate(-90 40 40)"
+              />
+            </svg>
+            <div class="lighthouse-ring-inner">
+              <span class="lighthouse-ring-percent">{Math.round(getProgressPercent())}%</span>
+            </div>
+          </div>
+          <div class="lighthouse-goal-text">
+            <div class="lighthouse-goal-words">{formatNumber(projectStats.totalWords)}</div>
+            <div class="lighthouse-goal-target">
+              of {formatNumber(currentProject.wordCountGoal)} words
+            </div>
+            {#if projectStats.totalWords < currentProject.wordCountGoal}
+              <div class="lighthouse-goal-remaining">
+                {formatNumber(currentProject.wordCountGoal - projectStats.totalWords)} to go
+              </div>
+            {:else}
+              <div class="lighthouse-goal-complete">Goal reached!</div>
+            {/if}
+          </div>
+        </div>
+      {:else}
+        <div class="lighthouse-stat-card lighthouse-stat-card-wide">
           <div class="lighthouse-stat-card-value">{formatNumber(projectStats.totalWords)}</div>
           <div class="lighthouse-stat-card-label">Total Words</div>
         </div>
+      {/if}
 
+      <div class="lighthouse-stats-grid">
         <div class="lighthouse-stat-card">
           <div class="lighthouse-stat-card-value">{formatNumber(projectStats.totalFiles)}</div>
           <div class="lighthouse-stat-card-label">Files</div>
         </div>
-
         <div class="lighthouse-stat-card">
-          <div class="lighthouse-stat-card-value">{projectStats.contentFolders}</div>
-          <div class="lighthouse-stat-card-label">Content Folders</div>
-        </div>
-
-        <div class="lighthouse-stat-card">
-          <div class="lighthouse-stat-card-value">{projectStats.sourceFolders}</div>
-          <div class="lighthouse-stat-card-label">Source Folders</div>
-        </div>
-      </div>
-
-      {#if currentProject.wordCountGoal}
-        <div class="lighthouse-goal-section">
-          <div class="lighthouse-goal-header">
-            <span class="lighthouse-goal-label">Goal Progress</span>
-            <span class="lighthouse-goal-percent">{Math.round(getProgressPercent())}%</span>
+          <div class="lighthouse-stat-card-value">
+            {new Date(currentProject.createdAt).toLocaleDateString(undefined, {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+            })}
           </div>
-          <div class="lighthouse-progress-bar lighthouse-progress-bar-large">
-            <div class="lighthouse-progress-fill" style="width: {getProgressPercent()}%"></div>
-          </div>
-          <div class="lighthouse-goal-details">
-            {formatNumber(projectStats.totalWords)} / {formatNumber(currentProject.wordCountGoal)} words
-          </div>
+          <div class="lighthouse-stat-card-label">Started</div>
         </div>
-      {/if}
-    </div>
-
-    <!-- Project Info -->
-    <div class="lighthouse-dashboard-section">
-      <div class="lighthouse-dashboard-section-header">
-        <h3>Project Info</h3>
-      </div>
-
-      <div class="lighthouse-info-list">
-        <div class="lighthouse-info-item">
-          <span class="lighthouse-info-label">Root Path:</span>
-          <span class="lighthouse-info-value">{currentProject.rootPath}</span>
-        </div>
-
-        {#if currentProject.wordCountGoal}
-          <div class="lighthouse-info-item">
-            <span class="lighthouse-info-label">Word Goal:</span>
-            <span class="lighthouse-info-value">{formatNumber(currentProject.wordCountGoal)}</span>
-          </div>
-        {/if}
-
-        <div class="lighthouse-info-item">
-          <span class="lighthouse-info-label">Created:</span>
-          <span class="lighthouse-info-value">
-            {new Date(currentProject.createdAt).toLocaleDateString()}
-          </span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Project Management -->
-    <div class="lighthouse-dashboard-section">
-      <div class="lighthouse-dashboard-section-header">
-        <h3>Project Management</h3>
-      </div>
-
-      <div class="lighthouse-actions">
-        <button class="mod-cta" onclick={editProject}> ✏️ Edit Project </button>
-        <button class="mod-warning" onclick={deleteProject}> 🗑️ Delete Project </button>
       </div>
     </div>
   {/if}
@@ -244,16 +260,6 @@
     height: 100%;
     overflow-y: auto;
     padding: var(--size-4-4);
-  }
-
-  .lighthouse-dashboard-header {
-    margin-bottom: var(--size-4-6);
-  }
-
-  .lighthouse-dashboard-header h2 {
-    margin: 0;
-    font-size: var(--font-ui-large);
-    font-weight: 600;
   }
 
   .lighthouse-dashboard-section {
@@ -269,11 +275,26 @@
 
   .lighthouse-dashboard-section-header h3 {
     margin: 0;
-    font-size: var(--font-ui-medium);
+    font-size: var(--font-ui-small);
     font-weight: 600;
     color: var(--text-muted);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.06em;
+  }
+
+  .lighthouse-header-actions {
+    display: flex;
+    gap: 2px;
+    align-items: center;
+  }
+
+  .lighthouse-danger-action {
+    color: var(--text-error);
+  }
+
+  .lighthouse-danger-action:hover {
+    color: var(--text-error);
+    background: var(--background-modifier-error-hover);
   }
 
   .lighthouse-dashboard-empty {
@@ -287,33 +308,108 @@
     font-size: var(--font-ui-medium);
   }
 
-  .lighthouse-project-selector {
-    margin-bottom: var(--size-4-2);
-  }
-
   .lighthouse-project-selector .dropdown {
     width: 100%;
   }
 
+  /* Circular goal ring */
+  .lighthouse-goal-ring-section {
+    display: flex;
+    align-items: center;
+    gap: var(--size-4-5);
+    padding: var(--size-4-4);
+    background: var(--background-secondary);
+    border-radius: var(--radius-m);
+    margin-bottom: var(--size-4-3);
+  }
+
+  .lighthouse-goal-ring-container {
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .lighthouse-ring-track {
+    fill: none;
+    stroke: var(--background-modifier-border);
+    stroke-width: 6;
+  }
+
+  .lighthouse-ring-fill {
+    fill: none;
+    stroke: var(--text-accent);
+    stroke-width: 6;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.4s ease;
+  }
+
+  .lighthouse-ring-inner {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .lighthouse-ring-percent {
+    font-size: var(--font-ui-medium);
+    font-weight: 700;
+    color: var(--text-normal);
+  }
+
+  .lighthouse-goal-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .lighthouse-goal-words {
+    font-size: var(--font-ui-larger);
+    font-weight: 700;
+    color: var(--text-normal);
+    line-height: 1.1;
+  }
+
+  .lighthouse-goal-target {
+    font-size: var(--font-ui-small);
+    color: var(--text-muted);
+  }
+
+  .lighthouse-goal-remaining {
+    margin-top: 4px;
+    font-size: var(--font-ui-smaller);
+    color: var(--text-faint);
+  }
+
+  .lighthouse-goal-complete {
+    margin-top: 4px;
+    font-size: var(--font-ui-smaller);
+    color: var(--color-green);
+    font-weight: 500;
+  }
+
+  /* Stats grid */
   .lighthouse-stats-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: var(--size-4-3);
-    margin-bottom: var(--size-4-4);
   }
 
   .lighthouse-stat-card {
-    padding: var(--size-4-4);
+    padding: var(--size-4-3) var(--size-4-4);
     background: var(--background-secondary);
     border-radius: var(--radius-m);
     text-align: center;
   }
 
+  .lighthouse-stat-card-wide {
+    grid-column: 1 / -1;
+  }
+
   .lighthouse-stat-card-value {
-    font-size: var(--font-ui-larger);
+    font-size: var(--font-ui-large);
     font-weight: 600;
     color: var(--text-accent);
-    margin-bottom: var(--size-2-2);
+    margin-bottom: 2px;
   }
 
   .lighthouse-stat-card-label {
@@ -321,93 +417,5 @@
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.05em;
-  }
-
-  .lighthouse-goal-section {
-    padding: var(--size-4-4);
-    background: var(--background-secondary);
-    border-radius: var(--radius-m);
-  }
-
-  .lighthouse-goal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: var(--size-2-2);
-  }
-
-  .lighthouse-goal-label {
-    font-size: var(--font-ui-small);
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    font-weight: 500;
-  }
-
-  .lighthouse-goal-percent {
-    font-size: var(--font-ui-medium);
-    font-weight: 600;
-    color: var(--text-accent);
-  }
-
-  .lighthouse-progress-bar {
-    width: 100%;
-    height: 8px;
-    background: var(--background-modifier-border);
-    border-radius: 4px;
-    overflow: hidden;
-    margin-bottom: var(--size-2-2);
-  }
-
-  .lighthouse-progress-bar-large {
-    height: 12px;
-  }
-
-  .lighthouse-progress-fill {
-    height: 100%;
-    background: var(--text-accent);
-    border-radius: 4px;
-    transition: width 0.3s ease;
-  }
-
-  .lighthouse-goal-details {
-    font-size: var(--font-ui-smaller);
-    color: var(--text-muted);
-    text-align: center;
-  }
-
-  .lighthouse-info-list {
-    display: flex;
-    flex-direction: column;
-    gap: var(--size-2-3);
-  }
-
-  .lighthouse-info-item {
-    display: flex;
-    justify-content: space-between;
-    padding: var(--size-2-2);
-    background: var(--background-secondary);
-    border-radius: var(--radius-s);
-  }
-
-  .lighthouse-info-label {
-    font-size: var(--font-ui-small);
-    color: var(--text-muted);
-    font-weight: 500;
-  }
-
-  .lighthouse-info-value {
-    font-size: var(--font-ui-small);
-    color: var(--text-normal);
-  }
-
-  .lighthouse-actions {
-    display: flex;
-    flex-direction: column;
-    gap: var(--size-2-2);
-  }
-
-  .lighthouse-actions button {
-    width: 100%;
   }
 </style>

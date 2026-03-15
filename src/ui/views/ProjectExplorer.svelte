@@ -1,17 +1,17 @@
 <script lang="ts">
   import { Menu, type TFile, type TFolder } from 'obsidian'
 
-  import { activeProject, projects } from '@/core/stores'
+  import { activeProject } from '@/core/stores'
   import type LighthousePlugin from '@/main'
   import type { Project } from '@/types/types'
   import TreeNodeComponent from '@/ui/components/TreeNode.svelte'
+  import { ProjectSwitcherModal } from '@/ui/modals/ProjectSwitcher'
 
   interface TreeNode {
     name: string
     path: string
     type: 'file' | 'folder'
     children?: TreeNode[]
-    wordCount?: number
     isExpanded?: boolean
     folderType?: 'content' | 'source'
   }
@@ -27,10 +27,9 @@
   let contentCollapsed = $state(false)
   let sourceCollapsed = $state(false)
   let currentProject = $derived(activeProject ? $activeProject : undefined)
-  let allProjects = $derived(projects ? $projects : [])
   let activeFilePath = $state<string | null>(null)
 
-  // Track active file changes
+  // Track active file changes + react to vault mutations
   $effect(() => {
     const updateActiveFile = () => {
       const file = plugin.app.workspace.getActiveFile()
@@ -40,6 +39,14 @@
     updateActiveFile()
 
     plugin.registerEvent(plugin.app.workspace.on('active-leaf-change', updateActiveFile))
+
+    // Rebuild tree whenever files/folders are created, deleted, or renamed
+    const refreshTree = async () => {
+      if (currentProject) await buildProjectTree(currentProject)
+    }
+    plugin.registerEvent(plugin.app.vault.on('create', refreshTree))
+    plugin.registerEvent(plugin.app.vault.on('delete', refreshTree))
+    plugin.registerEvent(plugin.app.vault.on('rename', refreshTree))
   })
 
   // Rebuild tree when active project changes
@@ -55,7 +62,7 @@
     }
   })
 
-  function buildProjectTree(project: Project) {
+  async function buildProjectTree(project: Project) {
     if (!plugin) {
       console.error('Lighthouse: ProjectExplorer plugin is undefined')
       contentNodes = []
@@ -106,6 +113,7 @@
       }
     }
 
+    // Set tree immediately for fast display
     contentNodes = content
     sourceNodes = source
   }
@@ -252,30 +260,72 @@
     menu.showAtMouseEvent(mouseEvent)
   }
 
-  async function switchProject(projectId: string) {
-    if (projectId) {
-      await plugin.projectManager.setActiveProject(projectId)
+  function openProjectSwitcher() {
+    new ProjectSwitcherModal(plugin).open()
+  }
+
+  async function handleCreateNoteInFolder(event: CustomEvent<{ path: string }>) {
+    const folderPath = event.detail.path
+    let fileName = 'Untitled.md'
+    let n = 1
+    while (plugin.app.vault.getAbstractFileByPath(`${folderPath}/${fileName}`)) {
+      fileName = `Untitled ${n++}.md`
     }
+    const newFile = await plugin.app.vault.create(`${folderPath}/${fileName}`, '')
+    const leaf = plugin.app.workspace.getLeaf(false)
+    await leaf.openFile(newFile)
+    // @ts-expect-error - Using internal Obsidian API to start rename
+    plugin.app.fileManager.promptForFileRename(newFile)
+  }
+
+  async function createFolderInSection(sectionType: 'content' | 'source') {
+    if (!currentProject) return
+    let folderName = 'New Folder'
+    let n = 1
+    while (plugin.app.vault.getAbstractFileByPath(`${currentProject.rootPath}/${folderName}`)) {
+      folderName = `New Folder ${n++}`
+    }
+    await plugin.app.vault.createFolder(`${currentProject.rootPath}/${folderName}`)
+    // Add relative path to project config — store update triggers tree rebuild via $effect
+    const updatedProject: Project = {
+      ...currentProject,
+      contentFolders:
+        sectionType === 'content'
+          ? [...currentProject.contentFolders, folderName]
+          : [...currentProject.contentFolders],
+      sourceFolders:
+        sectionType === 'source'
+          ? [...currentProject.sourceFolders, folderName]
+          : [...currentProject.sourceFolders],
+    }
+    await plugin.projectManager.updateProject(updatedProject)
   }
 </script>
 
 <div class="lighthouse-explorer">
   <div class="nav-header">
     <div class="nav-buttons-container">
-      {#if allProjects.length > 0}
-        <select
-          class="dropdown lighthouse-project-picker"
-          value={currentProject?.id || ''}
-          onchange={(e) => switchProject(e.currentTarget.value)}
+      <button
+        class="lighthouse-project-switcher-btn"
+        onclick={openProjectSwitcher}
+        aria-label="Switch project"
+      >
+        <span class="lighthouse-project-switcher-name">
+          {currentProject?.name ?? 'Select a project…'}
+        </span>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="12"
+          height="12"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="lighthouse-project-switcher-chevron"><polyline points="6 9 12 15 18 9" /></svg
         >
-          <option value="">Select project...</option>
-          {#each allProjects as project (project.id)}
-            <option value={project.id}>{project.name}</option>
-          {/each}
-        </select>
-      {:else}
-        <div class="nav-folder-title" data-path="">Project Explorer</div>
-      {/if}
+      </button>
     </div>
   </div>
 
@@ -317,9 +367,34 @@
               </svg>
             </div>
             <div class="tree-item-inner">Content</div>
-            <div class="tree-item-flair-outer">
-              <span class="tree-item-flair">{contentNodes.length}</span>
-            </div>
+            <button
+              class="clickable-icon lh-section-add-btn"
+              onclick={(e) => {
+                e.stopPropagation()
+                createFolderInSection('content')
+              }}
+              aria-label="New folder in Content"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                ><path
+                  d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"
+                /><line x1="12" y1="11" x2="12" y2="17" /><line
+                  x1="9"
+                  y1="14"
+                  x2="15"
+                  y2="14"
+                /></svg
+              >
+            </button>
           </div>
           {#if !contentCollapsed}
             <div class="tree-item-children">
@@ -330,7 +405,8 @@
                   {activeFilePath}
                   ontoggle={handleToggle}
                   onopen={handleOpen}
-                  oncontextmenu={handleContextMenu}
+                  onfilemenu={handleContextMenu}
+                  oncreatenote={handleCreateNoteInFolder}
                 />
               {/each}
             </div>
@@ -368,9 +444,34 @@
               </svg>
             </div>
             <div class="tree-item-inner">Source</div>
-            <div class="tree-item-flair-outer">
-              <span class="tree-item-flair">{sourceNodes.length}</span>
-            </div>
+            <button
+              class="clickable-icon lh-section-add-btn"
+              onclick={(e) => {
+                e.stopPropagation()
+                createFolderInSection('source')
+              }}
+              aria-label="New folder in Source"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                ><path
+                  d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"
+                /><line x1="12" y1="11" x2="12" y2="17" /><line
+                  x1="9"
+                  y1="14"
+                  x2="15"
+                  y2="14"
+                /></svg
+              >
+            </button>
           </div>
           {#if !sourceCollapsed}
             <div class="tree-item-children">
@@ -381,7 +482,8 @@
                   {activeFilePath}
                   ontoggle={handleToggle}
                   onopen={handleOpen}
-                  oncontextmenu={handleContextMenu}
+                  onfilemenu={handleContextMenu}
+                  oncreatenote={handleCreateNoteInFolder}
                 />
               {/each}
             </div>
@@ -404,9 +506,54 @@
     font-size: var(--font-ui-smaller);
   }
 
-  .lighthouse-project-picker {
+  .lighthouse-project-switcher-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
     width: 100%;
+    padding: 4px 8px;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-s);
+    cursor: pointer;
+    color: var(--text-normal);
     font-size: var(--font-ui-small);
     font-weight: 500;
+    text-align: left;
+  }
+
+  .lighthouse-project-switcher-btn:hover {
+    background: var(--background-modifier-hover);
+  }
+
+  .lighthouse-project-switcher-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .lighthouse-project-switcher-chevron {
+    flex-shrink: 0;
+    color: var(--text-faint);
+  }
+
+  .lh-section-add-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    align-self: center;
+    flex-shrink: 0;
+    margin-left: auto;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    color: var(--text-faint);
+    box-shadow: none;
+    line-height: 0;
+  }
+
+  .lh-section-add-btn:hover {
+    color: var(--text-normal);
   }
 </style>

@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.5] - 2026-03-15
+
+### Added
+- **New Note in Folder**: Each folder row in the explorer has a "+" button to create a new note directly inside that folder, with auto-incrementing name and immediate rename prompt
+- **New Folder from Explorer**: Content and Source section headers each have a folder "+" button to create a new subfolder at the project root, automatically added to the correct section
+- **Vault Event Listeners**: Explorer tree now refreshes automatically on any vault create, delete, or rename event — new files and folder renames reflect instantly
+
+### Changed
+- **Delete Button Styling**: Dashboard delete project button no longer renders as a solid red box; uses a subtle icon-only danger colour with a restrained hover state
+- **File Names Without Extension**: Files in the project explorer no longer show the `.md` extension, matching Obsidian's native file explorer behaviour
+- **Folder Collapse Chevron Direction**: Fixed inverted chevron — expanded folders now correctly point down, collapsed folders point right
+- **Explorer Section Headers**: Removed folder counts from Content and Source section headers for a cleaner look
+- **Removed Dashboard Button from Settings**: The "Open Dashboard" button in settings was redundant (accessible via ribbon and command palette) and has been removed
+
+### Fixed
+- **Context Menu on Folders**: Right-clicking files and folders in the explorer now correctly shows the Obsidian context menu (rename, delete, etc.). Root cause was a Svelte 5 prop naming conflict — `oncontextmenu` is treated as a native DOM event binding, silently swallowing events before they reached the handler
+
 ### Added
 - **Project Switcher in Explorer**: Added dropdown in project explorer header to quickly switch projects without opening dashboard
 - **Active File Highlighting**: Currently open file is now highlighted in project explorer
