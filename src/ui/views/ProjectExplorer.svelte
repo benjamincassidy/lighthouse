@@ -15,6 +15,7 @@
     children?: TreeNode[]
     isExpanded?: boolean
     folderType?: 'content' | 'source'
+    status?: string
   }
 
   interface Props {
@@ -47,6 +48,13 @@
     }
     plugin.registerEvent(plugin.app.vault.on('create', refreshTree))
     plugin.registerEvent(plugin.app.vault.on('delete', refreshTree))
+
+    // Rebuild tree when any file's frontmatter changes (status: field)
+    plugin.registerEvent(
+      plugin.app.metadataCache.on('changed', () => {
+        if (currentProject) void buildProjectTree(currentProject)
+      }),
+    )
 
     // On rename: keep fileOrder in sync, then rebuild
     plugin.registerEvent(
@@ -146,11 +154,15 @@
         // It's a file
         const file = child as TFile
         if (file.extension === 'md') {
+          const status = plugin.app.metadataCache.getFileCache(file)?.frontmatter?.status as
+            | string
+            | undefined
           children.push({
             name: file.name,
             path: file.path,
             type: 'file',
             folderType,
+            status,
           })
         }
       }

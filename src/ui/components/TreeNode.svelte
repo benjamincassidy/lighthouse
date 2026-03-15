@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { getStatusColor } from '@/utils/fileStatus'
+
   import TreeNode from './TreeNode.svelte'
 
   interface TreeNode {
@@ -7,6 +9,7 @@
     type: 'file' | 'folder'
     children?: TreeNode[]
     isExpanded?: boolean
+    status?: string
   }
 
   interface ReorderDetail {
@@ -198,6 +201,13 @@
           class="svg-icon"
         ></svg>
       </div>
+      {#if getStatusColor(node.status)}
+        <span
+          class="lh-status-dot"
+          style="background-color: {getStatusColor(node.status)}"
+          aria-label="Status: {node.status}"
+        ></span>
+      {/if}
       <div class="tree-item-inner">{node.name.replace(/\.md$/, '')}</div>
     {/if}
   </div>
