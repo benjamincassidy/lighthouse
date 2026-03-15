@@ -9,6 +9,12 @@
     isExpanded?: boolean
   }
 
+  interface ReorderDetail {
+    draggedPath: string
+    targetPath: string
+    position: 'before' | 'after'
+  }
+
   interface Props {
     node: TreeNode
     depth?: number
@@ -17,6 +23,7 @@
     onopen?: (_event: CustomEvent<{ path: string }>) => void
     onfilemenu?: (_event: CustomEvent<{ path: string; mouseEvent: globalThis.MouseEvent }>) => void
     oncreatenote?: (_event: CustomEvent<{ path: string }>) => void
+    onreorder?: (_event: CustomEvent<ReorderDetail>) => void
   }
 
   let {
@@ -27,9 +34,13 @@
     onopen,
     onfilemenu,
     oncreatenote,
+    onreorder,
   }: Props = $props()
 
   let isActive = $derived(node.type === 'file' && node.path === activeFilePath)
+
+  // Drop indicator: show a line above ('before') or below ('after') this node
+  let dropIndicator = $state<'before' | 'after' | null>(null)
 
   function handleClick() {
     if (node.type === 'folder' && ontoggle) {
@@ -65,17 +76,75 @@
       oncreatenote(new CustomEvent('createnote', { detail: { path: node.path } }))
     }
   }
+
+  // ── Drag-and-drop handlers ────────────────────────────────────────────────
+
+  function handleDragStart(e: globalThis.DragEvent) {
+    // Don't initiate a drag when the pointer is over a button (e.g. create-note)
+    const target = e.target as globalThis.HTMLElement | null
+    if (target?.closest('button') !== null) {
+      e.preventDefault()
+      return
+    }
+    e.stopPropagation()
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = 'move'
+      e.dataTransfer.setData('lighthouse/path', node.path)
+    }
+  }
+
+  function handleDragOver(e: globalThis.DragEvent) {
+    // Only accept drops that carry a lighthouse path
+    if (!e.dataTransfer?.types.includes('lighthouse/path')) return
+    e.preventDefault()
+    e.stopPropagation()
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'
+
+    const el = e.currentTarget as globalThis.HTMLElement
+    const rect = el.getBoundingClientRect()
+    dropIndicator = e.clientY < rect.top + rect.height / 2 ? 'before' : 'after'
+  }
+
+  function handleDragLeave() {
+    dropIndicator = null
+  }
+
+  function handleDrop(e: globalThis.DragEvent) {
+    e.preventDefault()
+    e.stopPropagation()
+    const draggedPath = e.dataTransfer?.getData('lighthouse/path')
+    if (draggedPath && draggedPath !== node.path && onreorder) {
+      onreorder(
+        new CustomEvent('reorder', {
+          detail: { draggedPath, targetPath: node.path, position: dropIndicator ?? 'after' },
+        }),
+      )
+    }
+    dropIndicator = null
+  }
+
+  function handleDragEnd() {
+    dropIndicator = null
+  }
 </script>
 
 <div class="tree-item" style="padding-left: {paddingLeft}">
   <div
     class="tree-item-self is-clickable"
     class:is-active={isActive}
+    class:lh-drop-before={dropIndicator === 'before'}
+    class:lh-drop-after={dropIndicator === 'after'}
     role="button"
     tabindex="0"
+    draggable="true"
     onclick={handleClick}
     onkeydown={handleKeydown}
     oncontextmenu={handleContextMenu}
+    ondragstart={handleDragStart}
+    ondragover={handleDragOver}
+    ondragleave={handleDragLeave}
+    ondrop={handleDrop}
+    ondragend={handleDragEnd}
   >
     {#if node.type === 'folder'}
       <div class="tree-item-icon collapse-icon">
@@ -143,6 +212,7 @@
           {onopen}
           {onfilemenu}
           {oncreatenote}
+          {onreorder}
         />
       {/each}
     </div>
@@ -172,5 +242,14 @@
   .lh-tree-create-note:hover {
     color: var(--text-normal);
     background: var(--background-modifier-hover);
+  }
+
+  /* Drag-and-drop drop indicators */
+  .lh-drop-before {
+    box-shadow: 0 -2px 0 0 var(--text-accent);
+  }
+
+  .lh-drop-after {
+    box-shadow: 0 2px 0 0 var(--text-accent);
   }
 </style>

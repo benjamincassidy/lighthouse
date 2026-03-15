@@ -14,6 +14,8 @@ export interface Project {
   dashboardConfig?: DashboardConfig
   templateFolder?: string
   metadata?: Record<string, unknown>
+  // Custom sort order: vault-relative paths in user-defined sequence
+  fileOrder?: string[]
   // Daily word count tracking (per-project)
   todayWordCountBaseline?: number
   todayWordCountDate?: string // ISO date format (YYYY-MM-DD)

@@ -220,4 +220,81 @@ describe('ProjectManager', () => {
       expect(manager.getProjectCount()).toBe(2)
     })
   })
+
+  describe('reorderProjectFiles', () => {
+    it('should set the fileOrder on the project', async () => {
+      const project = await manager.createProject('Novel', 'novel')
+      const newOrder = ['novel/ch2.md', 'novel/ch1.md', 'novel/ch3.md']
+
+      await manager.reorderProjectFiles(project.id, newOrder)
+
+      const updated = manager.getProject(project.id)
+      expect(updated?.fileOrder).toEqual(newOrder)
+    })
+
+    it('should replace a previously set fileOrder', async () => {
+      const project = await manager.createProject('Novel', 'novel')
+      await manager.reorderProjectFiles(project.id, ['a', 'b', 'c'])
+      await manager.reorderProjectFiles(project.id, ['c', 'b', 'a'])
+
+      const updated = manager.getProject(project.id)
+      expect(updated?.fileOrder).toEqual(['c', 'b', 'a'])
+    })
+
+    it('should throw for a non-existent project', async () => {
+      await expect(manager.reorderProjectFiles('nonexistent', [])).rejects.toThrow()
+    })
+
+    it('should persist the new order', async () => {
+      const project = await manager.createProject('Novel', 'novel')
+      await manager.reorderProjectFiles(project.id, ['novel/scene2.md', 'novel/scene1.md'])
+
+      // updatedAt should have changed (updateProject was called)
+      const updated = manager.getProject(project.id)
+      expect(updated?.updatedAt).toBeDefined()
+      expect(updated?.fileOrder).toEqual(['novel/scene2.md', 'novel/scene1.md'])
+    })
+  })
+
+  describe('updateFileOrderPath', () => {
+    it('should replace an old path with a new path in fileOrder', async () => {
+      const project = await manager.createProject('Novel', 'novel')
+      await manager.reorderProjectFiles(project.id, ['novel/ch1.md', 'novel/ch2.md'])
+
+      await manager.updateFileOrderPath(project.id, 'novel/ch1.md', 'novel/chapter-one.md')
+
+      const updated = manager.getProject(project.id)
+      expect(updated?.fileOrder).toEqual(['novel/chapter-one.md', 'novel/ch2.md'])
+    })
+
+    it('should be a no-op when the project has no fileOrder', async () => {
+      const project = await manager.createProject('Novel', 'novel')
+      // No fileOrder set
+
+      await manager.updateFileOrderPath(project.id, 'novel/ch1.md', 'novel/chapter-one.md')
+
+      const updated = manager.getProject(project.id)
+      expect(updated?.fileOrder).toBeUndefined()
+    })
+
+    it('should be a no-op when the path is not in fileOrder', async () => {
+      const project = await manager.createProject('Novel', 'novel')
+      await manager.reorderProjectFiles(project.id, ['novel/ch1.md', 'novel/ch2.md'])
+
+      await manager.updateFileOrderPath(project.id, 'novel/unknown.md', 'novel/other.md')
+
+      const updated = manager.getProject(project.id)
+      expect(updated?.fileOrder).toEqual(['novel/ch1.md', 'novel/ch2.md'])
+    })
+
+    it('should update only the matching path, leaving others unchanged', async () => {
+      const project = await manager.createProject('Novel', 'novel')
+      await manager.reorderProjectFiles(project.id, ['novel/a.md', 'novel/b.md', 'novel/c.md'])
+
+      await manager.updateFileOrderPath(project.id, 'novel/b.md', 'novel/beta.md')
+
+      const updated = manager.getProject(project.id)
+      expect(updated?.fileOrder).toEqual(['novel/a.md', 'novel/beta.md', 'novel/c.md'])
+    })
+  })
 })
