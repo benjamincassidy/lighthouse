@@ -81,7 +81,10 @@ describe('buildTypographyVars', () => {
 describe('ZenMode — typography overrides', () => {
   let mockApp: ReturnType<typeof makeApp>
   let zenMode: ZenMode
-  let mockBodyStyle: { setProperty: ReturnType<typeof vi.fn>; removeProperty: ReturnType<typeof vi.fn> }
+  let mockBodyStyle: {
+    setProperty: ReturnType<typeof vi.fn>
+    removeProperty: ReturnType<typeof vi.fn>
+  }
   let mockBodyClassList: { add: ReturnType<typeof vi.fn>; remove: ReturnType<typeof vi.fn> }
   let mockDoc: {
     body: { style: typeof mockBodyStyle; classList: typeof mockBodyClassList }
@@ -101,9 +104,8 @@ describe('ZenMode — typography overrides', () => {
     vi.stubGlobal('document', mockDoc)
 
     mockApp = makeApp()
-    zenMode = new ZenMode(
-      mockApp as unknown as App,
-      () => makeSettings({ zenFont: 'Georgia', zenLineHeight: 1.8, zenLineWidth: 700 }),
+    zenMode = new ZenMode(mockApp as unknown as App, () =>
+      makeSettings({ zenFont: 'Georgia', zenLineHeight: 1.8, zenLineWidth: 700 }),
     )
   })
 
@@ -126,12 +128,11 @@ describe('ZenMode — typography overrides', () => {
   })
 
   it('does not call setProperty when no typography overrides are configured', () => {
-    const noOverrideMode = new ZenMode(
-      mockApp as unknown as App,
-      () => makeSettings(),
-    )
+    const noOverrideMode = new ZenMode(mockApp as unknown as App, () => makeSettings())
 
-    ;(noOverrideMode as unknown as { applyTypographyOverrides: () => void }).applyTypographyOverrides()
+    ;(
+      noOverrideMode as unknown as { applyTypographyOverrides: () => void }
+    ).applyTypographyOverrides()
 
     expect(mockBodyStyle.setProperty).not.toHaveBeenCalled()
     // lh-zen-active is still added (scoping class is always applied)
@@ -172,9 +173,7 @@ describe('ZenMode — typewriter scroll', () => {
     })
 
     mockApp = makeApp()
-    zenMode = new ZenMode(mockApp as unknown as App, () =>
-      makeSettings(),
-    )
+    zenMode = new ZenMode(mockApp as unknown as App, () => makeSettings())
   })
 
   afterEach(() => {
@@ -189,8 +188,9 @@ describe('ZenMode — typewriter scroll', () => {
 
   it('calls offref with the stored EventRef on disableTypewriterScroll', () => {
     const mockRef = { id: 'mock-event-ref' }
-    mockApp.workspace.on.mockReturnValue(mockRef as unknown as ReturnType<typeof mockApp.workspace.on>)
-
+    mockApp.workspace.on.mockReturnValue(
+      mockRef as unknown as ReturnType<typeof mockApp.workspace.on>,
+    )
     ;(zenMode as unknown as { enableTypewriterScroll: () => void }).enableTypewriterScroll()
     ;(zenMode as unknown as { disableTypewriterScroll: () => void }).disableTypewriterScroll()
 
@@ -218,13 +218,19 @@ describe('ZenMode — typewriter scroll', () => {
 describe('ZenMode — focus mode', () => {
   let mockApp: ReturnType<typeof makeApp>
   let zenMode: ZenMode
-  let mockEditorEl: { classList: { add: ReturnType<typeof vi.fn>; remove: ReturnType<typeof vi.fn> } }
+  let mockEditorEl: {
+    classList: { add: ReturnType<typeof vi.fn>; remove: ReturnType<typeof vi.fn> }
+  }
   let mockQuerSelectorAll: ReturnType<typeof vi.fn>
   beforeEach(() => {
     mockEditorEl = { classList: { add: vi.fn(), remove: vi.fn() } }
 
     mockQuerSelectorAll = vi.fn().mockImplementation((selector: string) => {
-      if (selector === '.cm-editor' || selector === '.lh-focus-paragraph' || selector === '.lh-focus-sentence') {
+      if (
+        selector === '.cm-editor' ||
+        selector === '.lh-focus-paragraph' ||
+        selector === '.lh-focus-sentence'
+      ) {
         return { forEach: (fn: (el: unknown) => void) => fn(mockEditorEl) }
       }
       return { forEach: vi.fn() }
@@ -240,9 +246,7 @@ describe('ZenMode — focus mode', () => {
     })
 
     mockApp = makeApp()
-    zenMode = new ZenMode(mockApp as unknown as App, () =>
-      makeSettings(),
-    )
+    zenMode = new ZenMode(mockApp as unknown as App, () => makeSettings())
   })
 
   afterEach(() => {

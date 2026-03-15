@@ -189,7 +189,9 @@ export class LighthouseSettingTab extends PluginSettingTab {
       .addText((text) =>
         text
           .setPlaceholder('0')
-          .setValue(this.plugin.settings.zenLineHeight ? String(this.plugin.settings.zenLineHeight) : '')
+          .setValue(
+            this.plugin.settings.zenLineHeight ? String(this.plugin.settings.zenLineHeight) : '',
+          )
           .onChange(async (value) => {
             const num = parseFloat(value)
             this.plugin.settings.zenLineHeight = isNaN(num) || num < 0 ? 0 : num
@@ -199,11 +201,15 @@ export class LighthouseSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName('Max line width')
-      .setDesc('Constrain the editor width for comfortable reading, in pixels. Set to 0 to inherit.')
+      .setDesc(
+        'Constrain the editor width for comfortable reading, in pixels. Set to 0 to inherit.',
+      )
       .addText((text) =>
         text
           .setPlaceholder('0')
-          .setValue(this.plugin.settings.zenLineWidth ? String(this.plugin.settings.zenLineWidth) : '')
+          .setValue(
+            this.plugin.settings.zenLineWidth ? String(this.plugin.settings.zenLineWidth) : '',
+          )
           .onChange(async (value) => {
             const num = parseInt(value, 10)
             this.plugin.settings.zenLineWidth = isNaN(num) || num < 0 ? 0 : num
