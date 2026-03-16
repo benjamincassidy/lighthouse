@@ -12,7 +12,7 @@ export interface LighthouseSettings {
   flowModeHideStatusBar: boolean
   flowModeHideRibbon: boolean
   flowTypewriterScroll: boolean
-  flowFocusMode: 'none' | 'paragraph' | 'sentence'
+  flowFocusMode: 'none' | 'paragraph' | 'line'
   flowFont: string
   flowLineHeight: number
   flowLineWidth: number

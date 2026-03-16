@@ -62,7 +62,7 @@ body:has(.workspace-tabs.lighthouse-zen-dim) .workspace-tab-header-container:hov
 /* Flow Mode — Focus: opacity is applied as inline styles by FlowMode.updateFocusDimming.
    This rule only provides the transition so the dimming effect is visually smooth. */
 body.lh-focus-paragraph .cm-line,
-body.lh-focus-sentence .cm-line {
+body.lh-focus-line .cm-line {
   transition: opacity 0.15s ease;
 }
 

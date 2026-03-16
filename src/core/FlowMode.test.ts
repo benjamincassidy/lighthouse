@@ -227,6 +227,8 @@ describe('FlowMode — focus mode', () => {
     classList: { contains: (cls: string) => boolean }
     style: { opacity: string; removeProperty: ReturnType<typeof vi.fn> }
   }
+  let mockAddEventListener: ReturnType<typeof vi.fn>
+  let mockRemoveEventListener: ReturnType<typeof vi.fn>
 
   beforeEach(() => {
     mockBodyClassList = { add: vi.fn(), remove: vi.fn() }
@@ -238,6 +240,8 @@ describe('FlowMode — focus mode', () => {
       classList: { contains: () => false },
       style: { opacity: '', removeProperty: vi.fn() },
     }
+    mockAddEventListener = vi.fn()
+    mockRemoveEventListener = vi.fn()
 
     vi.stubGlobal('document', {
       body: {
@@ -247,6 +251,8 @@ describe('FlowMode — focus mode', () => {
       querySelector: vi.fn().mockReturnValue(null),
       // Return a real array so forEach actually invokes the callback
       querySelectorAll: vi.fn().mockReturnValue([mockActiveLine, mockInactiveLine]),
+      addEventListener: mockAddEventListener,
+      removeEventListener: mockRemoveEventListener,
     })
 
     mockApp = makeApp()
@@ -262,9 +268,20 @@ describe('FlowMode — focus mode', () => {
     expect(mockBodyClassList.add).toHaveBeenCalledWith('lh-focus-paragraph')
   })
 
-  it('adds lh-focus-sentence class to body for sentence mode', () => {
-    ;(flowMode as unknown as { enableFocusMode: (m: string) => void }).enableFocusMode('sentence')
-    expect(mockBodyClassList.add).toHaveBeenCalledWith('lh-focus-sentence')
+  it('adds lh-focus-line class to body for line mode', () => {
+    ;(flowMode as unknown as { enableFocusMode: (m: string) => void }).enableFocusMode('line')
+    expect(mockBodyClassList.add).toHaveBeenCalledWith('lh-focus-line')
+  })
+
+  it('registers a selectionchange listener on enableFocusMode', () => {
+    ;(flowMode as unknown as { enableFocusMode: (m: string) => void }).enableFocusMode('paragraph')
+    expect(mockAddEventListener).toHaveBeenCalledWith('selectionchange', expect.any(Function))
+  })
+
+  it('removes the selectionchange listener on disableFocusMode', () => {
+    ;(flowMode as unknown as { enableFocusMode: (m: string) => void }).enableFocusMode('paragraph')
+    ;(flowMode as unknown as { disableFocusMode: () => void }).disableFocusMode()
+    expect(mockRemoveEventListener).toHaveBeenCalledWith('selectionchange', expect.any(Function))
   })
 
   it('removes the active focus class from body on disableFocusMode', () => {

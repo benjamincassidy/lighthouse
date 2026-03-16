@@ -33,8 +33,10 @@ export class FlowMode {
   private typewriterScrollRef: EventRef | null = null
   /** CSS class currently applied to body for focus mode */
   private activeFocusClass: string | null = null
-  /** EventRefs registered for focus-mode dim-on-movement updates */
+  /** EventRefs registered for focus-mode listeners */
   private focusModeRefs: EventRef[] = []
+  /** DOM selectionchange handler — removed on disableFocusMode */
+  private selectionChangeHandler: (() => void) | null = null
 
   constructor(app: App, getSettings: () => LighthouseSettings) {
     this.app = app
@@ -279,24 +281,26 @@ export class FlowMode {
   // Focus mode (paragraph / sentence dim)
   // ---------------------------------------------------------------------------
 
-  enableFocusMode(mode: 'paragraph' | 'sentence'): void {
-    // Clear any previously applied class first
+  enableFocusMode(mode: 'paragraph' | 'line'): void {
     this.disableFocusMode()
-    const cssClass = mode === 'sentence' ? 'lh-focus-sentence' : 'lh-focus-paragraph'
+    const cssClass = mode === 'line' ? 'lh-focus-line' : 'lh-focus-paragraph'
     document.body.classList.add(cssClass)
     this.activeFocusClass = cssClass
 
-    // Apply initial dimming and keep it in sync as the cursor moves.
-    // Inline styles are used so the effect is guaranteed to win over any theme
-    // CSS without relying on cascade ordering or specificity battles.
+    // Apply initial dimming immediately.
     this.updateFocusDimming()
-    const editorChangeRef = this.app.workspace.on('editor-change', () => {
-      this.updateFocusDimming()
-    })
+
+    // Re-dim after every cursor change. selectionchange fires on clicks,
+    // arrow-key moves, and typing. We defer by one frame so CM has had
+    // time to update cm-activeLine on the newly focused line first.
+    this.selectionChangeHandler = () => requestAnimationFrame(() => this.updateFocusDimming())
+    document.addEventListener('selectionchange', this.selectionChangeHandler)
+
+    // Also update when switching editor tabs.
     const leafChangeRef = this.app.workspace.on('active-leaf-change', () => {
-      this.updateFocusDimming()
+      requestAnimationFrame(() => this.updateFocusDimming())
     })
-    this.focusModeRefs = [editorChangeRef, leafChangeRef]
+    this.focusModeRefs = [leafChangeRef]
   }
 
   disableFocusMode(): void {
@@ -304,11 +308,16 @@ export class FlowMode {
       document.body.classList.remove(this.activeFocusClass)
       this.activeFocusClass = null
     }
-    // Remove inline opacity styles applied by updateFocusDimming
+    // Remove inline opacity styles
     document.querySelectorAll<HTMLElement>('.cm-line').forEach((line) => {
       line.style.removeProperty('opacity')
     })
-    // Unregister cursor-tracking listeners
+    // Unregister selectionchange listener
+    if (this.selectionChangeHandler) {
+      document.removeEventListener('selectionchange', this.selectionChangeHandler)
+      this.selectionChangeHandler = null
+    }
+    // Unregister workspace listeners
     for (const ref of this.focusModeRefs) {
       this.app.workspace.offref(ref)
     }

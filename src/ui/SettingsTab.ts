@@ -153,22 +153,22 @@ export class LighthouseSettingTab extends PluginSettingTab {
         }),
       )
 
-    new Setting(containerEl).setName('Focus & typography').setHeading()
-
     new Setting(containerEl)
       .setName('Focus mode')
-      .setDesc('Dim text outside the current paragraph or sentence to reduce distraction.')
+      .setDesc('Dim text outside the active paragraph or line to reduce distraction.')
       .addDropdown((dropdown) =>
         dropdown
           .addOption('none', 'None')
           .addOption('paragraph', 'Paragraph')
-          .addOption('sentence', 'Sentence')
+          .addOption('line', 'Line')
           .setValue(this.plugin.settings.flowFocusMode)
           .onChange(async (value) => {
-            this.plugin.settings.flowFocusMode = value as 'none' | 'paragraph' | 'sentence'
+            this.plugin.settings.flowFocusMode = value as 'none' | 'paragraph' | 'line'
             await this.plugin.saveSettings()
           }),
       )
+
+    new Setting(containerEl).setName('Typography').setHeading()
 
     new Setting(containerEl)
       .setName('Font family')
