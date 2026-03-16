@@ -31,12 +31,6 @@ export class FlowMode {
   private state: FlowModeState
   /** EventRef returned by workspace.on('editor-change') for typewriter scroll */
   private typewriterScrollRef: EventRef | null = null
-  /** CSS class currently applied to body for focus mode */
-  private activeFocusClass: string | null = null
-  /** EventRefs registered for focus-mode listeners */
-  private focusModeRefs: EventRef[] = []
-  /** DOM selectionchange handler — removed on disableFocusMode */
-  private selectionChangeHandler: (() => void) | null = null
 
   constructor(app: App, getSettings: () => LighthouseSettings) {
     this.app = app
@@ -112,11 +106,6 @@ export class FlowMode {
       this.enableTypewriterScroll()
     }
 
-    // Paragraph / sentence focus dimming
-    if (settings.flowFocusMode !== 'none') {
-      this.enableFocusMode(settings.flowFocusMode)
-    }
-
     // Typography overrides
     this.applyTypographyOverrides()
 
@@ -160,9 +149,8 @@ export class FlowMode {
     // Show breadcrumbs and navigation
     this.showNavigation()
 
-    // Clean up focus & typography
+    // Clean up typography
     this.disableTypewriterScroll()
-    this.disableFocusMode()
     this.removeTypographyOverrides()
 
     this.state.isActive = false
@@ -275,61 +263,6 @@ export class FlowMode {
       this.app.workspace.offref(this.typewriterScrollRef)
       this.typewriterScrollRef = null
     }
-  }
-
-  // ---------------------------------------------------------------------------
-  // Focus mode (paragraph / sentence dim)
-  // ---------------------------------------------------------------------------
-
-  enableFocusMode(mode: 'paragraph' | 'line'): void {
-    this.disableFocusMode()
-    const cssClass = mode === 'line' ? 'lh-focus-line' : 'lh-focus-paragraph'
-    document.body.classList.add(cssClass)
-    this.activeFocusClass = cssClass
-
-    // Apply initial dimming immediately.
-    this.updateFocusDimming()
-
-    // Re-dim after every cursor change. selectionchange fires on clicks,
-    // arrow-key moves, and typing. We defer by one frame so CM has had
-    // time to update cm-activeLine on the newly focused line first.
-    this.selectionChangeHandler = () => requestAnimationFrame(() => this.updateFocusDimming())
-    document.addEventListener('selectionchange', this.selectionChangeHandler)
-
-    // Also update when switching editor tabs.
-    const leafChangeRef = this.app.workspace.on('active-leaf-change', () => {
-      requestAnimationFrame(() => this.updateFocusDimming())
-    })
-    this.focusModeRefs = [leafChangeRef]
-  }
-
-  disableFocusMode(): void {
-    if (this.activeFocusClass) {
-      document.body.classList.remove(this.activeFocusClass)
-      this.activeFocusClass = null
-    }
-    // Remove inline opacity styles
-    document.querySelectorAll<HTMLElement>('.cm-line').forEach((line) => {
-      line.style.removeProperty('opacity')
-    })
-    // Unregister selectionchange listener
-    if (this.selectionChangeHandler) {
-      document.removeEventListener('selectionchange', this.selectionChangeHandler)
-      this.selectionChangeHandler = null
-    }
-    // Unregister workspace listeners
-    for (const ref of this.focusModeRefs) {
-      this.app.workspace.offref(ref)
-    }
-    this.focusModeRefs = []
-  }
-
-  private updateFocusDimming(): void {
-    // Directly set opacity inline so the result is guaranteed regardless of
-    // the active Obsidian theme's CSS specificity.
-    document.querySelectorAll<HTMLElement>('.cm-line').forEach((line) => {
-      line.style.opacity = line.classList.contains('cm-activeLine') ? '1' : '0.25'
-    })
   }
 
   // ---------------------------------------------------------------------------

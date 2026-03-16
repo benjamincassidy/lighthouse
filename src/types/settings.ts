@@ -12,7 +12,6 @@ export interface LighthouseSettings {
   flowModeHideStatusBar: boolean
   flowModeHideRibbon: boolean
   flowTypewriterScroll: boolean
-  flowFocusMode: 'none' | 'paragraph' | 'line'
   flowFont: string
   flowLineHeight: number
   flowLineWidth: number
@@ -38,7 +37,6 @@ export const DEFAULT_SETTINGS: LighthouseSettings = {
   flowModeHideStatusBar: true,
   flowModeHideRibbon: true,
   flowTypewriterScroll: true,
-  flowFocusMode: 'none',
   flowFont: '',
   flowLineHeight: 0,
   flowLineWidth: 0,
