@@ -80,6 +80,20 @@ body.lh-flow-active[style*='--lh-flow-line-width'] .cm-editor {
   margin-top: 20px;
 }
 
+.lighthouse-section-heading {
+  margin-top: 20px;
+  margin-bottom: 4px;
+  font-size: 0.9em;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.lighthouse-chapter-goals {
+  margin-bottom: 8px;
+}
+
 .lighthouse-folder-list {
   margin-top: 8px;
   display: flex;
