@@ -219,9 +219,25 @@ describe('FlowMode — focus mode', () => {
   let mockApp: ReturnType<typeof makeApp>
   let flowMode: FlowMode
   let mockBodyClassList: { add: ReturnType<typeof vi.fn>; remove: ReturnType<typeof vi.fn> }
+  let mockActiveLine: {
+    classList: { contains: (cls: string) => boolean }
+    style: { opacity: string; removeProperty: ReturnType<typeof vi.fn> }
+  }
+  let mockInactiveLine: {
+    classList: { contains: (cls: string) => boolean }
+    style: { opacity: string; removeProperty: ReturnType<typeof vi.fn> }
+  }
 
   beforeEach(() => {
     mockBodyClassList = { add: vi.fn(), remove: vi.fn() }
+    mockActiveLine = {
+      classList: { contains: (cls: string) => cls === 'cm-activeLine' },
+      style: { opacity: '', removeProperty: vi.fn() },
+    }
+    mockInactiveLine = {
+      classList: { contains: () => false },
+      style: { opacity: '', removeProperty: vi.fn() },
+    }
 
     vi.stubGlobal('document', {
       body: {
@@ -229,7 +245,8 @@ describe('FlowMode — focus mode', () => {
         classList: mockBodyClassList,
       },
       querySelector: vi.fn().mockReturnValue(null),
-      querySelectorAll: vi.fn().mockReturnValue({ forEach: vi.fn() }),
+      // Return a real array so forEach actually invokes the callback
+      querySelectorAll: vi.fn().mockReturnValue([mockActiveLine, mockInactiveLine]),
     })
 
     mockApp = makeApp()
@@ -267,5 +284,18 @@ describe('FlowMode — focus mode', () => {
     ;(flowMode as unknown as { disableFocusMode: () => void }).disableFocusMode()
     // classList.remove should only be called once
     expect(mockBodyClassList.remove).toHaveBeenCalledTimes(1)
+  })
+
+  it('dims non-active lines and keeps active line at full opacity via inline styles', () => {
+    ;(flowMode as unknown as { enableFocusMode: (m: string) => void }).enableFocusMode('paragraph')
+    expect(mockActiveLine.style.opacity).toBe('1')
+    expect(mockInactiveLine.style.opacity).toBe('0.25')
+  })
+
+  it('removes inline opacity styles from all lines on disableFocusMode', () => {
+    ;(flowMode as unknown as { enableFocusMode: (m: string) => void }).enableFocusMode('paragraph')
+    ;(flowMode as unknown as { disableFocusMode: () => void }).disableFocusMode()
+    expect(mockActiveLine.style.removeProperty).toHaveBeenCalledWith('opacity')
+    expect(mockInactiveLine.style.removeProperty).toHaveBeenCalledWith('opacity')
   })
 })

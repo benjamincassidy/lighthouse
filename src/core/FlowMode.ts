@@ -31,8 +31,10 @@ export class FlowMode {
   private state: FlowModeState
   /** EventRef returned by workspace.on('editor-change') for typewriter scroll */
   private typewriterScrollRef: EventRef | null = null
-  /** CSS class currently applied to .cm-editor elements for focus mode */
+  /** CSS class currently applied to body for focus mode */
   private activeFocusClass: string | null = null
+  /** EventRefs registered for focus-mode dim-on-movement updates */
+  private focusModeRefs: EventRef[] = []
 
   constructor(app: App, getSettings: () => LighthouseSettings) {
     this.app = app
@@ -280,11 +282,21 @@ export class FlowMode {
   enableFocusMode(mode: 'paragraph' | 'sentence'): void {
     // Clear any previously applied class first
     this.disableFocusMode()
-    // Apply to body so it covers all current and future .cm-editor instances,
-    // and so CSS is always live-evaluated without timing dependencies.
     const cssClass = mode === 'sentence' ? 'lh-focus-sentence' : 'lh-focus-paragraph'
     document.body.classList.add(cssClass)
     this.activeFocusClass = cssClass
+
+    // Apply initial dimming and keep it in sync as the cursor moves.
+    // Inline styles are used so the effect is guaranteed to win over any theme
+    // CSS without relying on cascade ordering or specificity battles.
+    this.updateFocusDimming()
+    const editorChangeRef = this.app.workspace.on('editor-change', () => {
+      this.updateFocusDimming()
+    })
+    const leafChangeRef = this.app.workspace.on('active-leaf-change', () => {
+      this.updateFocusDimming()
+    })
+    this.focusModeRefs = [editorChangeRef, leafChangeRef]
   }
 
   disableFocusMode(): void {
@@ -292,6 +304,23 @@ export class FlowMode {
       document.body.classList.remove(this.activeFocusClass)
       this.activeFocusClass = null
     }
+    // Remove inline opacity styles applied by updateFocusDimming
+    document.querySelectorAll<HTMLElement>('.cm-line').forEach((line) => {
+      line.style.removeProperty('opacity')
+    })
+    // Unregister cursor-tracking listeners
+    for (const ref of this.focusModeRefs) {
+      this.app.workspace.offref(ref)
+    }
+    this.focusModeRefs = []
+  }
+
+  private updateFocusDimming(): void {
+    // Directly set opacity inline so the result is guaranteed regardless of
+    // the active Obsidian theme's CSS specificity.
+    document.querySelectorAll<HTMLElement>('.cm-line').forEach((line) => {
+      line.style.opacity = line.classList.contains('cm-activeLine') ? '1' : '0.25'
+    })
   }
 
   // ---------------------------------------------------------------------------

@@ -59,13 +59,10 @@ body:has(.workspace-tabs.lighthouse-zen-dim) .workspace-tab-header-container:hov
   opacity: 0.6;
 }
 
-/* Flow Mode — Focus (paragraph / sentence)
-   Class applied to body so it covers all editors, including those opened
-   after flow mode is entered. !important overrides Obsidian's own .cm-line
-   styles; .cm-content in the path increases specificity and scopes to editor content. */
-body.lh-focus-paragraph .cm-content .cm-line:not(.cm-activeLine),
-body.lh-focus-sentence .cm-content .cm-line:not(.cm-activeLine) {
-  opacity: 0.25 !important;
+/* Flow Mode — Focus: opacity is applied as inline styles by FlowMode.updateFocusDimming.
+   This rule only provides the transition so the dimming effect is visually smooth. */
+body.lh-focus-paragraph .cm-line,
+body.lh-focus-sentence .cm-line {
   transition: opacity 0.15s ease;
 }
 
