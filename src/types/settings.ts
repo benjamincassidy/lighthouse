@@ -8,9 +8,13 @@ export interface LighthouseSettings {
   projects: Project[]
   activeProjectId: string | undefined
 
-  // Zen Mode Settings
-  zenModeHideStatusBar: boolean
-  zenModeHideRibbon: boolean
+  // Flow Mode Settings
+  flowModeHideStatusBar: boolean
+  flowModeHideRibbon: boolean
+  flowTypewriterScroll: boolean
+  flowFont: string
+  flowLineHeight: number
+  flowLineWidth: number
 
   // Word Count Settings
   showWordCountInStatusBar: boolean
@@ -29,9 +33,13 @@ export const DEFAULT_SETTINGS: LighthouseSettings = {
   projects: [],
   activeProjectId: undefined,
 
-  // Zen Mode
-  zenModeHideStatusBar: true,
-  zenModeHideRibbon: true,
+  // Flow Mode
+  flowModeHideStatusBar: true,
+  flowModeHideRibbon: true,
+  flowTypewriterScroll: true,
+  flowFont: '',
+  flowLineHeight: 0,
+  flowLineWidth: 0,
 
   // Word Count
   showWordCountInStatusBar: true,

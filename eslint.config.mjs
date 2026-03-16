@@ -36,6 +36,7 @@ export default tseslint.config(
       globals: {
         console: 'readonly',
         document: 'readonly',
+        requestAnimationFrame: 'readonly',
         setTimeout: 'readonly',
         clearTimeout: 'readonly',
       },
