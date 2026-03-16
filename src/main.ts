@@ -1,12 +1,12 @@
 import { Plugin } from 'obsidian'
 
+import { FlowMode } from '@/core/FlowMode'
 import { FolderManager } from '@/core/FolderManager'
 import { HierarchicalCounter } from '@/core/HierarchicalCounter'
 import { ProjectManager } from '@/core/ProjectManager'
 import { WordCounter } from '@/core/WordCounter'
 import { WorkspaceManager } from '@/core/WorkspaceManager'
 import { WritingSessionTracker } from '@/core/WritingSessionTracker'
-import { ZenMode } from '@/core/ZenMode'
 import type { LighthouseSettings } from '@/types/settings'
 import { ProjectModal } from '@/ui/modals/ProjectModal'
 import { ProjectSwitcherModal } from '@/ui/modals/ProjectSwitcher'
@@ -21,7 +21,7 @@ export default class LighthousePlugin extends Plugin {
   folderManager!: FolderManager
   wordCounter!: WordCounter
   hierarchicalCounter!: HierarchicalCounter
-  zenMode!: ZenMode
+  flowMode!: FlowMode
   workspaceManager!: WorkspaceManager
   sessionTracker!: WritingSessionTracker
 
@@ -36,7 +36,7 @@ export default class LighthousePlugin extends Plugin {
       this.app,
     )
     this.projectManager = new ProjectManager(this)
-    this.zenMode = new ZenMode(this.app, () => this.settings)
+    this.flowMode = new FlowMode(this.app, () => this.settings)
     this.workspaceManager = new WorkspaceManager(this)
     this.sessionTracker = new WritingSessionTracker(this)
     await this.projectManager.initialize()
@@ -84,12 +84,12 @@ export default class LighthousePlugin extends Plugin {
       },
     })
 
-    // Add command to toggle zen mode
+    // Add command to toggle flow mode
     this.addCommand({
-      id: 'toggle-zen-mode',
-      name: 'Toggle zen mode',
+      id: 'toggle-flow-mode',
+      name: 'Toggle flow mode',
       callback: () => {
-        this.zenMode.toggleZenMode()
+        this.flowMode.toggleFlowMode()
       },
     })
 
@@ -165,9 +165,9 @@ export default class LighthousePlugin extends Plugin {
   }
 
   onunload() {
-    // Exit zen mode if active
-    if (this.zenMode.isZenModeActive()) {
-      this.zenMode.exitZenMode()
+    // Exit flow mode if active
+    if (this.flowMode.isFlowModeActive()) {
+      this.flowMode.exitFlowMode()
     }
     // Clear workspace body attribute on unload
     if (this.workspaceManager?.isWritingWorkspaceActive()) {

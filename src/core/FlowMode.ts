@@ -1,8 +1,21 @@
 import type { LighthouseSettings } from '@/types/settings'
 
-import type { App } from 'obsidian'
+import type { App, Editor, EventRef } from 'obsidian'
 
-export interface ZenModeState {
+/**
+ * Returns CSS custom property key→value pairs for flow typography overrides.
+ * Only includes properties that have non-default values.
+ * These are applied to `document.body` so scoped CSS in styles.css can use them.
+ */
+export function buildTypographyVars(settings: LighthouseSettings): Record<string, string> {
+  const vars: Record<string, string> = {}
+  if (settings.flowFont) vars['--lh-flow-font'] = settings.flowFont
+  if (settings.flowLineHeight) vars['--lh-flow-line-height'] = String(settings.flowLineHeight)
+  if (settings.flowLineWidth) vars['--lh-flow-line-width'] = `${settings.flowLineWidth}px`
+  return vars
+}
+
+export interface FlowModeState {
   isActive: boolean
   previousState: {
     leftSidebarVisible: boolean
@@ -12,10 +25,12 @@ export interface ZenModeState {
   }
 }
 
-export class ZenMode {
+export class FlowMode {
   private app: App
   private getSettings: () => LighthouseSettings
-  private state: ZenModeState
+  private state: FlowModeState
+  /** EventRef returned by workspace.on('editor-change') for typewriter scroll */
+  private typewriterScrollRef: EventRef | null = null
 
   constructor(app: App, getSettings: () => LighthouseSettings) {
     this.app = app
@@ -31,19 +46,19 @@ export class ZenMode {
     }
   }
 
-  isZenModeActive(): boolean {
+  isFlowModeActive(): boolean {
     return this.state.isActive
   }
 
-  toggleZenMode(): void {
+  toggleFlowMode(): void {
     if (this.state.isActive) {
-      this.exitZenMode()
+      this.exitFlowMode()
     } else {
-      this.enterZenMode()
+      this.enterFlowMode()
     }
   }
 
-  enterZenMode(): void {
+  enterFlowMode(): void {
     if (this.state.isActive) return
 
     const { workspace } = this.app
@@ -68,12 +83,12 @@ export class ZenMode {
     }
 
     // Conditionally hide status bar
-    if (settings.zenModeHideStatusBar) {
+    if (settings.flowModeHideStatusBar) {
       this.hideStatusBar()
     }
 
     // Conditionally hide ribbon
-    if (settings.zenModeHideRibbon) {
+    if (settings.flowModeHideRibbon) {
       this.hideRibbon()
     }
 
@@ -86,13 +101,21 @@ export class ZenMode {
     // Hide breadcrumbs and navigation
     this.hideNavigation()
 
+    // Typewriter scroll
+    if (settings.flowTypewriterScroll) {
+      this.enableTypewriterScroll()
+    }
+
+    // Typography overrides
+    this.applyTypographyOverrides()
+
     this.state.isActive = true
 
     // Trigger workspace layout change event
     workspace.trigger('layout-change')
   }
 
-  exitZenMode(): void {
+  exitFlowMode(): void {
     if (!this.state.isActive) return
 
     const { workspace } = this.app
@@ -125,6 +148,10 @@ export class ZenMode {
 
     // Show breadcrumbs and navigation
     this.showNavigation()
+
+    // Clean up typography
+    this.disableTypewriterScroll()
+    this.removeTypographyOverrides()
 
     this.state.isActive = false
 
@@ -218,5 +245,43 @@ export class ZenMode {
     if (viewHeader) {
       viewHeader.removeClass('lighthouse-hidden')
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Typewriter scroll
+  // ---------------------------------------------------------------------------
+
+  enableTypewriterScroll(): void {
+    this.typewriterScrollRef = this.app.workspace.on('editor-change', (editor: Editor) => {
+      const cursor = editor.getCursor()
+      editor.scrollIntoView({ from: cursor, to: cursor }, true)
+    })
+  }
+
+  disableTypewriterScroll(): void {
+    if (this.typewriterScrollRef) {
+      this.app.workspace.offref(this.typewriterScrollRef)
+      this.typewriterScrollRef = null
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Typography overrides (sets CSS custom properties + body class;
+  // scoped CSS rules in styles.css consume them)
+  // ---------------------------------------------------------------------------
+
+  applyTypographyOverrides(): void {
+    const vars = buildTypographyVars(this.getSettings())
+    for (const [prop, value] of Object.entries(vars)) {
+      document.body.style.setProperty(prop, value)
+    }
+    document.body.classList.add('lh-flow-active')
+  }
+
+  removeTypographyOverrides(): void {
+    document.body.style.removeProperty('--lh-flow-font')
+    document.body.style.removeProperty('--lh-flow-line-height')
+    document.body.style.removeProperty('--lh-flow-line-width')
+    document.body.classList.remove('lh-flow-active')
   }
 }

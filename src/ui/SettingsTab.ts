@@ -22,7 +22,7 @@ export class LighthouseSettingTab extends PluginSettingTab {
     containerEl.empty()
 
     this.addProjectsSection(containerEl)
-    this.addZenModeSection(containerEl)
+    this.addFlowModeSection(containerEl)
     this.addWordCountSection(containerEl)
     this.addGeneralSection(containerEl)
   }
@@ -120,32 +120,91 @@ export class LighthouseSettingTab extends PluginSettingTab {
       )
   }
 
-  private addZenModeSection(containerEl: HTMLElement): void {
-    new Setting(containerEl).setName('Zen mode').setHeading()
+  private addFlowModeSection(containerEl: HTMLElement): void {
+    new Setting(containerEl).setName('Flow mode').setHeading()
 
     new Setting(containerEl)
       .setName('Hide status bar')
-      .setDesc('Hide the status bar when zen mode is active.')
+      .setDesc('Hide the status bar when flow mode is active.')
       .addToggle((toggle) =>
-        toggle.setValue(this.plugin.settings.zenModeHideStatusBar).onChange(async (value) => {
-          this.plugin.settings.zenModeHideStatusBar = value
+        toggle.setValue(this.plugin.settings.flowModeHideStatusBar).onChange(async (value) => {
+          this.plugin.settings.flowModeHideStatusBar = value
           await this.plugin.saveSettings()
         }),
       )
 
     new Setting(containerEl)
       .setName('Hide ribbon')
-      .setDesc('Hide the left-side icon ribbon when zen mode is active.')
+      .setDesc('Hide the left-side icon ribbon when flow mode is active.')
       .addToggle((toggle) =>
-        toggle.setValue(this.plugin.settings.zenModeHideRibbon).onChange(async (value) => {
-          this.plugin.settings.zenModeHideRibbon = value
+        toggle.setValue(this.plugin.settings.flowModeHideRibbon).onChange(async (value) => {
+          this.plugin.settings.flowModeHideRibbon = value
           await this.plugin.saveSettings()
         }),
       )
 
     new Setting(containerEl)
+      .setName('Typewriter scroll')
+      .setDesc('Keep the cursor vertically centered while typing.')
+      .addToggle((toggle) =>
+        toggle.setValue(this.plugin.settings.flowTypewriterScroll).onChange(async (value) => {
+          this.plugin.settings.flowTypewriterScroll = value
+          await this.plugin.saveSettings()
+        }),
+      )
+
+    new Setting(containerEl).setName('Typography').setHeading()
+
+    new Setting(containerEl)
+      .setName('Font family')
+      .setDesc('Override the editor font while flow mode is active. Leave blank to inherit.')
+      .addText((text) =>
+        text
+          .setPlaceholder('Georgia, serif')
+          .setValue(this.plugin.settings.flowFont)
+          .onChange(async (value) => {
+            this.plugin.settings.flowFont = value.trim()
+            await this.plugin.saveSettings()
+          }),
+      )
+
+    new Setting(containerEl)
+      .setName('Line height')
+      .setDesc('Override line height while flow mode is active (e.g. 1.8). Set to 0 to inherit.')
+      .addText((text) =>
+        text
+          .setPlaceholder('0')
+          .setValue(
+            this.plugin.settings.flowLineHeight ? String(this.plugin.settings.flowLineHeight) : '',
+          )
+          .onChange(async (value) => {
+            const num = parseFloat(value)
+            this.plugin.settings.flowLineHeight = isNaN(num) || num < 0 ? 0 : num
+            await this.plugin.saveSettings()
+          }),
+      )
+
+    new Setting(containerEl)
+      .setName('Max line width')
+      .setDesc(
+        'Constrain the editor width for comfortable reading, in pixels. Set to 0 to inherit.',
+      )
+      .addText((text) =>
+        text
+          .setPlaceholder('0')
+          .setValue(
+            this.plugin.settings.flowLineWidth ? String(this.plugin.settings.flowLineWidth) : '',
+          )
+          .onChange(async (value) => {
+            const num = parseInt(value, 10)
+            this.plugin.settings.flowLineWidth = isNaN(num) || num < 0 ? 0 : num
+            await this.plugin.saveSettings()
+          }),
+      )
+
+    new Setting(containerEl)
       .setName('Hotkey')
-      .setDesc('Assign or change the keyboard shortcut for toggling zen mode.')
+      .setDesc('Assign or change the keyboard shortcut for toggling flow mode.')
       .addButton((button) =>
         button.setButtonText('Configure hotkey').onClick(() => {
           const appWithSetting = this.app as unknown as {
