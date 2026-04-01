@@ -2,6 +2,8 @@
  * Core data models for Lighthouse plugin
  */
 
+export type GoalDirection = 'at-least' | 'at-most'
+
 export interface Project {
   id: string
   name: string
@@ -9,8 +11,12 @@ export interface Project {
   contentFolders: string[] // Paths relative to rootPath
   sourceFolders: string[] // Paths relative to rootPath
   wordCountGoal?: number
+  // 'at-least' = minimum (default); 'at-most' = word limit (turns red when exceeded)
+  goalDirection?: GoalDirection
   // Per-folder word count goals keyed by full vault-relative path
   folderGoals?: Record<string, number>
+  // Per-file word count goals: keyed by vault-relative file path
+  fileGoals?: Record<string, number>
   createdAt: string
   updatedAt: string
   dashboardConfig?: DashboardConfig

@@ -24,6 +24,8 @@
     activeFilePath?: string | null
     folderGoals?: Record<string, number>
     folderWordCounts?: Map<string, number>
+    fileGoals?: Record<string, number>
+    fileWordCounts?: Map<string, number>
     ontoggle?: (_event: CustomEvent<{ path: string }>) => void
     onopen?: (_event: CustomEvent<{ path: string }>) => void
     onfilemenu?: (_event: CustomEvent<{ path: string; mouseEvent: globalThis.MouseEvent }>) => void
@@ -37,6 +39,8 @@
     activeFilePath = null,
     folderGoals,
     folderWordCounts,
+    fileGoals,
+    fileWordCounts,
     ontoggle,
     onopen,
     onfilemenu,
@@ -249,6 +253,42 @@
         ></span>
       {/if}
       <div class="tree-item-inner">{node.name.replace(/\.md$/, '')}</div>
+      {#if fileGoals?.[node.path]}
+        {@const goal = fileGoals[node.path]}
+        {@const wordCount = fileWordCounts?.get(node.path) ?? 0}
+        {@const r = 7}
+        {@const circ = 2 * Math.PI * r}
+        {@const offset = circ * (1 - Math.min(wordCount / goal, 1))}
+        <svg
+          class="lh-file-goal-ring"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          aria-label="{wordCount} / {goal} words"
+          title="{wordCount} / {goal} words"
+        >
+          <circle
+            cx="12"
+            cy="12"
+            {r}
+            fill="none"
+            stroke="var(--background-modifier-border)"
+            stroke-width="3"
+          />
+          <circle
+            cx="12"
+            cy="12"
+            {r}
+            fill="none"
+            stroke="var(--lh-accent, #E8A430)"
+            stroke-width="3"
+            stroke-linecap="round"
+            stroke-dasharray={circ}
+            stroke-dashoffset={offset}
+            transform="rotate(-90 12 12)"
+          />
+        </svg>
+      {/if}
     {/if}
   </div>
 
@@ -265,6 +305,8 @@
           {activeFilePath}
           {folderGoals}
           {folderWordCounts}
+          {fileGoals}
+          {fileWordCounts}
           {ontoggle}
           {onopen}
           {onfilemenu}
@@ -328,6 +370,13 @@
     flex-shrink: 0;
     display: block;
     margin-left: 4px;
+    opacity: 0.9;
+  }
+
+  .lh-file-goal-ring {
+    flex-shrink: 0;
+    display: block;
+    margin-left: auto;
     opacity: 0.9;
   }
 </style>
