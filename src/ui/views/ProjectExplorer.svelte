@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Menu, type TFile, type TFolder } from 'obsidian'
+  import { SvelteMap } from 'svelte/reactivity'
 
   import { activeProject, workspaceActive } from '@/core/stores'
   import type LighthousePlugin from '@/main'
@@ -30,6 +31,7 @@
   let sourceCollapsed = $state(false)
   let currentProject = $derived(activeProject ? $activeProject : undefined)
   let activeFilePath = $state<string | null>(null)
+  let folderWordCounts = new SvelteMap<string, number>()
 
   // Track active file changes + react to vault mutations
   $effect(() => {
@@ -134,6 +136,19 @@
     // Set tree immediately for fast display
     contentNodes = content
     sourceNodes = source
+
+    // Async-load word counts for folders that have goals set
+    await loadFolderWordCounts(project)
+  }
+
+  async function loadFolderWordCounts(project: Project): Promise<void> {
+    const goals = project.folderGoals
+    folderWordCounts.clear()
+    if (!goals || Object.keys(goals).length === 0) return
+    for (const folderPath of Object.keys(goals)) {
+      const stats = await plugin.hierarchicalCounter.countFolder(folderPath)
+      if (stats) folderWordCounts.set(folderPath, stats.wordCount)
+    }
   }
 
   function buildTreeNode(
@@ -492,6 +507,8 @@
                   {node}
                   depth={0}
                   {activeFilePath}
+                  folderGoals={currentProject?.folderGoals}
+                  {folderWordCounts}
                   ontoggle={handleToggle}
                   onopen={handleOpen}
                   onfilemenu={handleContextMenu}

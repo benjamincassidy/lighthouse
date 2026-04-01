@@ -154,7 +154,9 @@ export class ProjectModal extends Modal {
   private contentFolders: string[] = []
   private sourceFolders: string[] = []
   private wordCountGoal?: number
+  private folderGoals: Record<string, number> = {}
   private setAsActive = true
+  private chapterGoalsContainer: HTMLElement | null = null
 
   constructor(
     plugin: LighthousePlugin,
@@ -174,6 +176,7 @@ export class ProjectModal extends Modal {
       this.contentFolders = [...project.contentFolders]
       this.sourceFolders = [...project.sourceFolders]
       this.wordCountGoal = project.wordCountGoal
+      this.folderGoals = project.folderGoals ? { ...project.folderGoals } : {}
     } else if (mode === 'create' && initialValues) {
       // Initialize form state from initial values if creating
       this.name = initialValues.name || ''
@@ -228,6 +231,7 @@ export class ProjectModal extends Modal {
       contentContainer,
       (folders) => {
         this.contentFolders = folders
+        this.renderChapterGoals()
       },
       this.contentFolders,
     )
@@ -262,6 +266,15 @@ export class ProjectModal extends Modal {
         text.inputEl.type = 'number'
       })
 
+    // Chapter goals
+    contentEl.createEl('h3', { text: 'Chapter goals', cls: 'lighthouse-section-heading' })
+    contentEl.createEl('p', {
+      text: 'Set optional word count targets per content folder.',
+      cls: 'setting-item-description',
+    })
+    this.chapterGoalsContainer = contentEl.createDiv({ cls: 'lighthouse-chapter-goals' })
+    this.renderChapterGoals()
+
     // Set as active project (only for create mode)
     if (this.mode === 'create') {
       new Setting(contentEl)
@@ -293,6 +306,41 @@ export class ProjectModal extends Modal {
     cancelButton.addEventListener('click', () => {
       this.close()
     })
+  }
+
+  private renderChapterGoals(): void {
+    if (!this.chapterGoalsContainer) return
+    this.chapterGoalsContainer.empty()
+
+    if (this.contentFolders.length === 0) {
+      this.chapterGoalsContainer.createEl('p', {
+        text: 'Add content folders above to set chapter goals.',
+        cls: 'setting-item-description',
+      })
+      return
+    }
+
+    for (const folder of this.contentFolders) {
+      const fullPath = this.rootPath
+        ? this.plugin.folderManager.resolveProjectPath(this.rootPath, folder)
+        : folder
+      const displayName = folder || this.rootPath || 'Root'
+
+      new Setting(this.chapterGoalsContainer).setName(displayName).addText((text) => {
+        text
+          .setPlaceholder('Words (optional)')
+          .setValue(this.folderGoals[fullPath]?.toString() ?? '')
+          .onChange((value) => {
+            const parsed = parseInt(value, 10)
+            if (isNaN(parsed) || value.trim() === '') {
+              delete this.folderGoals[fullPath]
+            } else {
+              this.folderGoals[fullPath] = parsed
+            }
+          })
+        text.inputEl.type = 'number'
+      })
+    }
   }
 
   private async save(): Promise<void> {
@@ -344,6 +392,8 @@ export class ProjectModal extends Modal {
     project.contentFolders = this.contentFolders
     project.sourceFolders = this.sourceFolders
     project.wordCountGoal = this.wordCountGoal
+    project.folderGoals =
+      Object.keys(this.folderGoals).length > 0 ? { ...this.folderGoals } : undefined
     await this.plugin.projectManager.updateProject(project)
 
     if (this.setAsActive) {
@@ -361,6 +411,7 @@ export class ProjectModal extends Modal {
       contentFolders: this.contentFolders,
       sourceFolders: this.sourceFolders,
       wordCountGoal: this.wordCountGoal,
+      folderGoals: Object.keys(this.folderGoals).length > 0 ? { ...this.folderGoals } : undefined,
       updatedAt: new Date().toISOString(),
     }
 

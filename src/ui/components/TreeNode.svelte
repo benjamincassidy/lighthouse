@@ -22,6 +22,8 @@
     node: TreeNode
     depth?: number
     activeFilePath?: string | null
+    folderGoals?: Record<string, number>
+    folderWordCounts?: Map<string, number>
     ontoggle?: (_event: CustomEvent<{ path: string }>) => void
     onopen?: (_event: CustomEvent<{ path: string }>) => void
     onfilemenu?: (_event: CustomEvent<{ path: string; mouseEvent: globalThis.MouseEvent }>) => void
@@ -33,6 +35,8 @@
     node,
     depth = 0,
     activeFilePath = null,
+    folderGoals,
+    folderWordCounts,
     ontoggle,
     onopen,
     onfilemenu,
@@ -169,6 +173,42 @@
         </svg>
       </div>
       <div class="tree-item-inner">{node.name}</div>
+      {#if folderGoals?.[node.path]}
+        {@const goal = folderGoals[node.path]}
+        {@const wordCount = folderWordCounts?.get(node.path) ?? 0}
+        {@const r = 9}
+        {@const circ = 2 * Math.PI * r}
+        {@const offset = circ * (1 - Math.min(wordCount / goal, 1))}
+        <svg
+          class="lh-folder-goal-ring"
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          aria-label="{wordCount} / {goal} words"
+          title="{wordCount} / {goal} words"
+        >
+          <circle
+            cx="12"
+            cy="12"
+            {r}
+            fill="none"
+            stroke="var(--background-modifier-border)"
+            stroke-width="2.5"
+          />
+          <circle
+            cx="12"
+            cy="12"
+            {r}
+            fill="none"
+            stroke="var(--lh-accent, #E8A430)"
+            stroke-width="2.5"
+            stroke-linecap="round"
+            stroke-dasharray={circ}
+            stroke-dashoffset={offset}
+            transform="rotate(-90 12 12)"
+          />
+        </svg>
+      {/if}
       <button
         class="lh-tree-create-note"
         onclick={handleCreateNote}
@@ -223,6 +263,8 @@
           node={child}
           depth={depth + 1}
           {activeFilePath}
+          {folderGoals}
+          {folderWordCounts}
           {ontoggle}
           {onopen}
           {onfilemenu}
@@ -280,5 +322,12 @@
 
   .lh-drop-line-after {
     bottom: 0;
+  }
+
+  .lh-folder-goal-ring {
+    flex-shrink: 0;
+    display: block;
+    margin-left: 4px;
+    opacity: 0.9;
   }
 </style>
