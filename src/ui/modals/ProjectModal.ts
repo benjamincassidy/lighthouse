@@ -2,7 +2,7 @@ import { FuzzySuggestModal, Modal, Notice, Setting } from 'obsidian'
 import { TFolder, type App } from 'obsidian'
 
 import type LighthousePlugin from '@/main'
-import type { Project } from '@/types/types'
+import type { GoalDirection, Project } from '@/types/types'
 
 /**
  * Modal mode - create new or edit existing project
@@ -154,6 +154,7 @@ export class ProjectModal extends Modal {
   private contentFolders: string[] = []
   private sourceFolders: string[] = []
   private wordCountGoal?: number
+  private goalDirection: GoalDirection = 'at-least'
   private folderGoals: Record<string, number> = {}
   private setAsActive = true
   private chapterGoalsContainer: HTMLElement | null = null
@@ -176,6 +177,7 @@ export class ProjectModal extends Modal {
       this.contentFolders = [...project.contentFolders]
       this.sourceFolders = [...project.sourceFolders]
       this.wordCountGoal = project.wordCountGoal
+      this.goalDirection = project.goalDirection ?? 'at-least'
       this.folderGoals = project.folderGoals ? { ...project.folderGoals } : {}
     } else if (mode === 'create' && initialValues) {
       // Initialize form state from initial values if creating
@@ -264,6 +266,20 @@ export class ProjectModal extends Modal {
             this.wordCountGoal = isNaN(parsed) ? undefined : parsed
           })
         text.inputEl.type = 'number'
+      })
+
+    // Goal direction
+    new Setting(contentEl)
+      .setName('Goal direction')
+      .setDesc('"at least" tracks a minimum; "at most" sets a word limit (turns red when exceeded)')
+      .addDropdown((dropdown) => {
+        dropdown
+          .addOption('at-least', 'At least (minimum)')
+          .addOption('at-most', 'At most (maximum)')
+          .setValue(this.goalDirection)
+          .onChange((value) => {
+            this.goalDirection = value as GoalDirection
+          })
       })
 
     // Chapter goals
@@ -392,6 +408,7 @@ export class ProjectModal extends Modal {
     project.contentFolders = this.contentFolders
     project.sourceFolders = this.sourceFolders
     project.wordCountGoal = this.wordCountGoal
+    project.goalDirection = this.goalDirection
     project.folderGoals =
       Object.keys(this.folderGoals).length > 0 ? { ...this.folderGoals } : undefined
     await this.plugin.projectManager.updateProject(project)
@@ -411,6 +428,7 @@ export class ProjectModal extends Modal {
       contentFolders: this.contentFolders,
       sourceFolders: this.sourceFolders,
       wordCountGoal: this.wordCountGoal,
+      goalDirection: this.goalDirection,
       folderGoals: Object.keys(this.folderGoals).length > 0 ? { ...this.folderGoals } : undefined,
       updatedAt: new Date().toISOString(),
     }
