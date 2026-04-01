@@ -9,6 +9,8 @@ export interface Project {
   contentFolders: string[] // Paths relative to rootPath
   sourceFolders: string[] // Paths relative to rootPath
   wordCountGoal?: number
+  // Per-folder word count goals keyed by full vault-relative path
+  folderGoals?: Record<string, number>
   createdAt: string
   updatedAt: string
   dashboardConfig?: DashboardConfig
