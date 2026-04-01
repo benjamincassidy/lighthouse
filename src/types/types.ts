@@ -27,6 +27,12 @@ export interface Project {
   // Daily word count tracking (per-project)
   todayWordCountBaseline?: number
   todayWordCountDate?: string // ISO date format (YYYY-MM-DD)
+  // Per-day word counts for rolling average + heatmap: keyed by YYYY-MM-DD, value = words written
+  dailyWordCounts?: Record<string, number>
+  // Target finish date for pacing calculations (YYYY-MM-DD)
+  deadline?: string
+  // Explicit daily writing goal used for heatmap levels and pacing display
+  dailyGoal?: number
 }
 
 export interface DashboardConfig {

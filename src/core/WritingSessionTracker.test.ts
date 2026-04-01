@@ -133,7 +133,19 @@ describe('WritingSessionTracker', () => {
       const project = makeProject()
       await tracker.initSession(project, 300)
       vi.clearAllMocks()
-      await tracker.snapshotToday(project)
+      // 300 - 100 (today baseline) = 200 words today; project has no dailyWordCounts yet
+      await tracker.snapshotToday(project, 300)
+      // Should persist because dailyWordCounts[today] is undefined (not equal to 200)
+      expect(plugin.projectManager.updateProject).toHaveBeenCalledOnce()
+    })
+
+    it('does not call updateProject when snapshot is already current', async () => {
+      const project = makeProject({
+        dailyWordCounts: { [TODAY]: 200 }, // already saved: 300 - 100 = 200
+      })
+      await tracker.initSession(project, 300)
+      vi.clearAllMocks()
+      await tracker.snapshotToday(project, 300)
       expect(plugin.projectManager.updateProject).not.toHaveBeenCalled()
     })
 
@@ -143,8 +155,20 @@ describe('WritingSessionTracker', () => {
       await tracker.initSession(staleProject, 300)
       vi.clearAllMocks()
       // staleProject.todayWordCountDate is still '2020-01-01' ≠ today in state
-      await tracker.snapshotToday(staleProject)
+      await tracker.snapshotToday(staleProject, 300)
       expect(plugin.projectManager.updateProject).toHaveBeenCalled()
+    })
+
+    it('persists dailyWordCounts with today delta', async () => {
+      const project = makeProject() // baseline=100
+      await tracker.initSession(project, 300)
+      vi.clearAllMocks()
+      await tracker.snapshotToday(project, 400) // 400 - 100 = 300 words today
+      expect(plugin.projectManager.updateProject).toHaveBeenCalledWith(
+        expect.objectContaining({
+          dailyWordCounts: expect.objectContaining({ [TODAY]: 300 }),
+        }),
+      )
     })
   })
 
@@ -155,6 +179,23 @@ describe('WritingSessionTracker', () => {
       expect(tracker.isInitialized()).toBe(false)
       expect(tracker.getSessionDelta(500)).toBe(0)
       expect(tracker.isTrackingProject('proj-1')).toBe(false)
+    })
+  })
+
+  describe('getRollingAverage', () => {
+    it('returns 0 when project has no dailyWordCounts', () => {
+      const project = makeProject()
+      expect(tracker.getRollingAverage(project)).toBe(0)
+    })
+
+    it('returns average of non-zero days in window', () => {
+      const project = makeProject({
+        dailyWordCounts: {
+          [TODAY]: 500,
+          '2020-01-01': 9999, // outside window
+        },
+      })
+      expect(tracker.getRollingAverage(project, 7)).toBe(500)
     })
   })
 })
