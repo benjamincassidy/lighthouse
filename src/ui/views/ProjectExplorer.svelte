@@ -6,6 +6,7 @@
   import type LighthousePlugin from '@/main'
   import type { Project } from '@/types/types'
   import TreeNodeComponent from '@/ui/components/TreeNode.svelte'
+  import { FileGoalModal } from '@/ui/modals/FileGoalModal'
   import { ProjectSwitcherModal } from '@/ui/modals/ProjectSwitcher'
   import { reorderPaths, sortByFileOrder } from '@/utils/fileOrder'
 
@@ -32,6 +33,7 @@
   let currentProject = $derived(activeProject ? $activeProject : undefined)
   let activeFilePath = $state<string | null>(null)
   let folderWordCounts = new SvelteMap<string, number>()
+  let fileWordCounts = new SvelteMap<string, number>()
 
   // Track active file changes + react to vault mutations
   $effect(() => {
@@ -139,6 +141,20 @@
 
     // Async-load word counts for folders that have goals set
     await loadFolderWordCounts(project)
+    await loadFileWordCounts(project)
+  }
+
+  async function loadFileWordCounts(project: Project): Promise<void> {
+    const goals = project.fileGoals
+    fileWordCounts.clear()
+    if (!goals || Object.keys(goals).length === 0) return
+    for (const filePath of Object.keys(goals)) {
+      const file = plugin.app.vault.getAbstractFileByPath(filePath)
+      if (file && !('children' in file)) {
+        const result = await plugin.hierarchicalCounter.countFile(file as TFile)
+        if (result) fileWordCounts.set(filePath, result.words)
+      }
+    }
   }
 
   async function loadFolderWordCounts(project: Project): Promise<void> {
@@ -317,6 +333,34 @@
           await plugin.app.fileManager.promptForFileDeletion(file)
         })
     })
+
+    // Per-file word count goal (files only)
+    if (!('children' in file)) {
+      menu.addSeparator()
+      const currentGoal = currentProject?.fileGoals?.[path]
+      menu.addItem((item) => {
+        item
+          .setTitle(currentGoal ? 'Edit file word count goal' : 'Set file word count goal')
+          .setIcon('target')
+          .onClick(() => {
+            if (!currentProject) return
+            new FileGoalModal(plugin, currentGoal, async (goal) => {
+              const fileGoals = { ...(currentProject.fileGoals ?? {}) }
+              if (goal === undefined) {
+                delete fileGoals[path]
+              } else {
+                fileGoals[path] = goal
+              }
+              await plugin.projectManager.updateProject({
+                ...currentProject,
+                fileGoals: Object.keys(fileGoals).length > 0 ? fileGoals : undefined,
+                updatedAt: new Date().toISOString(),
+              })
+              await loadFileWordCounts(currentProject)
+            }).open()
+          })
+      })
+    }
 
     menu.showAtMouseEvent(mouseEvent)
   }
@@ -509,6 +553,8 @@
                   {activeFilePath}
                   folderGoals={currentProject?.folderGoals}
                   {folderWordCounts}
+                  fileGoals={currentProject?.fileGoals}
+                  {fileWordCounts}
                   ontoggle={handleToggle}
                   onopen={handleOpen}
                   onfilemenu={handleContextMenu}

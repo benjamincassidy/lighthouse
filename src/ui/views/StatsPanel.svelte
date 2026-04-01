@@ -31,10 +31,23 @@
   })
 
   let projectGoal = $derived(project?.wordCountGoal)
+  let goalDirection = $derived(project?.goalDirection ?? 'at-least')
+
+  // Per-file goal for the currently active file
+  let fileGoal = $derived(
+    currentFile && project?.fileGoals ? project.fileGoals[currentFile.path] : undefined,
+  )
+  let fileGoalPercent = $derived(
+    fileGoal && fileWordCount > 0 ? Math.min((fileWordCount / fileGoal) * 100, 100) : 0,
+  )
+  let fileGoalExceeded = $derived(fileGoal !== undefined && fileWordCount > fileGoal)
 
   // Calculate progress percentage
   let progressPercent = $derived(
     projectGoal && projectWordCount > 0 ? Math.min((projectWordCount / projectGoal) * 100, 100) : 0,
+  )
+  let projectGoalExceeded = $derived(
+    goalDirection === 'at-most' && projectGoal !== undefined && projectWordCount > projectGoal,
   )
 
   // Update stats when active file changes
@@ -172,6 +185,20 @@
           <div class="lighthouse-stat-sublabel">{currentFile.name}</div>
         </div>
 
+        {#if fileGoal}
+          <div class="lighthouse-progress-bar">
+            <div
+              class="lighthouse-progress-fill"
+              class:lighthouse-progress-exceeded={fileGoalExceeded}
+              style="width: {fileGoalPercent}%"
+            ></div>
+          </div>
+          <div class="lighthouse-stat-sublabel">
+            {formatNumber(fileWordCount)} / {formatNumber(fileGoal)} words
+            {#if fileGoalExceeded}· over limit{/if}
+          </div>
+        {/if}
+
         <div class="lighthouse-stats-divider"></div>
 
         <!-- Folder Stats -->
@@ -200,12 +227,17 @@
         <div class="lighthouse-stat-group">
           <div class="lighthouse-stat-label">Goal Progress</div>
           <div class="lighthouse-progress-bar">
-            <div class="lighthouse-progress-fill" style="width: {progressPercent}%"></div>
+            <div
+              class="lighthouse-progress-fill"
+              class:lighthouse-progress-exceeded={projectGoalExceeded}
+              style="width: {progressPercent}%"
+            ></div>
           </div>
           <div class="lighthouse-stat-sublabel">
             {formatNumber(projectWordCount)} / {formatNumber(projectGoal)} words ({Math.round(
               progressPercent,
-            )}%)
+            )}%){#if projectGoalExceeded}
+              · over limit{/if}
           </div>
         </div>
       {/if}
@@ -333,5 +365,9 @@
     background: var(--lh-accent);
     border-radius: 4px;
     transition: width 0.3s ease;
+  }
+
+  .lighthouse-progress-exceeded {
+    background: var(--color-red);
   }
 </style>
