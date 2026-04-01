@@ -1,5 +1,6 @@
 import type LighthousePlugin from '@/main'
 import type { Project } from '@/types/types'
+import { rollingAverage } from '@/utils/deadlineUtils'
 
 interface TrackerState {
   sessionBaselineWords: number
@@ -85,24 +86,49 @@ export class WritingSessionTracker {
   }
 
   /**
-   * Persist today's baseline back to the project if it has diverged.
+   * Persist today's baseline and today's word delta back to the project.
    * Call periodically (e.g. every few minutes) so the plugin can recover
-   * the correct today-delta after a reload.
+   * the correct today-delta after a reload, and to build the daily history
+   * for rolling averages and the heatmap.
+   *
+   * @param currentWordCount - current live project word count (used to derive today's delta)
    */
-  async snapshotToday(project: Project): Promise<void> {
+  async snapshotToday(project: Project, currentWordCount: number): Promise<void> {
     if (!this.state) return
     const today = this.todayISO()
-    if (
+    const todayDelta = Math.max(0, currentWordCount - this.state.todayBaselineWords)
+
+    // Build updated daily history, pruning entries older than 120 days
+    const existingCounts = project.dailyWordCounts ?? {}
+    const updatedCounts: Record<string, number> = { ...existingCounts, [today]: todayDelta }
+    const cutoff = new Date()
+    cutoff.setDate(cutoff.getDate() - 120)
+    const cutoffKey = cutoff.toISOString().split('T')[0]
+    for (const key of Object.keys(updatedCounts)) {
+      if (key < cutoffKey) delete updatedCounts[key]
+    }
+
+    const baselineUnchanged =
       project.todayWordCountBaseline === this.state.todayBaselineWords &&
       project.todayWordCountDate === today
-    ) {
-      return
-    }
+    const historyUnchanged = existingCounts[today] === todayDelta
+
+    if (baselineUnchanged && historyUnchanged) return
+
     await this.plugin.projectManager.updateProject({
       ...project,
       todayWordCountBaseline: this.state.todayBaselineWords,
       todayWordCountDate: today,
+      dailyWordCounts: updatedCounts,
     })
+  }
+
+  /**
+   * Rolling average of daily word output over the last `days` days.
+   * Only counts days with a recorded non-zero entry.
+   */
+  getRollingAverage(project: Project, days = 7): number {
+    return rollingAverage(project.dailyWordCounts, days)
   }
 
   isInitialized(): boolean {
@@ -119,6 +145,10 @@ export class WritingSessionTracker {
   }
 
   private todayISO(): string {
-    return new Date().toISOString().split('T')[0]
+    const d = new Date()
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${y}-${m}-${day}`
   }
 }

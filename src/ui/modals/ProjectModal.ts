@@ -155,6 +155,8 @@ export class ProjectModal extends Modal {
   private sourceFolders: string[] = []
   private wordCountGoal?: number
   private goalDirection: GoalDirection = 'at-least'
+  private deadline = ''
+  private dailyGoal?: number
   private folderGoals: Record<string, number> = {}
   private setAsActive = true
   private chapterGoalsContainer: HTMLElement | null = null
@@ -178,6 +180,8 @@ export class ProjectModal extends Modal {
       this.sourceFolders = [...project.sourceFolders]
       this.wordCountGoal = project.wordCountGoal
       this.goalDirection = project.goalDirection ?? 'at-least'
+      this.deadline = project.deadline ?? ''
+      this.dailyGoal = project.dailyGoal
       this.folderGoals = project.folderGoals ? { ...project.folderGoals } : {}
     } else if (mode === 'create' && initialValues) {
       // Initialize form state from initial values if creating
@@ -280,6 +284,35 @@ export class ProjectModal extends Modal {
           .onChange((value) => {
             this.goalDirection = value as GoalDirection
           })
+      })
+
+    // Deadline
+    new Setting(contentEl)
+      .setName('Deadline')
+      .setDesc('Target finish date — used to calculate your required daily word count')
+      .addText((text) => {
+        text
+          .setPlaceholder('E.g., 2026-12-31')
+          .setValue(this.deadline)
+          .onChange((value) => {
+            this.deadline = value.trim()
+          })
+        text.inputEl.type = 'date'
+      })
+
+    // Daily goal
+    new Setting(contentEl)
+      .setName('Daily writing goal')
+      .setDesc('Words you aim to write each day — sets the scale for the writing heatmap')
+      .addText((text) => {
+        text
+          .setPlaceholder('E.g., 1000')
+          .setValue(this.dailyGoal?.toString() || '')
+          .onChange((value) => {
+            const parsed = parseInt(value, 10)
+            this.dailyGoal = isNaN(parsed) ? undefined : parsed
+          })
+        text.inputEl.type = 'number'
       })
 
     // Chapter goals
@@ -409,6 +442,8 @@ export class ProjectModal extends Modal {
     project.sourceFolders = this.sourceFolders
     project.wordCountGoal = this.wordCountGoal
     project.goalDirection = this.goalDirection
+    project.deadline = this.deadline || undefined
+    project.dailyGoal = this.dailyGoal
     project.folderGoals =
       Object.keys(this.folderGoals).length > 0 ? { ...this.folderGoals } : undefined
     await this.plugin.projectManager.updateProject(project)
@@ -429,6 +464,8 @@ export class ProjectModal extends Modal {
       sourceFolders: this.sourceFolders,
       wordCountGoal: this.wordCountGoal,
       goalDirection: this.goalDirection,
+      deadline: this.deadline || undefined,
+      dailyGoal: this.dailyGoal,
       folderGoals: Object.keys(this.folderGoals).length > 0 ? { ...this.folderGoals } : undefined,
       updatedAt: new Date().toISOString(),
     }

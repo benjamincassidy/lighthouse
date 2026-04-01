@@ -3,6 +3,13 @@
 
   import { activeProject } from '@/core/stores'
   import type LighthousePlugin from '@/main'
+  import {
+    daysRemaining,
+    formatDuration,
+    readTime,
+    requiredDaily,
+    speakTime,
+  } from '@/utils/deadlineUtils'
 
   import type { TFile } from 'obsidian'
 
@@ -50,6 +57,19 @@
     goalDirection === 'at-most' && projectGoal !== undefined && projectWordCount > projectGoal,
   )
 
+  // Deadline / pacing
+  let deadline = $derived(project?.deadline)
+  let daysLeft = $derived(deadline ? daysRemaining(deadline) : 0)
+  let wordsLeft = $derived(projectGoal ? Math.max(0, projectGoal - projectWordCount) : 0)
+  let requiredDailyWords = $derived(
+    deadline && projectGoal ? requiredDaily(wordsLeft, daysLeft) : 0,
+  )
+  let rollingAvg = $derived(project ? plugin.sessionTracker.getRollingAverage(project, 7) : 0)
+
+  // Read / speak time
+  let readTimeMinutes = $derived(readTime(projectWordCount))
+  let speakTimeMinutes = $derived(speakTime(projectWordCount))
+
   // Update stats when active file changes
   async function updateStats() {
     const activeFile = plugin.app.workspace.getActiveFile()
@@ -88,6 +108,9 @@
       }
       sessionWordCount = plugin.sessionTracker.getSessionDelta(projectWordCount)
       todayWordCount = plugin.sessionTracker.getTodayDelta(projectWordCount)
+
+      // Persist daily history for rolling average + heatmap
+      await plugin.sessionTracker.snapshotToday(project, projectWordCount)
     } else {
       projectWordCount = 0
       sessionWordCount = 0
@@ -259,6 +282,51 @@
           </div>
         </div>
       </div>
+
+      <!-- Deadline pacing -->
+      {#if deadline && projectGoal}
+        <div class="lighthouse-stats-divider"></div>
+        <div class="lighthouse-stat-group">
+          <div class="lighthouse-stat-label">Deadline</div>
+          <div class="lighthouse-stat-value">{formatNumber(requiredDailyWords)}</div>
+          <div class="lighthouse-stat-sublabel">
+            words/day needed &middot; {daysLeft} day{daysLeft !== 1 ? 's' : ''} left
+          </div>
+        </div>
+        {#if rollingAvg > 0}
+          <div class="lighthouse-stat-group">
+            <div class="lighthouse-stat-label">7-day avg</div>
+            <div class="lighthouse-stat-value">{formatNumber(rollingAvg)}</div>
+            <div
+              class="lighthouse-stat-sublabel"
+              class:lighthouse-pace-ahead={rollingAvg >= requiredDailyWords}
+              class:lighthouse-pace-behind={rollingAvg < requiredDailyWords}
+            >
+              {rollingAvg >= requiredDailyWords ? 'on pace' : 'behind pace'}
+            </div>
+          </div>
+        {/if}
+      {/if}
+
+      <!-- Read / speak time -->
+      {#if projectWordCount > 0}
+        <div class="lighthouse-stats-divider"></div>
+        <div class="lighthouse-session-stats">
+          <div class="lighthouse-stat-group">
+            <div class="lighthouse-stat-label">Read time</div>
+            <div class="lighthouse-stat-value lighthouse-stat-value-secondary">
+              {formatDuration(readTimeMinutes)}
+            </div>
+          </div>
+          <div class="lighthouse-session-divider"></div>
+          <div class="lighthouse-stat-group">
+            <div class="lighthouse-stat-label">Speak time</div>
+            <div class="lighthouse-stat-value lighthouse-stat-value-secondary">
+              {formatDuration(speakTimeMinutes)}
+            </div>
+          </div>
+        </div>
+      {/if}
     </div>
   {/if}
 </div>
@@ -369,5 +437,18 @@
 
   .lighthouse-progress-exceeded {
     background: var(--color-red);
+  }
+
+  .lighthouse-stat-value-secondary {
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .lighthouse-pace-ahead {
+    color: var(--color-green);
+  }
+
+  .lighthouse-pace-behind {
+    color: var(--color-orange);
   }
 </style>
