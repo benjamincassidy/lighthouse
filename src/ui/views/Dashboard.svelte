@@ -3,6 +3,7 @@
   import type LighthousePlugin from '@/main'
   import type { Project } from '@/types/types'
   import { ProjectModal } from '@/ui/modals/ProjectModal'
+  import { daysRemaining, heatmapDateKeys, requiredDaily } from '@/utils/deadlineUtils'
 
   interface Props {
     plugin: LighthousePlugin
@@ -99,6 +100,131 @@
       return 0
     }
     return Math.min((projectStats.totalWords / currentProject.wordCountGoal) * 100, 100)
+  }
+
+  // --- Writing heatmap ---
+  // Build 91 days (13 weeks) of daily writing data, newest on the right.
+  // Each cell: { date, level 0-4 }
+  interface HeatCell {
+    date: string
+    words: number
+    level: number // 0 = no writing, 1-4 = intensity
+  }
+
+  function buildHeatmap(project: Project | undefined): HeatCell[][] {
+    const WEEKS = 13
+
+    // Determine daily target for level calculation.
+    // Priority: explicit dailyGoal > computed pace from deadline > raw thresholds
+    let dailyTarget = project?.dailyGoal ?? 0
+    if (!dailyTarget && project?.deadline && project.wordCountGoal) {
+      const left = Math.max(0, project.wordCountGoal - projectStats.totalWords)
+      const rem = daysRemaining(project.deadline)
+      dailyTarget = requiredDaily(left, rem)
+    }
+
+    const counts = project?.dailyWordCounts ?? {}
+
+    // Build a flat array of cells, oldest → today (local dates)
+    const dateKeys = heatmapDateKeys(WEEKS)
+    const cells: HeatCell[] = dateKeys.map((dateKey) => {
+      const words = counts[dateKey] ?? 0
+      let level = 0
+      if (words > 0) {
+        if (dailyTarget > 0) {
+          const pct = words / dailyTarget
+          if (pct >= 1) level = 4
+          else if (pct >= 0.75) level = 3
+          else if (pct >= 0.4) level = 2
+          else level = 1
+        } else {
+          // No target — intensity by raw word count
+          if (words >= 1000) level = 4
+          else if (words >= 500) level = 3
+          else if (words >= 250) level = 2
+          else level = 1
+        }
+      }
+      return { date: dateKey, words, level }
+    })
+
+    // Chunk into weeks (columns)
+    const weeks: HeatCell[][] = []
+    for (let w = 0; w < WEEKS; w++) {
+      weeks.push(cells.slice(w * 7, w * 7 + 7))
+    }
+    return weeks
+  }
+
+  let heatWeeks = $derived(buildHeatmap(currentProject))
+
+  // Day labels — show Mon, Wed, Fri, Sun (indices 0, 2, 4, 6)
+  const DAY_LABELS = ['M', '', 'W', '', 'F', '', 'S']
+
+  // Month label per week column: non-empty when the month changes relative to the previous column
+  let monthLabels = $derived(
+    heatWeeks.map((week, wi) => {
+      const firstCell = week[0]
+      if (!firstCell) return ''
+      const currMonth = new Date(firstCell.date + 'T00:00:00Z').getUTCMonth()
+      if (wi === 0) {
+        // Always label the first column
+        return new Date(firstCell.date + 'T00:00:00Z').toLocaleString('default', {
+          month: 'short',
+          timeZone: 'UTC',
+        })
+      }
+      const prevFirst = heatWeeks[wi - 1][0]
+      if (!prevFirst) return ''
+      const prevMonth = new Date(prevFirst.date + 'T00:00:00Z').getUTCMonth()
+      if (currMonth !== prevMonth) {
+        return new Date(firstCell.date + 'T00:00:00Z').toLocaleString('default', {
+          month: 'short',
+          timeZone: 'UTC',
+        })
+      }
+      return ''
+    }),
+  )
+
+  interface HeatTooltip {
+    cell: HeatCell
+    // Offsets relative to the heatmap outer container (not the viewport)
+    left: number
+    top: number
+  }
+  let tooltip = $state<HeatTooltip | null>(null)
+  // eslint-disable-next-line no-undef
+  let heatmapOuterEl = $state<HTMLElement | null>(null)
+
+  // eslint-disable-next-line no-undef
+  function handleCellEnter(cell: HeatCell, e: MouseEvent) {
+    if (!heatmapOuterEl) return
+    // eslint-disable-next-line no-undef
+    const cellRect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+    const outerRect = heatmapOuterEl.getBoundingClientRect()
+    const TOOLTIP_W = 140 // matches min-width in CSS
+    const cx = cellRect.left - outerRect.left + cellRect.width / 2
+    // Clamp so tooltip never overflows the left or right edge of the container
+    const left = Math.max(0, Math.min(cx - TOOLTIP_W / 2, outerRect.width - TOOLTIP_W))
+    tooltip = {
+      cell,
+      left,
+      top: cellRect.top - outerRect.top,
+    }
+  }
+  function handleCellLeave() {
+    tooltip = null
+  }
+
+  function formatCellDate(date: string): string {
+    return new Date(date + 'T00:00:00Z').toLocaleDateString(undefined, {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      timeZone: 'UTC',
+    })
   }
 </script>
 
@@ -252,6 +378,75 @@
         </div>
       </div>
     </div>
+
+    <!-- Writing heatmap -->
+    <div class="lighthouse-dashboard-section">
+      <div class="lighthouse-dashboard-section-header">
+        <h3>Writing activity</h3>
+      </div>
+      <div class="lighthouse-heatmap-outer" bind:this={heatmapOuterEl}>
+        <div class="lighthouse-heatmap-wrap">
+          <!-- Day labels column -->
+          <div class="lighthouse-heatmap-days">
+            <!-- spacer for month row -->
+            <div class="lighthouse-heatmap-month-spacer"></div>
+            {#each DAY_LABELS as label, i (i)}
+              <div class="lighthouse-heatmap-day-label">{label}</div>
+            {/each}
+          </div>
+          <!-- Month labels + grid -->
+          <div class="lighthouse-heatmap-right">
+            <div class="lighthouse-heatmap-months">
+              {#each monthLabels as label, wi (wi)}
+                <div class="lighthouse-heatmap-month-label">{label}</div>
+              {/each}
+            </div>
+            <div class="lighthouse-heatmap-grid">
+              {#each heatWeeks as week, wi (wi)}
+                <div class="lighthouse-heatmap-col">
+                  {#each week as cell (cell.date)}
+                    <div
+                      class="lighthouse-heatmap-slot"
+                      role="img"
+                      aria-label={cell.words > 0
+                        ? `${formatCellDate(cell.date)}: ${cell.words.toLocaleString()} words`
+                        : formatCellDate(cell.date)}
+                      onmouseenter={(e) => handleCellEnter(cell, e)}
+                      onmouseleave={handleCellLeave}
+                    >
+                      <div class="lighthouse-heatmap-circle lh-heat-{cell.level}"></div>
+                    </div>
+                  {/each}
+                </div>
+              {/each}
+            </div>
+          </div>
+        </div>
+        {#if tooltip}
+          <div
+            class="lh-heatmap-tooltip"
+            style="left: {tooltip.left}px; top: {tooltip.top}px; transform: translateY(calc(-100% - 6px))"
+            aria-hidden="true"
+          >
+            <div class="lh-tooltip-date">{formatCellDate(tooltip.cell.date)}</div>
+            <div class="lh-tooltip-words">
+              {tooltip.cell.words > 0
+                ? `${tooltip.cell.words.toLocaleString()} words`
+                : 'No writing'}
+            </div>
+          </div>
+        {/if}
+      </div>
+      <div class="lighthouse-heatmap-legend">
+        <span class="lighthouse-heatmap-legend-label">Less</span>
+        {#each [0, 1, 2, 3, 4] as lvl (lvl)}
+          <div class="lighthouse-heatmap-slot">
+            <div class="lighthouse-heatmap-circle lh-heat-{lvl}"></div>
+          </div>
+        {/each}
+        <span class="lighthouse-heatmap-legend-label">More</span>
+      </div>
+    </div>
   {/if}
 </div>
 
@@ -275,7 +470,7 @@
 
   .lighthouse-dashboard-section-header h3 {
     margin: 0;
-    font-size: 0.72em;
+    font-size: var(--font-ui-small);
     font-weight: 600;
     color: var(--lh-accent);
     text-transform: uppercase;
@@ -419,5 +614,165 @@
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.05em;
+  }
+
+  /* Writing heatmap */
+  .lighthouse-heatmap-outer {
+    position: relative;
+    overflow: visible;
+  }
+
+  .lighthouse-heatmap-wrap {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+  }
+
+  .lighthouse-heatmap-days {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    flex-shrink: 0;
+  }
+
+  .lighthouse-heatmap-month-spacer {
+    height: 14px; /* matches month label row height */
+  }
+
+  .lighthouse-heatmap-day-label {
+    width: 10px;
+    height: 15px;
+    font-size: 9px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  .lighthouse-heatmap-right {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .lighthouse-heatmap-months {
+    display: flex;
+    gap: 3px;
+    height: 14px;
+  }
+
+  .lighthouse-heatmap-month-label {
+    width: 13px;
+    font-size: 9px;
+    color: var(--text-muted);
+    overflow: visible;
+    white-space: nowrap;
+    line-height: 14px;
+    flex-shrink: 0;
+  }
+
+  .lighthouse-heatmap-grid {
+    display: flex;
+    gap: 3px;
+  }
+
+  .lighthouse-heatmap-col {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  /* Fixed-size slot — circles grow inside this via lh-heat-N classes */
+  .lighthouse-heatmap-slot {
+    width: 15px;
+    height: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    cursor: default;
+  }
+
+  .lighthouse-heatmap-circle {
+    border-radius: 50%;
+    flex-shrink: 0;
+    transition:
+      width 0.15s ease,
+      height 0.15s ease;
+  }
+
+  /* Remove the old .lighthouse-heatmap-cell square rule */
+
+  .lh-heat-0 {
+    width: 5px;
+    height: 5px;
+    background: color-mix(in srgb, var(--text-muted) 55%, transparent);
+  }
+
+  .lh-heat-1 {
+    width: 8px;
+    height: 8px;
+    background: color-mix(in srgb, var(--lh-accent) 35%, transparent);
+  }
+
+  .lh-heat-2 {
+    width: 11px;
+    height: 11px;
+    background: color-mix(in srgb, var(--lh-accent) 58%, transparent);
+  }
+
+  .lh-heat-3 {
+    width: 13px;
+    height: 13px;
+    background: color-mix(in srgb, var(--lh-accent) 80%, transparent);
+  }
+
+  .lh-heat-4 {
+    width: 15px;
+    height: 15px;
+    background: var(--lh-accent);
+  }
+
+  .lighthouse-heatmap-legend {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    margin-top: var(--size-4-2);
+    justify-content: flex-end;
+  }
+
+  .lighthouse-heatmap-legend-label {
+    font-size: var(--font-ui-smaller);
+    color: var(--text-faint);
+    margin: 0 2px;
+  }
+
+  /* Tooltip — absolute within the heatmap-wrap container */
+  .lh-heatmap-tooltip {
+    position: absolute;
+    z-index: 100;
+    pointer-events: none;
+    background: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-m);
+    padding: 5px 9px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    min-width: 140px;
+    white-space: nowrap;
+  }
+
+  .lh-tooltip-date {
+    font-size: var(--font-ui-small);
+    font-weight: 600;
+    color: var(--text-normal);
+    margin-bottom: 2px;
+  }
+
+  .lh-tooltip-words {
+    font-size: var(--font-ui-smaller);
+    color: var(--text-muted);
   }
 </style>
