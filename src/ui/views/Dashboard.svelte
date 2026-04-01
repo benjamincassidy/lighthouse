@@ -189,8 +189,8 @@
 
   interface HeatTooltip {
     cell: HeatCell
-    // Offsets relative to the heatmap wrap container (not the viewport)
-    cx: number
+    // Offsets relative to the heatmap outer container (not the viewport)
+    left: number
     top: number
   }
   let tooltip = $state<HeatTooltip | null>(null)
@@ -203,9 +203,13 @@
     // eslint-disable-next-line no-undef
     const cellRect = (e.currentTarget as HTMLElement).getBoundingClientRect()
     const outerRect = heatmapOuterEl.getBoundingClientRect()
+    const TOOLTIP_W = 140 // matches min-width in CSS
+    const cx = cellRect.left - outerRect.left + cellRect.width / 2
+    // Clamp so tooltip never overflows the left or right edge of the container
+    const left = Math.max(0, Math.min(cx - TOOLTIP_W / 2, outerRect.width - TOOLTIP_W))
     tooltip = {
       cell,
-      cx: cellRect.left - outerRect.left + cellRect.width / 2,
+      left,
       top: cellRect.top - outerRect.top,
     }
   }
@@ -421,7 +425,7 @@
         {#if tooltip}
           <div
             class="lh-heatmap-tooltip"
-            style="left: {tooltip.cx}px; top: {tooltip.top}px; transform: translate(-50%, calc(-100% - 6px))"
+            style="left: {tooltip.left}px; top: {tooltip.top}px; transform: translateY(calc(-100% - 6px))"
             aria-hidden="true"
           >
             <div class="lh-tooltip-date">{formatCellDate(tooltip.cell.date)}</div>
@@ -639,7 +643,7 @@
     width: 10px;
     height: 15px;
     font-size: 9px;
-    color: var(--text-faint);
+    color: var(--text-muted);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -705,7 +709,7 @@
   .lh-heat-0 {
     width: 5px;
     height: 5px;
-    background: color-mix(in srgb, var(--text-muted) 25%, transparent);
+    background: color-mix(in srgb, var(--text-muted) 55%, transparent);
   }
 
   .lh-heat-1 {
