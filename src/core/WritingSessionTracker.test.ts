@@ -4,7 +4,14 @@ import type { Project } from '@/types/types'
 
 import { WritingSessionTracker } from './WritingSessionTracker'
 
-const TODAY = new Date().toISOString().split('T')[0]
+function localDateISO(): string {
+  const d = new Date()
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+const TODAY = localDateISO()
 
 function makePlugin() {
   return {
