@@ -33,6 +33,9 @@ export interface Project {
   deadline?: string
   // Explicit daily writing goal used for heatmap levels and pacing display
   dailyGoal?: number
+  // Dates the writer has marked as planned rest days (YYYY-MM-DD, local time).
+  // Rest days count toward the writing streak but don't require words.
+  daysOff?: string[]
 }
 
 export interface DashboardConfig {

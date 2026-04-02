@@ -93,6 +93,68 @@ export function rollingAverage(
 }
 
 /**
+ * Compute current and longest writing streaks.
+ *
+ * A day counts toward the streak if the writer recorded any words
+ * (`dailyWordCounts[date] > 0`) or explicitly marked it as a rest day
+ * (`daysOff` contains the date).  Both keep the chain alive.
+ *
+ * Current streak:
+ *   Walk backward from today. If today already has writing (or is a rest day)
+ *   include it; otherwise start from yesterday so an in-progress writing
+ *   session doesn't show 0 while you're still writing.
+ *
+ * @param dailyWordCounts - per-day word counts keyed by YYYY-MM-DD
+ * @param daysOff - YYYY-MM-DD dates marked as planned rest days
+ * @param today - override today's date (YYYY-MM-DD); defaults to localDateISO()
+ */
+export function computeStreak(
+  dailyWordCounts: Record<string, number> | undefined,
+  daysOff: string[] = [],
+  today: string = localDateISO(),
+): { current: number; longest: number } {
+  const daysOffSet = new Set(daysOff)
+  const [ty, tm, td] = today.split('-').map(Number)
+
+  function dateKey(offset: number): string {
+    const d = new Date(ty, tm - 1, td - offset)
+    const y = d.getFullYear()
+    const mo = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${y}-${mo}-${day}`
+  }
+
+  function isActive(offset: number): boolean {
+    const key = dateKey(offset)
+    return (dailyWordCounts?.[key] ?? 0) > 0 || daysOffSet.has(key)
+  }
+
+  const LOOK_BACK = 365
+
+  // Current streak: if today is inactive start from yesterday (still writing)
+  const startOffset = isActive(0) ? 0 : 1
+  let current = 0
+  for (let i = startOffset; i < LOOK_BACK; i++) {
+    if (isActive(i)) current++
+    else break
+  }
+
+  // Longest streak: scan full history
+  let longest = 0
+  let run = 0
+  for (let i = 0; i < LOOK_BACK; i++) {
+    if (isActive(i)) {
+      run++
+      if (run > longest) longest = run
+    } else {
+      run = 0
+    }
+  }
+
+  return { current, longest }
+}
+
+/**
  * Estimated reading time in minutes at 250 wpm.
  */
 export function readTime(wordCount: number): number {
