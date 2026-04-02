@@ -1,44 +1,57 @@
 ---
 title: Project Dashboard
-description: Comprehensive project overview and management
+description: Your project's central hub with stats, heatmap, and streak tracking
 ---
 
 # Project Dashboard
 
-The Project Dashboard is your central hub for viewing project statistics and managing your writing projects.
+The Project Dashboard is your central hub for viewing project statistics, switching projects, and visualising your writing activity over time.
 
 ## Opening the Dashboard
 
-- **Command Palette:** Run `Lighthouse: Open Dashboard`
-- **Settings:** Click "Open Dashboard" in Lighthouse settings
+- **Command Palette** — `Lighthouse: Open project dashboard`
+- **Writing Workspace** — The dashboard opens automatically when you enter the writing workspace
 
 ## Dashboard Sections
 
 ### Active Project Selector
+Switch between your projects using the dropdown at the top. The entire dashboard updates instantly.
 
-Switch between projects using the dropdown selector at the top of the dashboard.
+### Goal Ring & Project Stats
+If you've set a word count goal you'll see:
+- **Goal ring** — Animated circular progress indicator showing percentage complete
+- **Words written / goal total** — Exact numbers with "X to go" or "Goal reached!"
+- **Files** — Number of markdown files in the project
+- **Started** — The date the project was created
 
-### Project Statistics
+If no goal is set, the total word count is shown as a simple stat card.
 
-View comprehensive stats for your active project:
-- **Total Words** - Complete word count for all content folders
-- **Files** - Number of markdown files in the project
-- **Content Folders** - Count of designated content folders
-- **Source Folders** - Count of designated source folders
+### Writing Activity Heatmap
+A 13-week (91-day) GitHub-style activity calendar showing daily writing output. Each cell is a circle that grows in size with intensity:
 
-### Project Management
+| Level | Words (no daily target set) | Appearance |
+|-------|-----------------------------|------------|
+| 0 | No writing | Small muted dot |
+| 1 | 1–249 | Small accent circle |
+| 2 | 250–499 | Medium circle |
+| 3 | 500–999 | Large circle |
+| 4 | 1,000+ | Full circle |
 
-Quick actions for managing your projects:
-- **+ New** - Create a new project
-- **Edit** - Modify project settings
-- **Delete** - Remove project configuration (files are not deleted)
+When you set a **daily goal** or have a **deadline**, the levels scale relative to your target instead of absolute word counts.
 
-## Coming Soon
+**Hover** any cell to see the date and exact word count in a tooltip.
 
-Future dashboard features:
-- Dataview integration for custom queries
-- Visual progress charts
-- Writing streak tracking
-- Project templates
+Month labels appear along the top and day labels (M/W/F/S) along the left.
 
-*More detailed documentation coming soon.*
+### Streak Stats
+Below the heatmap legend:
+- **Day streak** — Current consecutive-day writing chain (in amber)
+- **Personal best** — Longest streak you've achieved (muted, shown alongside current)
+
+Rest days you've marked in the Stats Panel count toward the streak.
+
+### Project Management Actions
+Header buttons for the active project:
+- **Edit** — Opens the full project settings modal
+- **Delete** — Removes the project configuration (your files are not deleted)
+- **New project (+)** — Creates a new project

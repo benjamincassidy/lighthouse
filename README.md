@@ -23,23 +23,51 @@ Visit the [complete documentation site](https://benjamincassidy.github.io/lighth
 
 ### ✅ Implemented
 
-- **Multiple Projects:** Create and manage independent writing projects with their own configurations
-- **Smart Word Counting:** Real-time hierarchical word counts at file, folder, and project levels
-- **Content vs Source Folders:** Designate folders as "content" (counts toward goals) or "source" (research/reference material)
-- **Project Dashboard:** View project statistics, manage projects, and track progress
-- **Writing Stats Panel:** Persistent sidebar showing current file, folder, and project word counts with session and daily tracking
-- **Project Management:** Create, edit, delete, and switch between projects with fuzzy search
-- **Filtered File Explorer:** Project-scoped file tree view
-- **Zen Mode:** Enhanced distraction-free writing mode that hides tabs, breadcrumbs, navigation, sidebars, and status bar
+**Project Management**
+- **Multiple Projects** — Create and manage independent writing projects, each with its own configuration
+- **Project Dashboard** — Central hub with goal ring, writing activity heatmap, and streak stats
+- **Filtered File Explorer** — Project-scoped file tree; drag-and-drop to reorder files and folders
+- **Project Switcher** — Fuzzy-search modal to jump between projects instantly
+- **Writing Workspace** — One-command layout that opens all three Lighthouse panels
 
-### 🚧 In Progress
+**Word Counting**
+- **Smart hierarchical counts** — Real-time word counts at file, folder, and project levels
+- **Content vs Source folders** — Count only what matters; designate research/reference folders as Source
+- **Per-file and per-folder goals** — Set individual targets on files or chapters with inline progress rings
+- **Word count goal directions** — *At least* (minimum target) or *at most* (word limit / trim mode)
+- **Status bar count** — Live project total visible at the bottom of every window
 
-- **Project Templates:** Templater integration with project-aware variables (planned)
-- **Dataview Integration:** Enhanced dashboard queries (planned)
+**Progress & Pacing**
+- **Deadline tracking** — Set a target finish date; see words/day needed and days remaining
+- **Adaptive daily pace** — Required daily target recalculates automatically as you write over or under the target
+- **Writing activity heatmap** — GitHub-style calendar showing 13 weeks of daily output with variable-size circles
+- **Writing streak** — Current streak and personal best; rest days keep the chain alive
+- **7-day rolling average** — On-pace / behind-pace indicator against your required daily target
+- **Read/speak time** — Estimated reading time (250 wpm) and speaking time (130 wpm) for the project total
+
+**Writing Stats Panel**
+- Session words, today words, project total, file count, folder count
+- Goal progress bar with percentage
+- All deadline pacing stats
+- Streak counter with "Mark rest day" toggle
+
+**Flow Mode (Zen Mode)**
+- Hides sidebars, ribbon, status bar, tabs, breadcrumbs, and navigation
+- Optional typewriter scroll, custom font, line height, and line width settings
+
+### 🚧 Planned
+
+- **Project Compilation & Export** — Concatenate content files in order, strip frontmatter/wikilinks, save as a single document
+- **File Splitting & Merging** — Split a note at cursor; merge two files into one
+- **Manuscript Mode** — Continuous read-only multi-file view for reading your whole draft as one document
+- **Outline View** — Project-wide heading tree for navigation
+- **Inspector Panel** — Per-file synopsis, scratchpad, and source links
+- **Dataview Integration** — Enhanced dashboard queries
+- **Templater Integration** — Project-aware template variables
 
 ## Development Status
 
-**Alpha:** Core features are functional! The plugin is ready for early testing. Documentation is in progress.
+**Early Beta:** All core features are functional and tested. The plugin is ready for daily use. The Community Plugin submission is in progress.
 
 ## Development
 
@@ -65,21 +93,15 @@ npm run build
 # Run tests
 npm test
 
-# Run tests with UI
-npm test:ui
-
 # Generate coverage report
-npm test:coverage
+npm run test:coverage
 ```
 
 ### Lint & Format
 
 ```bash
-# Lint
 npm run lint
 npm run lint:fix
-
-# Format
 npm run format
 npm run format:check
 ```
@@ -88,19 +110,17 @@ npm run format:check
 
 ### Community Plugins (Coming Soon)
 
-Lighthouse will be available in Obsidian's Community Plugins once approved.
+Lighthouse will be available in Obsidian's Community Plugins once the submission review is complete.
 
 ### Manual Installation (Current)
 
-For testing the alpha release:
-
 1. Download the [latest release](https://github.com/benjamincassidy/lighthouse/releases) from GitHub
-2. Extract the contents to your vault's `.obsidian/plugins/lighthouse/` folder:
+2. Copy the three files to your vault's `.obsidian/plugins/lighthouse/` folder:
    - `main.js`
    - `manifest.json`
    - `styles.css`
 3. Reload Obsidian
-4. Enable "Lighthouse" in Settings → Community Plugins
+4. Enable "Lighthouse" under Settings → Community Plugins
 
 ### Building from Source
 
@@ -115,9 +135,12 @@ Then copy `main.js`, `manifest.json`, and `styles.css` to your vault's plugin fo
 
 ## Quick Start
 
-1. **Create a Project:** Open the Command Palette (Cmd/Ctrl+P) and run "Lighthouse: Create Project"
-2. **Configure Folders:** Designate which folders contain your writing (content) vs research (source)
-3. **Start Writing:** Open the Stats Panel from the ribbon or command palette to track your progress
+1. **Create a project** — Command Palette → `Lighthouse: Create new project`
+2. **Configure folders** — Designate which folders are *content* (writing) vs *source* (research)
+3. **Open the Stats Panel** — Click the Lighthouse icon in the ribbon
+4. **Set a goal (optional)** — Edit the project and add a word count goal and deadline
+5. **Start writing** — Lighthouse tracks everything automatically
+
 4. **View Dashboard:** Access the project dashboard to see detailed statistics and manage projects
 
 ## Contributing

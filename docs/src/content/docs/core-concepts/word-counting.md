@@ -12,121 +12,94 @@ Lighthouse provides real-time, hierarchical word counting across your writing pr
 ### Real-Time Counting
 
 Word counts update automatically as you type:
-- **Immediate feedback** - See counts within 200ms of stopping typing
-- **Live content** - Counts reflect your current editor content
-- **No caching** - Always accurate, never stale
+- **Immediate feedback** — Counts update within 200 ms of you stopping typing
+- **Live content** — Counts reflect your current editor content, not the last saved version
+- **Smart caching** — Only recalculates files that have changed
 
 ### Hierarchical Structure
 
 Lighthouse tracks words at three levels:
 
-1. **File Level** - Words in the current document
-2. **Folder Level** - Total words in the current folder (including subfolders)
-3. **Project Level** - Complete project word count (content folders only)
+1. **File level** — Words in the current document
+2. **Folder level** — Total words in the current folder (including subfolders)
+3. **Project level** — Complete project word count (content folders only)
 
 ### Content-Only Counting
 
-Project totals include **only content folders**, excluding source folders. This ensures accurate progress tracking toward your goals.
+Project totals include **only content folders**, not source folders. This ensures your progress toward a goal reflects actual writing, not research notes.
 
 ## What Gets Counted
 
-### Included
-- Regular text in markdown files
-- Words in code blocks (inline and fenced)
-- Text in links and bold/italic formatting
-- Lists and blockquotes
+### Included by default
+- Regular prose text
+- Words in links and wiki-links (link text, not the path)
+- Bold, italic, and other inline formatting
+- List items and blockquotes
 - Table content
+- Headings
 
-### Excluded
-- YAML frontmatter
+### Excluded by default
+- **YAML frontmatter** — The `---` block at the top of a file (configurable)
+- **Code blocks** — Fenced ` ``` ` blocks (configurable)
 - HTML comments
-- Markdown syntax characters (e.g., `#`, `*`, `-`)
+- Markdown syntax characters (`#`, `*`, `-`, etc.)
+
+You can toggle code block and frontmatter exclusion in **Settings → Lighthouse**.
 
 ### Counting Method
 
-Lighthouse uses a simple, reliable counting algorithm:
-1. Remove frontmatter and comments
-2. Split on whitespace
-3. Count non-empty tokens
+Lighthouse uses a simple, consistent algorithm:
+1. Optionally strip YAML frontmatter
+2. Optionally strip fenced code blocks
+3. Strip HTML comments
+4. Split on whitespace
+5. Count non-empty tokens
 
-This matches most word processor counting methods.
+This gives counts consistent with most modern writing tools.
 
 ## Session and Daily Tracking
 
-Beyond static word counts, Lighthouse tracks your writing progress:
-
 ### Session Count
-Words written in the current Obsidian session (since you opened the vault).
-
-- Starts at 0 when you open Obsidian
-- Increases as you write
-- Adjusts intelligently if you delete text
+Words written since you opened Obsidian this session.
+- Resets when you quit and reopen Obsidian
+- Adjusts downward if you delete content (so you never go negative)
+- Reflects net new words, not total keystrokes
 
 ### Today Count
-Words written today (resets at midnight).
+Words written today (since midnight, local time).
+- Persists across Obsidian restarts — closing and reopening doesn't reset it
+- Resets automatically at midnight in **your local timezone**
+- Stored per-project, so different projects have independent today counts
 
-- Persists across sessions
-- Resets automatically at midnight
-- Tracks daily productivity
+## Per-File and Per-Folder Goals
 
-## Stats Panel Display
+Beyond the project-wide goal, you can set targets on individual files and folders:
 
-The Writing Stats Panel shows:
-
-```
-📄 Current File: 1,234
-📁 Current Folder: 12,345
-📊 Project Total: 50,000
-
-✍️ Session: +500
-📅 Today: +2,000
-
-🎯 Goal: 80,000 (63%)
-```
-
-All counts update in real-time as you write.
+- **Per-file goals** — Set in the project editor under File Goals. A progress bar appears in the Stats Panel when the file is active.
+- **Per-folder (chapter) goals** — Set in the project editor under Chapter Goals. A small amber progress ring appears next to the folder in the Project Explorer. Hover for the exact word count vs target.
 
 ## Performance
 
-Lighthouse is optimized for speed:
+Lighthouse is optimised for large vaults:
+- **Debounced updates** — Waits 200 ms after you stop typing before recounting
+- **Incremental** — Only recalculates files that have changed since the last count
+- **Non-blocking** — Counts run asynchronously and never interrupt typing
 
-- **Debounced updates** - Waits 200ms after you stop typing
-- **Efficient algorithm** - Counts millions of words per second
-- **Smart caching** - Only recalculates when files change
-- **Background processing** - Never blocks your typing
-
-Even with large projects (100k+ words), counts update instantly.
-
-## Accuracy
-
-### Known Limitations
-
-1. **Non-text files** - Only markdown files are counted
-2. **Binary content** - Images, PDFs, etc. are ignored
-3. **Code blocks** - Code is counted as words (this may change)
-
-### Comparison with Other Tools
-
-Word counts may differ slightly from:
-- Microsoft Word (uses complex rules)
-- Google Docs (similar to Lighthouse)
-- wc command (counts differently)
-
-Lighthouse's counts are consistent with most modern writing tools.
+Even large projects (100 k+ words across hundreds of files) update in milliseconds.
 
 ## FAQ
 
 **Q: Why don't my counts match Microsoft Word?**
-A: Word uses complex counting rules (e.g., treating hyphenated words differently). Lighthouse uses simpler, consistent rules.
+Word uses complex rules (hyphenated words, contractions, etc.). Lighthouse uses simpler whitespace splitting, which matches Google Docs and most plain-text tools.
 
-**Q: Can I exclude code blocks from counts?**
-A: Not currently, but this is planned for a future release with customizable counting rules.
+**Q: Can I exclude code blocks?**
+Yes — go to Settings → Lighthouse and toggle **Exclude code blocks**.
 
 **Q: Do word counts include deleted files?**
-A: No. Lighthouse counts only existing files in your vault.
+No. Lighthouse counts only existing files currently in your vault.
 
 **Q: How often do counts update?**
-A: File counts update 200ms after you stop typing. Project counts update immediately when you switch files.
+File counts update 200 ms after you stop typing. Project-level counts update immediately when you switch files.
 
 ## Next Steps
 
