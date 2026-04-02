@@ -4,8 +4,10 @@
   import { activeProject } from '@/core/stores'
   import type LighthousePlugin from '@/main'
   import {
+    computeStreak,
     daysRemaining,
     formatDuration,
+    localDateISO,
     readTime,
     requiredDaily,
     speakTime,
@@ -69,6 +71,21 @@
   // Read / speak time
   let readTimeMinutes = $derived(readTime(projectWordCount))
   let speakTimeMinutes = $derived(speakTime(projectWordCount))
+
+  // Streak tracking
+  const todayKey = localDateISO()
+  let streak = $derived(computeStreak(project?.dailyWordCounts, project?.daysOff ?? []))
+  let todayIsOff = $derived(project?.daysOff?.includes(todayKey) ?? false)
+  let todayHasWriting = $derived((project?.dailyWordCounts?.[todayKey] ?? 0) > 0)
+
+  async function toggleDayOff() {
+    if (!project) return
+    const offs = [...(project.daysOff ?? [])]
+    const idx = offs.indexOf(todayKey)
+    if (idx === -1) offs.push(todayKey)
+    else offs.splice(idx, 1)
+    await plugin.projectManager.updateProject({ ...project, daysOff: offs })
+  }
 
   // Update stats when active file changes
   async function updateStats() {
@@ -327,6 +344,27 @@
           </div>
         </div>
       {/if}
+
+      <!-- Writing streak -->
+      {#if streak.current > 0 || streak.longest > 0 || todayIsOff}
+        <div class="lighthouse-stats-divider"></div>
+        <div class="lighthouse-stat-group">
+          <div class="lighthouse-stat-label">Streak</div>
+          <div class="lighthouse-streak-row">
+            <div class="lighthouse-stat-value">
+              {streak.current} day{streak.current !== 1 ? 's' : ''}
+            </div>
+            {#if !todayHasWriting}
+              <button class="lighthouse-dayoff-btn" onclick={toggleDayOff}>
+                {todayIsOff ? 'Unmark rest day' : 'Mark rest day'}
+              </button>
+            {/if}
+          </div>
+          {#if streak.longest > streak.current}
+            <div class="lighthouse-stat-sublabel">Best: {streak.longest} days</div>
+          {/if}
+        </div>
+      {/if}
     </div>
   {/if}
 </div>
@@ -450,5 +488,26 @@
 
   .lighthouse-pace-behind {
     color: var(--color-orange);
+  }
+
+  .lighthouse-streak-row {
+    display: flex;
+    align-items: center;
+    gap: var(--size-4-2);
+  }
+
+  .lighthouse-dayoff-btn {
+    font-size: var(--font-ui-smaller);
+    color: var(--text-faint);
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .lighthouse-dayoff-btn:hover {
+    color: var(--text-muted);
   }
 </style>

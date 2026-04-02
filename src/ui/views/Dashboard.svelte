@@ -3,7 +3,12 @@
   import type LighthousePlugin from '@/main'
   import type { Project } from '@/types/types'
   import { ProjectModal } from '@/ui/modals/ProjectModal'
-  import { daysRemaining, heatmapDateKeys, requiredDaily } from '@/utils/deadlineUtils'
+  import {
+    computeStreak,
+    daysRemaining,
+    heatmapDateKeys,
+    requiredDaily,
+  } from '@/utils/deadlineUtils'
 
   interface Props {
     plugin: LighthousePlugin
@@ -157,6 +162,11 @@
   }
 
   let heatWeeks = $derived(buildHeatmap(currentProject))
+
+  // Streak stats derived from stored daily history
+  let streak = $derived(
+    computeStreak(currentProject?.dailyWordCounts, currentProject?.daysOff ?? []),
+  )
 
   // Day labels — show Mon, Wed, Fri, Sun (indices 0, 2, 4, 6)
   const DAY_LABELS = ['M', '', 'W', '', 'F', '', 'S']
@@ -446,6 +456,24 @@
         {/each}
         <span class="lighthouse-heatmap-legend-label">More</span>
       </div>
+
+      <!-- Streak stats -->
+      {#if streak.current > 0 || streak.longest > 0}
+        <div class="lighthouse-streak-stats">
+          <div class="lighthouse-streak-card">
+            <div class="lighthouse-streak-card-value">{streak.current}</div>
+            <div class="lighthouse-streak-card-label">day streak</div>
+          </div>
+          {#if streak.longest > 0}
+            <div class="lighthouse-streak-card">
+              <div class="lighthouse-streak-card-value lighthouse-streak-card-value-muted">
+                {streak.longest}
+              </div>
+              <div class="lighthouse-streak-card-label">personal best</div>
+            </div>
+          {/if}
+        </div>
+      {/if}
     </div>
   {/if}
 </div>
@@ -774,5 +802,34 @@
   .lh-tooltip-words {
     font-size: var(--font-ui-smaller);
     color: var(--text-muted);
+  }
+
+  .lighthouse-streak-stats {
+    display: flex;
+    gap: var(--size-4-4);
+    margin-top: var(--size-4-3);
+  }
+
+  .lighthouse-streak-card {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .lighthouse-streak-card-value {
+    font-size: var(--font-ui-larger);
+    font-weight: 600;
+    color: var(--lh-accent);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+
+  .lighthouse-streak-card-value-muted {
+    color: var(--text-muted);
+  }
+
+  .lighthouse-streak-card-label {
+    font-size: var(--font-ui-smaller);
+    color: var(--text-faint);
   }
 </style>
