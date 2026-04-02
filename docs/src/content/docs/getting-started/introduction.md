@@ -17,7 +17,8 @@ When working on long-form writing in Obsidian, you often need to:
 - Track word counts across multiple files and folders
 - Distinguish between actual writing and research/reference material
 - Manage multiple independent projects in the same vault
-- Monitor progress toward writing goals
+- Monitor progress toward writing goals and deadlines
+- Stay motivated with streak tracking and daily pacing
 - Stay focused without getting overwhelmed by your entire vault
 
 While Obsidian excels at note-taking and knowledge management, it lacks purpose-built tools for managing writing projects.
@@ -26,11 +27,13 @@ While Obsidian excels at note-taking and knowledge management, it lacks purpose-
 
 Lighthouse brings professional writing project management to Obsidian:
 
-- **Projects as first-class citizens:** Each project has its own configuration, goals, and tracking
-- **Smart folder designation:** Separate "content" (what you're writing) from "source" (research and references)
-- **Hierarchical word counting:** Track progress at file, folder, and project levels in real-time
-- **Writing stats:** Monitor session and daily progress without breaking your flow
-- **Dashboard insights:** See project statistics and manage projects from a central view
+- **Projects as first-class citizens** — Each project has its own configuration, goals, and tracking
+- **Smart folder designation** — Separate "content" (what you're writing) from "source" (research and references)
+- **Hierarchical word counting** — Track progress at file, folder, and project levels in real-time
+- **Deadline pacing** — Set a finish date and see your required daily words adapt as you write ahead or fall behind
+- **Writing streaks & heatmap** — GitHub-style activity calendar with consecutive-day tracking and rest day support
+- **Flow Mode** — One-command distraction-free writing with optional typewriter scroll and font customization
+- **Dashboard insights** — Goal ring, project stats, and 13-week writing activity heatmap in one view
 
 ## Inspiration
 
@@ -40,17 +43,17 @@ Lighthouse is inspired by [Ulysses](https://ulysses.app/), a beloved dedicated w
 
 ### Your Data, Your Way
 
-- **No vendor lock-in:** Projects are just folders, files are just markdown
-- **Standard formats:** Everything stays in your vault as plain text
-- **Non-invasive:** Lighthouse doesn't modify your files or folder structure
-- **Portable:** Move files around freely; projects adapt
+- **No vendor lock-in** — Projects are just folders, files are just markdown
+- **Standard formats** — Everything stays in your vault as plain text
+- **Non-invasive** — Lighthouse doesn't modify your files or folder structure
+- **Portable** — Move files around freely; projects adapt
 
 ### Flexibility First
 
-- **No rigid structure:** Organize folders however you want
-- **Multiple projects:** Run several independent projects in one vault
-- **Compatible:** Works alongside other Obsidian plugins
-- **Extensible:** Built with future integrations in mind (Dataview, Templater, etc.)
+- **No rigid structure** — Organize folders however you want
+- **Multiple projects** — Run several independent projects in one vault
+- **Compatible** — Works alongside other Obsidian plugins
+- **Extensible** — Built with future integrations in mind (Dataview, Templater, etc.)
 
 ## What's Next?
 
