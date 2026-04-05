@@ -265,11 +265,12 @@
     </div>
   </div>
 
-  <!-- ── Style gallery ─────────────────────────────────── -->
-  <div class="lh-export-section">
-    <div class="lh-section-label">Style</div>
-    <div class="lh-style-gallery" role="listbox" aria-label="Export styles">
-      {#each allStyles as style (style.id)}
+  <!-- ── Style gallery (not shown for plain Markdown) ──── -->
+  {#if format !== 'markdown'}
+    <div class="lh-export-section">
+      <div class="lh-section-label">Style</div>
+      <div class="lh-style-gallery" role="listbox" aria-label="Export styles">
+        {#each allStyles as style (style.id)}
           <button
             role="option"
             aria-selected={selectedStyleId === style.id}
@@ -294,6 +295,7 @@
         {/each}
       </div>
     </div>
+  {/if}
 
   <!-- ── Output settings ─────────────────────────────────── -->
   <div class="lh-export-section">
@@ -443,7 +445,7 @@
   .lh-style-card {
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: stretch;
     gap: 0.35rem;
     padding: 0.5rem;
     border-radius: var(--radius-m);
@@ -464,29 +466,29 @@
     border-color: var(--color-accent);
   }
 
+  /* Padding-bottom aspect-ratio trick: padding % always resolves to a
+     percentage of the element's OWN WIDTH, creating a reliable box height
+     even when all child content is position:absolute (out of flow). */
   .lh-style-thumbnail {
     position: relative;
     width: 100%;
-    aspect-ratio: 8 / 11;
+    height: 0;
+    padding-bottom: 137.5%; /* 11/8 = 1.375 → portrait 8:11 */
     border-radius: calc(var(--radius-m) - 2px);
     overflow: hidden;
     background: var(--background-primary);
   }
 
-  /* {@html} SVG fills via absolute positioning — reliable even when
-     the parent height is derived from aspect-ratio */
-  .lh-style-thumbnail :global(svg) {
+  .lh-style-thumbnail :global(svg),
+  .lh-style-thumbnail img,
+  .lh-style-thumbnail-placeholder {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
-    display: block;
-  }
-
-  .lh-style-thumbnail img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .lh-style-thumbnail-placeholder {

@@ -16,12 +16,9 @@
 // ---------------------------------------------------------------------------
 
 // Raw imports handled by the text loader configured in esbuild.config.mjs
-// @ts-ignore
-import novelTradeCss from './styles/novel-trade.css'
-// @ts-ignore
-import manuscriptStandardCss from './styles/manuscript-standard.css'
-// @ts-ignore
 import academicA4Css from './styles/academic-a4.css'
+import manuscriptStandardCss from './styles/manuscript-standard.css'
+import novelTradeCss from './styles/novel-trade.css'
 
 // ---------------------------------------------------------------------------
 // Types
