@@ -4,6 +4,7 @@ import { FlowMode } from '@/core/FlowMode'
 import { FolderManager } from '@/core/FolderManager'
 import { HierarchicalCounter } from '@/core/HierarchicalCounter'
 import { ProjectManager } from '@/core/ProjectManager'
+import { BinaryManager } from '@/core/tools/BinaryManager'
 import { WordCounter } from '@/core/WordCounter'
 import { WorkspaceManager } from '@/core/WorkspaceManager'
 import { WritingSessionTracker } from '@/core/WritingSessionTracker'
@@ -25,6 +26,7 @@ export default class LighthousePlugin extends Plugin {
   flowMode!: FlowMode
   workspaceManager!: WorkspaceManager
   sessionTracker!: WritingSessionTracker
+  binaryManager!: BinaryManager
 
   async onload() {
     // Initialize core services
@@ -40,6 +42,7 @@ export default class LighthousePlugin extends Plugin {
     this.flowMode = new FlowMode(this.app, () => this.settings)
     this.workspaceManager = new WorkspaceManager(this)
     this.sessionTracker = new WritingSessionTracker(this)
+    this.binaryManager = new BinaryManager(this)
     await this.projectManager.initialize()
     // Settings are owned by ProjectStorage — sync the plugin reference
     this.settings = this.projectManager.getSettings()

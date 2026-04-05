@@ -505,6 +505,12 @@
     height: 100%;
     overflow-y: auto;
     padding: var(--size-4-4);
+    /* Redeclare Lighthouse design tokens here so an Obsidian theme cannot
+       shadow them via an ancestor :root or .theme-dark rule. */
+    --lh-accent: #e8a430;
+    --lh-accent-hover: #d4941a;
+    --lh-accent-subtle: rgba(232, 164, 48, 0.12);
+    --lh-ring-transition: stroke-dashoffset 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .lighthouse-dashboard-section {

@@ -5,10 +5,15 @@
   import { EpubExporter } from '@/core/exporters/EpubExporter'
   import { PdfExporter } from '@/core/exporters/PdfExporter'
   import { ProjectCompiler } from '@/core/ProjectCompiler'
+  import { BinaryManager, getBinDir, getBinPath } from '@/core/tools/BinaryManager'
+  import type { DownloadProgress } from '@/core/tools/BinaryManager'
+  import { PandocRunner } from '@/core/tools/PandocRunner'
+  import type { ToolName } from '@/core/tools/ToolsManifest'
   import { BUILT_IN_STYLES, cssForScreenPreview, type ExportStyle } from '@/exportStyles/index'
   import type LighthousePlugin from '@/main'
   import type { Project } from '@/types/types'
 
+  import { join } from 'path'
   import type { TFile, TFolder } from 'obsidian'
 
   interface Props {
@@ -22,9 +27,19 @@
 
   type ExportFormat = 'pdf' | 'docx' | 'epub' | 'markdown'
 
+  // Paper size options (PDF + DOCX only)
+  const PAPER_SIZES = [
+    { id: 'letter', label: 'US Letter (8.5 × 11")', ratio: 8.5 / 11 },
+    { id: 'a4', label: 'A4 (210 × 297 mm)', ratio: 210 / 297 },
+    { id: 'trade', label: 'Trade Paper (5.5 × 8.5")', ratio: 5.5 / 8.5 },
+    { id: 'a5', label: 'A5 (148 × 210 mm)', ratio: 148 / 210 },
+  ] as const
+  type PaperSizeId = (typeof PAPER_SIZES)[number]['id']
+
   // Form state
   let format = $state<ExportFormat>('pdf')
   let selectedStyleId = $state('novel-trade')
+  let selectedPaperSizeId = $state<PaperSizeId>('letter')
   let stripFrontmatter = $state(true)
   let convertWikiLinks = $state(true)
   let stripEmbeds = $state(true)
@@ -38,9 +53,85 @@
   let errorMessage = $state('')
   let userStyles = $state<ExportStyle[]>([])
 
+  // ---------------------------------------------------------------------------
+  // Tool installation state
+  // ---------------------------------------------------------------------------
+
+  type ToolStatus = 'checking' | 'ready' | 'needs-install'
+
+  // Which tools each format needs
+  const FORMAT_TOOLS: Record<ExportFormat, ToolName[]> = {
+    pdf: ['pandoc', 'typst'],
+    docx: ['pandoc'],
+    epub: ['pandoc'],
+    markdown: [],
+  }
+
+  const binaryManager = new BinaryManager(plugin)
+
+  let pandocStatus = $state<ToolStatus>('checking')
+  let typstStatus = $state<ToolStatus>('checking')
+  let downloadingTool = $state<ToolName | null>(null)
+  let downloadProgress = $state<DownloadProgress | null>(null)
+  let downloadError = $state('')
+
+  // Derived: all tools needed for the current format are ready
+  const toolsReady = $derived(
+    FORMAT_TOOLS[format].every((t) => {
+      if (t === 'pandoc') return pandocStatus === 'ready'
+      if (t === 'typst') return typstStatus === 'ready'
+      return true
+    }),
+  )
+
+  // Derived: tools required for this format that still need installing
+  const missingTools = $derived(
+    FORMAT_TOOLS[format].filter((t) => {
+      if (t === 'pandoc') return pandocStatus === 'needs-install'
+      if (t === 'typst') return typstStatus === 'needs-install'
+      return false
+    }),
+  )
+
+  $effect(() => {
+    checkToolStatus()
+  })
+
+  function checkToolStatus(): void {
+    pandocStatus = binaryManager.isReady('pandoc') ? 'ready' : 'needs-install'
+    typstStatus = binaryManager.isReady('typst') ? 'ready' : 'needs-install'
+  }
+
+  async function installTool(tool: ToolName): Promise<void> {
+    downloadingTool = tool
+    downloadError = ''
+    downloadProgress = { fraction: 0, received: 0, total: 0 }
+    try {
+      await binaryManager.install(tool, (p) => {
+        downloadProgress = p
+      })
+      if (tool === 'pandoc') pandocStatus = 'ready'
+      if (tool === 'typst') typstStatus = 'ready'
+    } catch (err) {
+      downloadError = err instanceof Error ? err.message : String(err)
+    } finally {
+      downloadingTool = null
+      downloadProgress = null
+    }
+  }
+
+  function formatBytes(n: number): string {
+    if (n < 1024) return `${n} B`
+    if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`
+    return `${(n / (1024 * 1024)).toFixed(1)} MB`
+  }
+
   const allStyles = $derived([...BUILT_IN_STYLES, ...userStyles])
   const selectedStyle = $derived(
     allStyles.find((s) => s.id === selectedStyleId) ?? BUILT_IN_STYLES[0],
+  )
+  const selectedPaperSize = $derived(
+    PAPER_SIZES.find((p) => p.id === selectedPaperSizeId) ?? PAPER_SIZES[0],
   )
 
   // Load user styles when the modal opens
@@ -179,29 +270,32 @@
         await plugin.app.vault.adapter.write(outPath, doc.fullText)
         onSuccess(`Exported to ${outPath}`)
       } else if (format === 'docx') {
-        const exporter = new DocxExporter()
+        const pandoc = makePandocRunner()
+        const exporter = new DocxExporter(pandoc)
         const buffer = await exporter.export(doc)
         const outPath = resolveOutputPath('docx')
         await plugin.app.vault.adapter.writeBinary(outPath, buffer)
         onSuccess(`Exported to ${outPath}`)
       } else if (format === 'epub') {
-        const exporter = new EpubExporter()
-        const bytes = await exporter.export(doc, {
-          title: doc.projectName,
-          css: cssForScreenPreview(selectedStyle.css),
-        })
+        const pandoc = makePandocRunner()
+        const exporter = new EpubExporter(pandoc)
+        const bytes = await exporter.export(doc, { title: doc.projectName })
         const outPath = resolveOutputPath('epub')
         await plugin.app.vault.adapter.writeBinary(outPath, new Uint8Array(bytes))
         onSuccess(`Exported to ${outPath}`)
       } else if (format === 'pdf') {
-        const exporter = new PdfExporter(plugin.app)
-        const outputPath = resolveOutputPath('pdf')
-        const result = await exporter.export(doc, { css: selectedStyle.css, outputPath })
-        if (result.method === 'dialog') {
-          onSuccess('PDF export dialog opened')
-        } else {
-          onSuccess(`Exported PDF to ${result.outputPath}`)
-        }
+        const pandoc = makePandocRunner()
+        const exporter = new PdfExporter(pandoc)
+        // Resolve output path to an absolute filesystem path for typst
+        const adapter = plugin.app.vault.adapter as unknown as { basePath: string }
+        const relPath = resolveOutputPath('pdf')
+        const absPath = join(adapter.basePath, relPath)
+        await exporter.export(doc, {
+          outputPath: absPath,
+          typstBinDir: getBinDir(plugin),
+          paperSize: typstPaperSize(selectedPaperSizeId),
+        })
+        onSuccess(`Exported PDF to ${relPath}`)
       }
     } catch (err) {
       errorMessage = err instanceof Error ? err.message : String(err)
@@ -239,22 +333,39 @@
     }
   }
 
-  // Preview the currently selected style's CSS scoped for the modal
-  // (reserved for a future live-preview pane)
+  // Map our paper size IDs to Typst's paper size strings
+  function typstPaperSize(id: PaperSizeId): string {
+    const map: Record<PaperSizeId, string> = {
+      letter: 'us-letter',
+      a4: 'a4',
+      trade: 'us-trade',
+      a5: 'a5',
+    }
+    return map[id] ?? 'us-letter'
+  }
+
+  // ---------------------------------------------------------------------------
+  // Pandoc runner (shared across export and preview)
+  // ---------------------------------------------------------------------------
+
+  function makePandocRunner(): PandocRunner {
+    return new PandocRunner(getBinPath('pandoc', plugin))
+  }
 
   // ---------------------------------------------------------------------------
   // Live preview state
   // ---------------------------------------------------------------------------
 
-  let compiledText = $state('')
+  let previewHtml = $state('')       // Pandoc-generated HTML body
   let previewLoading = $state(true)
+  let previewPandocAvailable = $state(false)
 
-  /** Rebuild the iframe srcdoc whenever format or style changes — no recompile needed */
+  /** Rebuild the iframe srcdoc whenever format, style, paper size, or preview HTML changes */
   const previewSrcdoc = $derived.by(() => {
     if (previewLoading) return buildLoadingDoc()
-    const truncated = compiledText.slice(0, 5000)
-    if (format === 'markdown') return buildMarkdownDoc(truncated)
-    return buildStyledDoc(markdownToHtml(truncated), selectedStyle)
+    if (format === 'markdown') return buildMarkdownDoc(previewHtml)
+    if (format === 'epub') return buildEreaderDoc(previewHtml)
+    return buildPageDoc(previewHtml, selectedStyle, selectedPaperSize.ratio)
   })
 
   $effect(() => {
@@ -266,7 +377,8 @@
     try {
       const filePaths = getContentFilePaths()
       if (filePaths.length === 0) {
-        compiledText = 'No content files found in the project content folders.'
+        previewHtml = '<p><em>No content files found in the project content folders.</em></p>'
+        previewPandocAvailable = false
         return
       }
       const compiler = new ProjectCompiler((path) => plugin.app.vault.adapter.read(path))
@@ -277,9 +389,25 @@
         stripHighlights: false,
         fileSeparator: '',
       })
-      compiledText = doc.fullText
+
+      // Prefer Pandoc for the preview — same parse pipeline as the actual export
+      // so the HTML preview is structurally identical to the output document.
+      if (pandocStatus === 'ready') {
+        previewPandocAvailable = true
+        const pandoc = makePandocRunner()
+        const css = format === 'epub' ? '' : cssForScreenPreview(selectedStyle.css)
+        // Use up to 8000 chars for preview — enough for a representatve sample
+        const sample = doc.fullText.slice(0, 8000)
+        previewHtml = await pandoc.toHtml(sample, { css })
+      } else {
+        // Pandoc not installed — fall back to built-in mini-converter
+        previewPandocAvailable = false
+        const sample = doc.fullText.slice(0, 5000)
+        previewHtml = format === 'markdown' ? sample : markdownToHtml(sample)
+      }
     } catch (err) {
-      compiledText = `Could not load preview: ${err instanceof Error ? err.message : String(err)}`
+      previewHtml = `<p><em>Preview unavailable: ${err instanceof Error ? err.message : String(err)}</em></p>`
+      previewPandocAvailable = false
     } finally {
       previewLoading = false
     }
@@ -331,33 +459,81 @@
     return blocks.join('\n')
   }
 
-  // The iframe preview document builders.
-  // Opening/closing style tags are assembled at runtime to avoid the literal
-  // substrings appearing in Svelte source (which would confuse the block parser).
+  // ---------------------------------------------------------------------------
+  // iframe document builders
+  // Opening/closing style tags split across concatenation so Svelte's raw-text
+  // scanner never sees the literal substrings as block boundaries.
+  // ---------------------------------------------------------------------------
+
   function buildLoadingDoc(): string {
     const o = '<' + 'style>',
       c = '<' + '/style>'
-    return `<!DOCTYPE html><html><head><meta charset="utf-8">${o}html,body{height:100%;margin:0}body{display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif;font-size:13px;color:#999;background:#fff}${c}</head><body>Loading preview\u2026</body></html>`
+    return `<!DOCTYPE html><html><head><meta charset="utf-8">${o}*{box-sizing:border-box}html,body{height:100%;margin:0}body{display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif;font-size:13px;color:#999;background:#e8e8e8}${c}</head><body>Loading preview\u2026</body></html>`
   }
 
+  /** Markdown: monospace raw text on a neutral background */
   function buildMarkdownDoc(text: string): string {
     const safe = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     const o = '<' + 'style>',
       c = '<' + '/style>'
-    return `<!DOCTYPE html><html><head><meta charset="utf-8">${o}html,body{margin:0;height:100%}body{padding:1.5rem 2rem;box-sizing:border-box;background:#f8f8f8}pre{margin:0;font-family:Menlo,monospace;font-size:12px;line-height:1.6;color:#333;white-space:pre-wrap;word-break:break-word}${c}</head><body><pre>${safe}</pre></body></html>`
+    return `<!DOCTYPE html><html><head><meta charset="utf-8">${o}*{box-sizing:border-box}html,body{margin:0;height:100%}body{padding:1.5rem 2rem;background:#1e1e1e}pre{margin:0;font-family:Menlo,'Cascadia Code',monospace;font-size:11.5px;line-height:1.65;color:#d4d4d4;white-space:pre-wrap;word-break:break-word}${c}</head><body><pre>${safe}</pre></body></html>`
   }
 
-  function buildStyledDoc(html: string, style: ExportStyle): string {
+  /**
+   * PDF / DOCX: the entire page is always visible as a white rectangle centred
+   * on a dark background. Height is fixed to the iframe viewport; width is
+   * derived from the paper's aspect ratio so Letter, Trade, A4, A5 all look
+   * visually distinct.
+   */
+  function buildPageDoc(html: string, style: ExportStyle, paperRatio: number): string {
     const css = cssForScreenPreview(style.css)
     const o = '<' + 'style>',
       c = '<' + '/style>'
-    return `<!DOCTYPE html><html><head><meta charset="utf-8">${o}html,body{margin:0}body{padding:1.75rem 2.5rem;box-sizing:border-box;background:#fff}${css}${c}</head><body><div class="markdown-preview-view markdown-preview-sizer">${html}</div></body></html>`
+    return (
+      `<!DOCTYPE html><html><head><meta charset="utf-8">${o}` +
+      `*{box-sizing:border-box}` +
+      `html,body{height:100%;margin:0}` +
+      `body{background:#525659;display:flex;align-items:center;justify-content:center;padding:24px}` +
+      `.page{height:calc(100vh - 48px);width:auto;aspect-ratio:${paperRatio};` +
+      `background:#fff;box-shadow:0 4px 24px rgba(0,0,0,.55);overflow:hidden;flex-shrink:0}` +
+      `.page-inner{height:100%;padding:6% 8%;overflow:hidden}` +
+      `${css}` +
+      `${c}</head><body>` +
+      `<div class="page"><div class="page-inner">` +
+      `<div class="markdown-preview-view markdown-preview-sizer">${html}</div>` +
+      `</div></div></body></html>`
+    )
+  }
+
+  /**
+   * ePub: content rendered in an e-reader–style frame.
+   * No style or paper size controls apply here — the reading app owns the
+   * presentation. We show clean semantic HTML with comfortable reading defaults.
+   */
+  function buildEreaderDoc(html: string): string {
+    const o = '<' + 'style>',
+      c = '<' + '/style>'
+    return (
+      `<!DOCTYPE html><html><head><meta charset="utf-8">${o}` +
+      `*{box-sizing:border-box}` +
+      `html,body{margin:0;min-height:100%}` +
+      `body{background:#3a3a3c;padding:20px;display:flex;justify-content:center}` +
+      `.reader{width:100%;max-width:420px;background:#faf8f2;border-radius:6px;padding:2rem 2.25rem;` +
+      `font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:1.75;color:#1c1c1e;` +
+      `box-shadow:0 4px 24px rgba(0,0,0,.5)}` +
+      `.reader h1{font-size:1.2em;font-weight:normal;font-style:italic;text-align:center;margin:0 0 2em}` +
+      `.reader h2,.reader h3{font-size:1em;font-weight:bold;text-align:center;margin:1.5em 0 0.75em}` +
+      `.reader p{margin:0;text-indent:1.5em}.reader p:first-of-type,.reader h1+p,.reader h2+p,.reader h3+p,.reader hr+p{text-indent:0}` +
+      `.reader hr{border:none;text-align:center;margin:1.5em 0}.reader hr::after{content:'* * *';color:#888}` +
+      `${c}</head><body>` +
+      `<div class="reader"><div class="markdown-preview-view">${html}</div></div>` +
+      `</body></html>`
+    )
   }
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <div class="lh-export" role="dialog" aria-label="Export project">
-
   <!-- ── Format tabs ───────────────────────────────────────── -->
   <div class="lh-tabs" role="tablist" aria-label="Export format">
     {#each ['pdf', 'docx', 'epub', 'markdown'] as ExportFormat[] as fmt}
@@ -373,6 +549,60 @@
     {/each}
   </div>
 
+  <!-- ── Tool installation prompt ─────────────────────────── -->
+  {#if missingTools.length > 0 || downloadingTool !== null}
+    <div class="lh-tool-banner">
+      {#if downloadingTool !== null && downloadProgress !== null}
+        <!-- Actively downloading -->
+        <div class="lh-tool-banner-text">
+          Downloading {downloadingTool}…
+          {#if downloadProgress.total > 0}
+            {formatBytes(downloadProgress.received)} / {formatBytes(downloadProgress.total)}
+          {:else}
+            {formatBytes(downloadProgress.received)} received
+          {/if}
+        </div>
+        <div class="lh-tool-progress">
+          <div
+            class="lh-tool-progress-fill"
+            style="width: {downloadProgress.fraction >= 0 ? Math.round(downloadProgress.fraction * 100) : 50}%"
+          ></div>
+        </div>
+        {#if downloadError}
+          <p class="lh-tool-error">{downloadError}</p>
+        {/if}
+      {:else}
+        <!-- Needs install -->
+        <div class="lh-tool-banner-row">
+          <div class="lh-tool-banner-text">
+            {#if missingTools.length === 2}
+              PDF export requires <strong>Pandoc</strong> and <strong>Typst</strong> (~65 MB total).
+            {:else if missingTools[0] === 'pandoc'}
+              {format.toUpperCase()} export requires <strong>Pandoc</strong> (~30 MB).
+            {:else}
+              PDF export requires <strong>Typst</strong> (~35 MB).
+            {/if}
+            These are downloaded once and stored with the plugin.
+          </div>
+          <div class="lh-tool-banner-actions">
+            {#each missingTools as tool (tool)}
+              <button
+                class="lh-tool-install-btn"
+                onclick={() => void installTool(tool)}
+                disabled={downloadingTool !== null}
+              >
+                Install {tool}
+              </button>
+            {/each}
+          </div>
+        </div>
+        {#if downloadError}
+          <p class="lh-tool-error">{downloadError}</p>
+        {/if}
+      {/if}
+    </div>
+  {/if}
+
   <!-- ── Live preview ──────────────────────────────────────── -->
   <!--
     The preview renders inside an <iframe srcdoc> — a completely isolated
@@ -383,18 +613,41 @@
   <div class="lh-preview-shell">
     <iframe class="lh-preview" title="Document preview" srcdoc={previewSrcdoc}></iframe>
   </div>
+  {#if format === 'docx'}
+    <p class="lh-format-note">
+      {#if previewPandocAvailable}
+        Preview rendered by Pandoc — structural layout matches your export. Word may apply its own
+        default fonts and spacing on top of the reference style.
+      {:else}
+        Install Pandoc above to see an accurate preview. Word may apply its own fonts and spacing.
+      {/if}
+    </p>
+  {/if}
 
-  <!-- ── Style + output controls ───────────────────────────── -->
+  <!-- ── Controls ─────────────────────────────────────────── -->
   <div class="lh-controls">
-    {#if format !== 'markdown'}
+    {#if format === 'pdf' || format === 'docx'}
       <div class="lh-row">
         <label class="lh-lbl" for="lh-style">Style</label>
         <select id="lh-style" class="lh-select" bind:value={selectedStyleId}>
           {#each allStyles as style (style.id)}
-            <option value={style.id}>{style.name} — {style.pageSize}</option>
+            <option value={style.id}>{style.name}</option>
           {/each}
         </select>
       </div>
+      <div class="lh-row">
+        <label class="lh-lbl" for="lh-paper">Paper size</label>
+        <select id="lh-paper" class="lh-select" bind:value={selectedPaperSizeId}>
+          {#each PAPER_SIZES as ps (ps.id)}
+            <option value={ps.id}>{ps.label}</option>
+          {/each}
+        </select>
+      </div>
+    {:else if format === 'epub'}
+      <p class="lh-epub-note">
+        ePub is a container format — typography is applied by the reader app (Apple Books, Kindle,
+        Kobo, etc.). Your content will be exported as clean, semantic HTML and styled by the reader.
+      </p>
     {/if}
     <div class="lh-row">
       <label class="lh-lbl" for="lh-fname">Filename</label>
@@ -422,10 +675,17 @@
   <details class="lh-opts">
     <summary>Options</summary>
     <div class="lh-opts-body">
-      <label><input type="checkbox" bind:checked={stripFrontmatter} /> Strip YAML frontmatter</label>
-      <label><input type="checkbox" bind:checked={convertWikiLinks} /> Convert [[wiki links]] to plain text</label>
-      <label><input type="checkbox" bind:checked={stripEmbeds} /> Remove ![[embedded file]] links</label>
-      <label><input type="checkbox" bind:checked={stripHighlights} /> Strip ==highlight== markers</label>
+      <label><input type="checkbox" bind:checked={stripFrontmatter} /> Strip YAML frontmatter</label
+      >
+      <label
+        ><input type="checkbox" bind:checked={convertWikiLinks} /> Convert [[wiki links]] to plain text</label
+      >
+      <label
+        ><input type="checkbox" bind:checked={stripEmbeds} /> Remove ![[embedded file]] links</label
+      >
+      <label
+        ><input type="checkbox" bind:checked={stripHighlights} /> Strip ==highlight== markers</label
+      >
       <div class="lh-row lh-row--full">
         <label class="lh-lbl" for="lh-sep">File separator</label>
         <input
@@ -448,11 +708,10 @@
     <button class="mod-secondary" onclick={copyToClipboard} disabled={exporting}>
       Copy to clipboard
     </button>
-    <button class="mod-cta" onclick={doExport} disabled={exporting}>
-      {exporting ? 'Exporting…' : 'Export'}
+    <button class="mod-cta" onclick={doExport} disabled={exporting || !toolsReady}>
+      {exporting ? 'Exporting…' : !toolsReady ? 'Install tools to export' : 'Export'}
     </button>
   </div>
-
 </div>
 
 <style>
@@ -461,6 +720,79 @@
     flex-direction: column;
     gap: 0.85rem;
     padding: 0.1rem 0;
+  }
+
+  /* ── Tool install banner ─────────────────── */
+  .lh-tool-banner {
+    border-radius: var(--radius-m);
+    background: color-mix(in srgb, var(--color-accent) 8%, var(--background-secondary));
+    border: 1px solid color-mix(in srgb, var(--color-accent) 25%, transparent);
+    padding: 0.65rem 0.9rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .lh-tool-banner-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    justify-content: space-between;
+  }
+
+  .lh-tool-banner-text {
+    font-size: 0.83rem;
+    color: var(--text-normal);
+    line-height: 1.45;
+    flex: 1;
+  }
+
+  .lh-tool-banner-actions {
+    display: flex;
+    gap: 0.4rem;
+    flex-shrink: 0;
+  }
+
+  .lh-tool-install-btn {
+    padding: 0.25rem 0.7rem;
+    font-size: 0.82rem;
+    border-radius: var(--radius-s);
+    background: var(--interactive-accent);
+    color: var(--text-on-accent);
+    border: none;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .lh-tool-install-btn:hover:not(:disabled) {
+    background: var(--interactive-accent-hover);
+  }
+
+  .lh-tool-install-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .lh-tool-progress {
+    height: 4px;
+    background: var(--background-modifier-border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .lh-tool-progress-fill {
+    height: 100%;
+    background: var(--interactive-accent);
+    border-radius: 2px;
+    transition: width 200ms ease;
+    min-width: 4px;
+  }
+
+  .lh-tool-error {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--text-error);
+    line-height: 1.4;
   }
 
   /* ── Format tabs ─────────────────────────── */
@@ -499,9 +831,10 @@
 
   /* ── Preview ─────────────────────────────── */
   .lh-preview-shell {
-    height: 340px;
+    height: 480px;
+    width: 100%;
     border-radius: var(--radius-m);
-    overflow: hidden;
+
     border: 1px solid var(--background-modifier-border);
     background: var(--background-modifier-form-field);
   }
@@ -518,6 +851,21 @@
     display: flex;
     flex-direction: column;
     gap: 0.45rem;
+  }
+
+  .lh-epub-note {
+    margin: 0;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    line-height: 1.45;
+    font-style: italic;
+  }
+
+  .lh-format-note {
+    margin: -0.35rem 0 0;
+    font-size: 0.8rem;
+    color: var(--text-faint);
+    line-height: 1.4;
   }
 
   .lh-row {
@@ -539,6 +887,7 @@
   .lh-input,
   .lh-select {
     width: 100%;
+    height: 32px;
     padding: 0.3rem 0.5rem;
     background: var(--background-modifier-form-field);
     border: 1px solid var(--background-modifier-border);
