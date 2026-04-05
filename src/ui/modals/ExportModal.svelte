@@ -3,8 +3,6 @@
   import type { Project } from '@/types/types'
   import {
     BUILT_IN_STYLES,
-    cssForScreenPreview,
-    scopePreviewCss,
     type ExportStyle,
   } from '@/exportStyles/index'
   import { ProjectCompiler } from '@/core/ProjectCompiler'
@@ -240,7 +238,7 @@
   }
 
   // Preview the currently selected style's CSS scoped for the modal
-  const previewCss = $derived(scopePreviewCss(cssForScreenPreview(selectedStyle.css)))
+  // (reserved for a future live-preview pane)
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
@@ -279,7 +277,9 @@
             onclick={() => (selectedStyleId = style.id)}
           >
             <div class="lh-style-thumbnail" aria-hidden="true">
-              {#if style.previewSvg}
+              {#if style.builtIn}
+                {@html style.previewSvg}
+              {:else if style.previewSvg}
                 <img src={style.previewSvg} alt="" />
               {:else}
                 <div class="lh-style-thumbnail-placeholder">
@@ -462,7 +462,7 @@
 
   .lh-style-thumbnail {
     width: 100%;
-    aspect-ratio: 11 / 8.5;
+    aspect-ratio: 8 / 11;
     border-radius: calc(var(--radius-m) - 2px);
     overflow: hidden;
     background: var(--background-primary);
@@ -471,10 +471,10 @@
     justify-content: center;
   }
 
-  .lh-style-thumbnail img {
+  .lh-style-thumbnail :global(svg) {
+    display: block;
     width: 100%;
     height: 100%;
-    object-fit: cover;
   }
 
   .lh-style-thumbnail-placeholder {

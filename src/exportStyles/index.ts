@@ -64,73 +64,75 @@ function makeThumbnail(opts: {
     headingStyle,
     sceneBreak,
     bgColor = '#fff',
-    textColor = '#111',
+    textColor = '#222',
   } = opts
 
   const lh = lineHeight * fontSize
-  const w = 220
-  const h = 160
-  const pad = 14
+  // Portrait page dimensions (coordiniate units, scaled via viewBox)
+  const w = 160
+  const h = 220
+  const pad = 13
   const textW = w - pad * 2
 
-  let y = pad + fontSize
+  let y = pad + fontSize + 2
 
-  const lines: string[] = []
+  const els: string[] = []
 
-  const addLine = (
+  const addText = (
     text: string,
     x: number,
+    anchor: string,
+    attrs: string,
+    size: number,
     dy: number,
-    style: string,
-    anchor = 'start',
-    size = fontSize,
   ) => {
-    lines.push(
-      `<text x="${x}" y="${y}" font-family="${fontFamily}" font-size="${size}pt" fill="${textColor}" text-anchor="${anchor}" ${style}>${text}</text>`,
+    els.push(
+      `<text x="${x}" y="${y}" font-family="${fontFamily}" font-size="${size}" fill="${textColor}" text-anchor="${anchor}" ${attrs}>${text}</text>`,
     )
     y += dy
   }
 
+  // Grey rectangle representing one line of body text
+  const textRect = (lineWidth: number, indented: boolean) => {
+    const rx = pad + (indented ? indent : 0)
+    els.push(
+      `<rect x="${rx}" y="${Math.round(y - fontSize * 0.78)}" width="${lineWidth}" height="${Math.round(fontSize * 0.6)}" rx="1" fill="#bbb" opacity="0.7"/>`,
+    )
+    y += lh
+  }
+
   // Heading
-  const headingX =
-    headingStyle === 'bold-left' ? pad : w / 2
-  const headingAnchor =
-    headingStyle === 'bold-left' ? 'start' : 'middle'
-  const headingFontStyle =
+  const headingX = headingStyle === 'bold-left' ? pad : w / 2
+  const headingAnchor = headingStyle === 'bold-left' ? 'start' : 'middle'
+  const headingAttrs =
     headingStyle === 'italic-center'
       ? 'font-style="italic" font-weight="normal"'
       : 'font-style="normal" font-weight="bold"'
 
-  addLine('Chapter One', headingX, lh * 1.8, headingFontStyle, headingAnchor, fontSize + 1)
+  addText('Chapter One', headingX, headingAnchor, headingAttrs, fontSize + 1, Math.round(lh * 2.0))
 
-  // Body lines (mocked as grey rects for realism)
-  const lineY = () => {
-    const rect = `<rect x="${pad + indent}" y="${y - fontSize * 0.75}" width="${textW - indent}" height="${fontSize * 0.65}" rx="1" fill="#ccc" opacity="0.6"/>`
-    lines.push(rect)
-    y += lh
-  }
-
-  lineY()
-  lineY()
-
-  // Full-width line
-  lines.push(
-    `<rect x="${pad}" y="${y - fontSize * 0.75}" width="${textW}" height="${fontSize * 0.65}" rx="1" fill="#ccc" opacity="0.6"/>`,
-  )
-  y += lh
+  // First paragraph — 4 lines (last one short)
+  const hasIndent = indent > 0
+  textRect(Math.round(textW * 0.94 - (hasIndent ? indent : 0)), hasIndent)
+  textRect(Math.round(textW * 0.98), false)
+  textRect(Math.round(textW * 0.91), false)
+  textRect(Math.round(textW * 0.52), false)
 
   // Scene break
-  addLine(sceneBreak, w / 2, lh * 1.2, 'font-style="italic"', 'middle', fontSize - 1)
+  y += Math.round(lh * 0.3)
+  addText(sceneBreak, w / 2, 'middle', '', fontSize - 1, Math.round(lh * 1.5))
 
-  lineY()
-  lineY()
+  // Second paragraph — 3 lines
+  textRect(Math.round(textW * 0.93 - (hasIndent ? indent : 0)), hasIndent)
+  textRect(Math.round(textW * 0.95), false)
+  textRect(Math.round(textW * 0.65), false)
 
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
-  <rect width="${w}" height="${h}" fill="${bgColor}" rx="4"/>
-  ${lines.join('\n  ')}
+  // Return raw SVG with width/height="100%" so it scales to its container.
+  // Using viewBox to preserve the coordinate system.
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 ${w} ${h}">
+  <rect width="${w}" height="${h}" fill="${bgColor}" rx="3"/>
+  ${els.join('\n  ')}
 </svg>`
-
-  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
 }
 
 // ---------------------------------------------------------------------------
