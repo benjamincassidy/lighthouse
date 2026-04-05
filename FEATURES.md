@@ -9,13 +9,17 @@ This document tracks planned features at an implementation level, with detailed 
 | # | Feature | Complexity | Impact | Priority |
 |---|---------|-----------|--------|----------|
 | A | ✅ Custom Drag-and-Drop Sorting | Medium | High | **Done** |
+| D | ✅ File Status Indicators | Low | High | **Done** |
+| E | ✅ Target-Specific Goals | Medium | High | **Done** |
+| F | ✅ Writing Workspace | Low | Medium | **Done** |
+| G | ✅ Folder / Chapter Goals | Low | High | **Done** |
+| I | ✅ Flow Mode (formerly Zen Mode) | High | Medium | **Done** |
+| J | ✅ Deadline Tracking & Writing Heatmap | Medium | High | **Done** |
+| L | ✅ Rolling Daily Goals, Streak & Rest Days | Medium | High | **Done** |
 | B | Project Compilation & Export | Medium | High | **P0** |
 | C | File Splitting & Merging | Low–Medium | High | **P0** |
-| D | File Status Indicators | Low | High | **P1** |
-| E | Target-Specific Goals | Medium | High | **P1** |
-| H | Outline & Metadata Sidecar (Inspector) | High | Medium | **P2** |
-| I | Next-Level Zen Mode | High | Medium | **P2** |
-| K | Stat Panel Color Polish | Low | Low | **P3** |
+| H | Outline & Metadata Sidecar (Inspector) | High | Medium | **P1** |
+| K | Stat Panel Color Polish | Low | Low | **P2** |
 
 ---
 
@@ -25,15 +29,15 @@ This document tracks planned features at an implementation level, with detailed 
 
 ### Checklist
 
-- [ ] **Data Model** — Add `fileOrder: string[]` to `Project` interface in `src/types/types.ts`. This array stores vault-relative file paths in user-defined order. Files not present in the array are appended to the bottom (new files auto-register).
-- [ ] **ProjectManager** — Add `reorderProjectFiles(projectId, newOrder: string[])` method that updates `fileOrder` and calls `updateProject`.
-- [ ] **ProjectExplorer.svelte** — Integrate a drag-and-drop library (recommend `svelte-dnd-action` which is lightweight and Svelte-native) on both Content and Source tree sections.
+- [x] **Data Model** — Add `fileOrder: string[]` to `Project` interface in `src/types/types.ts`. This array stores vault-relative file paths in user-defined order. Files not present in the array are appended to the bottom (new files auto-register).
+- [x] **ProjectManager** — Add `reorderProjectFiles(projectId, newOrder: string[])` method that updates `fileOrder` and calls `updateProject`.
+- [x] **ProjectExplorer.svelte** — Integrate a drag-and-drop library (recommend `svelte-dnd-action` which is lightweight and Svelte-native) on both Content and Source tree sections.
   - Dragging a file within a section reorders `fileOrder`.
   - Dragging a folder reorders at the folder level (all files inside move with it).
   - Visual drop indicator between items.
-- [ ] **buildProjectTree** — Sort nodes by `fileOrder` when constructing the tree. Files absent from `fileOrder` are appended at the end.
-- [ ] **Vault event handling** — On `rename`, update the path in `fileOrder`. On `delete`, remove from `fileOrder`.
-- [ ] **Tests** — Unit tests for `reorderProjectFiles` and sort logic.
+- [x] **buildProjectTree** — Sort nodes by `fileOrder` when constructing the tree. Files absent from `fileOrder` are appended at the end.
+- [x] **Vault event handling** — On `rename`, update the path in `fileOrder`. On `delete`, remove from `fileOrder`.
+- [x] **Tests** — Unit tests for `reorderProjectFiles` and sort logic.
 
 ### Notes
 - `svelte-dnd-action` is MIT licensed and works well with Svelte 5 runes via `use:dndzone`.
@@ -94,24 +98,16 @@ This document tracks planned features at an implementation level, with detailed 
 
 ## Feature D — File Status Indicators
 
-**Why fourth:** Pure UI polish, low effort, high perceived quality.
+**Status: ✅ Complete.**
 
 ### Checklist
 
-- [ ] **Data source** — Read `status:` field from file YAML frontmatter. No additional storage needed.
-- [ ] **Status color map** — Define in `src/utils/fileStatus.ts`:
-  ```ts
-  export const STATUS_COLORS: Record<string, string> = {
-    draft:    'var(--color-red)',
-    revising: 'var(--color-yellow)',
-    done:     'var(--color-green)',
-  }
-  ```
-  Unknown values fall back to `var(--text-faint)`.
-- [ ] **TreeNode.svelte** — Accept optional `status` prop. Render a 6px filled circle dot before the file name when `status` is set.
-- [ ] **ProjectExplorer.svelte** — In `buildProjectTree`, read frontmatter via `app.metadataCache.getFileCache(file)?.frontmatter?.status` (no file reads required — metadata cache is synchronous).
-- [ ] **CSS** — Add `.lighthouse-status-dot` style to `styles.css`.
-- [ ] **Tests** — Unit test for `fileStatus.ts` color mapping.
+- [x] **Data source** — Read `status:` field from file YAML frontmatter. No additional storage needed.
+- [x] **Status color map** — `src/utils/fileStatus.ts` with `STATUS_COLORS` map (draft → red, revising → yellow, done → green). Unknown values fall back to `var(--text-faint)`.
+- [x] **TreeNode.svelte** — Accepts optional `status` prop. Renders a filled circle dot (`.lh-status-dot`) before the file name when `status` is set.
+- [x] **ProjectExplorer.svelte** — `buildProjectTree` reads frontmatter via `app.metadataCache.getFileCache(file)?.frontmatter?.status`.
+- [x] **CSS** — `.lh-status-dot` style in `styles.css`.
+- [x] **Tests** — Unit tests for `fileStatus.ts` colour mapping.
 
 ### Notes
 - Use `metadataCache` not `vault.read` — zero I/O cost.
@@ -121,16 +117,80 @@ This document tracks planned features at an implementation level, with detailed 
 
 ## Feature E — Target-Specific Goals ("At Most" / Per-File Goals)
 
+**Status: ✅ Complete.**
+
 ### Checklist
 
-- [ ] **Data model changes** in `src/types/types.ts`:
-  - Add `wordCountGoalType?: 'at-least' | 'at-most'` to `Project`.
-  - Add `fileGoals?: Record<string, number>` to `Project` (keyed by vault-relative path).
-- [ ] **Dashboard** — Add a "Goal type" toggle (At least / At most) next to the word count goal input in `ProjectModal.ts`. Progress ring turns red when `totalWords > goal` under `at-most` mode.
-- [ ] **Per-file goal context menu** — In `ProjectExplorer.svelte` context menu for files, add "Set word goal…" item. Opens a small modal with a number input. Saves to `project.fileGoals[path]`.
-- [ ] **TreeNode.svelte** — When a file has a goal set in `fileGoals`, show a small pie/arc icon next to the name. Color: green if within goal, red if over (for `at-most`) or under (for `at-least`).
-- [ ] **Stats Panel** — When active file has a per-file goal, show a "File Goal" progress bar below "Current File".
-- [ ] **Tests** — Unit tests for goal type logic and progress calculations.
+- [x] **Data model** — `GoalDirection = 'at-least' | 'at-most'` type; `goalDirection?` and `fileGoals?: Record<string, number>` on `Project`.
+- [x] **Dashboard** — Goal type toggle in `ProjectModal.ts`. Progress ring turns red when `totalWords > goal` under `at-most` mode.
+- [x] **Per-file goal context menu** — "Set word goal…" in the ProjectExplorer file context menu; saves to `project.fileGoals[path]`.
+- [x] **TreeNode.svelte** — Files with a goal show a small arc progress icon. Colour adapts to goal direction and completion state.
+- [x] **Stats Panel** — Active file's "File Goal" progress bar shown when a per-file goal is set.
+- [x] **Tests** — Unit tests for goal type logic and progress calculations.
+
+---
+
+## Feature F — Writing Workspace
+
+**Status: ✅ Complete.**
+
+Saves the current Obsidian layout, then opens a focused two-pane layout (Project Explorer left, editor centre). `exitWritingWorkspace` restores the saved layout.
+
+### Checklist
+
+- [x] **WorkspaceManager** — `src/core/WorkspaceManager.ts` with `enterWritingWorkspace()` / `exitWritingWorkspace()`.
+- [x] **State persistence** — `workspaceActive?: boolean` flag in settings.
+- [x] **Commands** — `open-writing-workspace` and `exit-writing-workspace` registered in `main.ts`.
+- [x] **Tests** — Unit tests for workspace enter/exit state.
+
+---
+
+## Feature G — Folder / Chapter Goals
+
+**Status: ✅ Complete.**
+
+Per-folder word count targets. An amber progress ring appears next to each folder in the Project Explorer; hovering shows exact count vs target.
+
+### Checklist
+
+- [x] **Data model** — `folderGoals?: Record<string, number>` on `Project` (keyed by full vault-relative path).
+- [x] **Project editor** — "Chapter Goals" section in `ProjectModal.ts`.
+- [x] **TreeNode.svelte** — Folder nodes with a goal render a ring progress indicator.
+- [x] **HierarchicalCounter** — Folder-level word count fed to ring calculation.
+- [x] **Tests** — Unit tests for folder goal progress calculations.
+
+---
+
+## Feature J — Deadline Tracking & Writing Heatmap
+
+**Status: ✅ Complete.**
+
+Set a target finish date and a daily goal. The Stats Panel shows required words/day and 7-day average. The Dashboard shows a 13-week writing heatmap with five intensity levels.
+
+### Checklist
+
+- [x] **Data model** — `deadline?`, `dailyGoal?`, `dailyWordCounts?: Record<string, number>` on `Project`.
+- [x] **deadlineUtils.ts** — `daysRemaining`, `requiredDaily`, `rollingAverage`, `heatmapDateKeys`, `localDateISO`; all timezone-safe (local time throughout).
+- [x] **Stats Panel** — Pacing section: required words/day, days remaining, 7-day average, on-pace indicator.
+- [x] **Dashboard heatmap** — 13-week SVG grid, five heat levels (0–4), tooltip on hover, clamped to prevent overflow.
+- [x] **Dark mode** — `lh-heat-0` uses `color-mix` at 55% opacity for visibility.
+- [x] **Tests** — 20 unit tests in `deadlineUtils.test.ts`.
+
+---
+
+## Feature L — Rolling Daily Goals, Streak & Rest Days
+
+**Status: ✅ Complete.**
+
+Adaptive daily pacing recalculates automatically based on surplus or missed days. Writing streaks track consecutive days. Rest days keep a streak alive without requiring words.
+
+### Checklist
+
+- [x] **Data model** — `daysOff?: string[]` (YYYY-MM-DD) on `Project`.
+- [x] **computeStreak** — `deadlineUtils.ts` export returning `{ current, longest }`. Walks back 365 days; rest days count; tolerates in-progress days.
+- [x] **Stats Panel** — Streak row with current streak, personal best sublabel, and "Mark rest day" / "Unmark rest day" toggle (only shown when today has no writing).
+- [x] **Dashboard** — Streak stat cards below heatmap legend (amber current, muted personal best).
+- [x] **Tests** — 9 new `computeStreak` tests in `deadlineUtils.test.ts`.
 
 ---
 
@@ -150,21 +210,18 @@ This document tracks planned features at an implementation level, with detailed 
 
 ---
 
-## Feature I — Next-Level Zen Mode
+## Feature I — Flow Mode (formerly Zen Mode)
+
+**Status: ✅ Complete.** Note: focus-mode paragraph dimming was prototyped and then removed; the other items shipped.
 
 ### Checklist
 
-- [ ] **Typewriter scroll** — In `ZenMode.ts`, on `enterZenMode`, add a `scroll` event listener to the active editor's CodeMirror instance that calls `editor.scrollIntoView(cursor, 'center')` after each keystroke. Remove listener on `exitZenMode`.
-  - Obsidian exposes the active editor via `app.workspace.activeEditor?.editor`.
-- [ ] **Focus mode (dim non-active paragraph)** — Inject a CSS class `lighthouse-zen-focus` on the editor container. Use a CodeMirror `EditorView.updateListener` to track cursor position and apply a CSS highlight to the paragraph under cursor while dimming others via `opacity: 0.3` on all other `.cm-line` elements.
-  - Add a setting: `zenFocusMode: 'none' | 'sentence' | 'paragraph'`.
-- [ ] **Zen typography overrides** — Add settings:
-  - `zenFont: string` (CSS font-family)
-  - `zenLineHeight: number`
-  - `zenLineWidth: number` (max line width in characters or px)
-  - On `enterZenMode`, inject a `<style id="lighthouse-zen-typography">` element with these values targeting `.cm-editor`. Remove on `exitZenMode`.
-- [ ] **Settings tab** — Add a "Zen Mode — Focus & Typography" subsection to `SettingsTab.ts`.
-- [ ] **Tests** — Unit tests for CSS injection/cleanup logic.
+- [x] **Typewriter scroll** — `flowTypewriterScroll` setting; uses `workspace.on('editor-change')` to scroll active line to centre. Listener cleaned up on exit.
+- [x] **Typography overrides** — `flowFont`, `flowLineHeight`, `flowLineWidth` settings injected as CSS variables (`--lh-flow-font`, `--lh-flow-line-height`, `--lh-flow-line-width`) via a style element on enter; removed on exit.
+- [x] **Hide status bar / ribbon** — `flowModeHideStatusBar` and `flowModeHideRibbon` settings.
+- [x] **Settings tab** — "Flow Mode" subsection in `SettingsTab.ts`.
+- [x] **Tests** — Unit tests for enter/exit state, CSS variable injection, and cleanup logic.
+- [ ] ~~**Focus mode (dim non-active paragraph)**~~ — Prototyped and removed; reliable CodeMirror paragraph tracking proved too fragile across Obsidian versions.
 
 ---
 
@@ -189,22 +246,24 @@ This document tracks planned features at an implementation level, with detailed 
 ## Implementation Order (Recommended)
 
 ```
-Complete
+Shipped
   A  ✅ Custom Sorting
+  D  ✅ File Status Indicators
+  E  ✅ Target-Specific Goals
+  F  ✅ Writing Workspace
+  G  ✅ Folder / Chapter Goals
+  I  ✅ Flow Mode
+  J  ✅ Deadline Tracking & Heatmap
+  L  ✅ Rolling Daily Goals, Streak & Rest Days
 
-Phase 1 (Polish & Utility)
-  D  File Status Indicators  ← zero dependencies, high polish payoff
-  K  Stat Panel Colors       ← tiny, ship alongside D
-  C  File Splitting & Merging
-  B  Project Compilation & Export
-  E  Target-Specific Goals
-
-Phase 2 (Power Features)
-  H  Inspector / Metadata Sidecar
-  I  Next-Level Zen Mode
+Next Up
+  B  Project Compilation & Export   ← tangible writer output, high value
+  C  File Splitting & Merging       ← no new views, pure utility
+  K  Stat Panel Color Polish        ← tiny, bundle with C or B
+  H  Inspector / Metadata Sidecar   ← power feature for novel / thesis writers
 ```
 
-*For Sprint Mode, Writing Workspace, Manuscript Mode, Heatmap, Analytics, and Knowledge Integration features, see [VISION.md](VISION.md).*
+*For Manuscript Mode, Scene Cards, Analytics, and Knowledge Integration, see [VISION.md](VISION.md).*
 
 ---
 
@@ -215,16 +274,19 @@ Phase 2 (Power Features)
 |------|---------|
 | `src/core/ProjectCompiler.ts` | Compilation engine |
 | `src/core/FileSplitter.ts` | Split/merge operations |
-| `src/utils/fileStatus.ts` | Status color map |
 | `src/ui/views/InspectorView.ts` + `.svelte` | File inspector panel |
 | `src/ui/modals/CompileModal.ts` | Compile options UI |
 
-### Types to extend (`src/types/types.ts`)
-- `Project.wordCountGoalType?: 'at-least' | 'at-most'`
-- `Project.fileGoals?: Record<string, number>`
+### Already created (reference)
+| Path | Purpose |
+|------|---------|
+| `src/utils/fileStatus.ts` | Status colour map ✅ |
+| `src/core/FlowMode.ts` | Flow Mode (formerly ZenMode) ✅ |
+| `src/core/WorkspaceManager.ts` | Writing workspace enter/exit ✅ |
+| `src/utils/deadlineUtils.ts` | Deadline + heatmap + streak maths ✅ |
 
-### Settings to extend (`src/types/settings.ts`)
-- `zenFocusMode: 'none' | 'sentence' | 'paragraph'`
-- `zenFont: string`
-- `zenLineHeight: number`
-- `zenLineWidth: number`
+### Types still to extend (`src/types/types.ts`)
+- (none — all planned extensions are shipped)
+
+### Settings still to extend (`src/types/settings.ts`)
+- (none — all planned extensions are shipped)
