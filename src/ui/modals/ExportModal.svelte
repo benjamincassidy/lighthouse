@@ -466,35 +466,33 @@
     border-color: var(--color-accent);
   }
 
-  /* Padding-bottom aspect-ratio trick: padding % always resolves to a
-     percentage of the element's OWN WIDTH, creating a reliable box height
-     even when all child content is position:absolute (out of flow). */
   .lh-style-thumbnail {
-    position: relative;
     width: 100%;
-    height: 0;
-    padding-bottom: 137.5%; /* 11/8 = 1.375 → portrait 8:11 */
+    height: 110px;
     border-radius: calc(var(--radius-m) - 2px);
     overflow: hidden;
     background: var(--background-primary);
   }
 
-  .lh-style-thumbnail :global(svg),
-  .lh-style-thumbnail img,
+  .lh-style-thumbnail :global(svg) {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  .lh-style-thumbnail img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
   .lh-style-thumbnail-placeholder {
-    position: absolute;
-    inset: 0;
     width: 100%;
     height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
-  }
-
-  .lh-style-thumbnail-placeholder {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--text-faint);
   }
 
   .lh-style-name {

@@ -247,31 +247,28 @@ body.lh-flow-active[style*='--lh-flow-line-width'] .cm-editor {
   border-color: var(--color-accent);
 }
 
-/* Padding-bottom aspect-ratio trick — creates a reliable 8:11 portrait box
-   even when all child content is position:absolute (out of flow). */
 .lh-style-thumbnail {
-  position: relative;
   width: 100%;
-  height: 0;
-  padding-bottom: 137.5%; /* 11/8 = portrait 8:11 */
+  height: 110px;
   border-radius: calc(var(--radius-m) - 2px);
   overflow: hidden;
   background: var(--background-primary);
 }
 
 .lh-style-thumbnail svg,
-.lh-style-thumbnail img,
+.lh-style-thumbnail img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .lh-style-thumbnail-placeholder {
-  position: absolute;
-  inset: 0;
   width: 100%;
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.lh-style-thumbnail-placeholder {
   font-size: 1.4rem;
   font-weight: 700;
   color: var(--text-faint);
