@@ -42,6 +42,10 @@ const context = await esbuild.context({
   treeShaking: true,
   outfile: 'main.js',
   minify: prod,
+  loader: {
+    // Import .css files as raw text strings (used by export styles registry)
+    '.css': 'text',
+  },
   plugins: [
     sveltePlugin({
       preprocess: sveltePreprocess(),

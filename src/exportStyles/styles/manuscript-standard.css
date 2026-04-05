@@ -1,0 +1,92 @@
+/**
+ * Manuscript Standard export style.
+ * US Letter, 12pt Courier, double-spaced, 1-inch margins.
+ * Industry standard for fiction/non-fiction submissions to agents and publishers.
+ * Reference: William Shunn's "Proper Manuscript Format" (www.shunn.net/format/)
+ */
+@page {
+  size: letter;
+  margin: 1in;
+}
+
+@media print {
+  /* Base typography */
+  .markdown-preview-view,
+  .markdown-preview-sizer {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 12pt;
+    line-height: 2; /* Double-spaced */
+    color: #000;
+    background: #fff;
+    max-width: none;
+    padding: 0;
+  }
+
+  /* H1 = Part titles — each on its own page, centred, ~1/3 down */
+  .markdown-preview-view h1 {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 12pt;
+    font-weight: normal;
+    text-align: center;
+    text-transform: uppercase;
+    page-break-before: always;
+    margin-top: 4in; /* Drop cap effect — ~1/3 down a US letter page */
+    margin-bottom: 0;
+    line-height: 2;
+  }
+
+  .markdown-preview-view h1:first-child {
+    page-break-before: avoid;
+  }
+
+  /* H2 = Chapter headings — centred, ~1/4 down */
+  .markdown-preview-view h2 {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 12pt;
+    font-weight: normal;
+    text-align: center;
+    page-break-before: always;
+    margin-top: 2in;
+    margin-bottom: 2em;
+    line-height: 2;
+  }
+
+  /* Paragraphs */
+  .markdown-preview-view p {
+    text-indent: 0.5in;
+    margin: 0;
+    orphans: 3;
+    widows: 3;
+  }
+
+  /* No indent after headings */
+  .markdown-preview-view h1 + p,
+  .markdown-preview-view h2 + p,
+  .markdown-preview-view h3 + p {
+    text-indent: 0;
+  }
+
+  /* Scene break — centred hash */
+  .markdown-preview-view hr {
+    border: none;
+    text-align: center;
+    margin: 0;
+  }
+
+  .markdown-preview-view hr::after {
+    content: '#';
+    font-size: 12pt;
+  }
+
+  /* Block quotes */
+  .markdown-preview-view blockquote {
+    margin: 0 1in;
+    text-indent: 0;
+  }
+
+  /* No colours */
+  .markdown-preview-view a {
+    color: inherit;
+    text-decoration: none;
+  }
+}

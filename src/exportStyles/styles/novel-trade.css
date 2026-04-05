@@ -1,0 +1,96 @@
+/**
+ * Export style for novel-length fiction in US Trade paperback format.
+ * 5.5 × 8.5 inches, Palatino serif, first-line indent, chapter page breaks.
+ */
+@page {
+  size: 5.5in 8.5in;
+  margin: 1in 0.875in 1in 1in;
+}
+
+@page :first {
+  margin-top: 2in;
+}
+
+@media print {
+  /* Base typography */
+  .markdown-preview-view,
+  .markdown-preview-sizer {
+    font-family: 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif;
+    font-size: 12pt;
+    line-height: 1.6;
+    color: #000;
+    background: #fff;
+    max-width: none;
+    padding: 0;
+  }
+
+  /* Headings — each H1 starts a new chapter page */
+  .markdown-preview-view h1 {
+    font-family: 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif;
+    font-size: 14pt;
+    font-weight: normal;
+    font-style: italic;
+    text-align: center;
+    letter-spacing: 0.05em;
+    page-break-before: always;
+    margin-top: 0;
+    margin-bottom: 3em;
+    padding-top: 2em;
+  }
+
+  /* Don't break before the very first heading */
+  .markdown-preview-view h1:first-child {
+    page-break-before: avoid;
+  }
+
+  .markdown-preview-view h2 {
+    font-size: 12pt;
+    font-weight: bold;
+    text-align: center;
+    margin: 2em 0 1em;
+  }
+
+  /* Paragraphs — first-line indent, no margin gap */
+  .markdown-preview-view p {
+    text-indent: 1.5em;
+    margin: 0;
+    text-align: justify;
+    orphans: 3;
+    widows: 3;
+    hyphens: auto;
+  }
+
+  /* No indent after headings or horizontal rules */
+  .markdown-preview-view h1 + p,
+  .markdown-preview-view h2 + p,
+  .markdown-preview-view h3 + p,
+  .markdown-preview-view hr + p {
+    text-indent: 0;
+  }
+
+  /* Scene break — the * * * convention */
+  .markdown-preview-view hr {
+    border: none;
+    text-align: center;
+    margin: 1.5em 0;
+  }
+
+  .markdown-preview-view hr::after {
+    content: '* * *';
+    font-style: italic;
+    color: #555;
+  }
+
+  /* Block quotes (internal monologue / letters) */
+  .markdown-preview-view blockquote {
+    margin: 1em 2em;
+    font-style: italic;
+    text-indent: 0;
+  }
+
+  /* No link colours in print */
+  .markdown-preview-view a {
+    color: inherit;
+    text-decoration: none;
+  }
+}

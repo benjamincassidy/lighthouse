@@ -140,3 +140,235 @@ body.lh-flow-active[style*='--lh-flow-line-width'] .cm-editor {
 .tree-item-icon.collapse-icon .svg-icon.right-triangle.is-collapsed {
   transform: rotate(-90deg);
 }
+
+/* ================================================================
+   Export modal
+   ================================================================ */
+
+.lh-export-modal .modal-content {
+  padding: 1.25rem 1.5rem 1.5rem;
+}
+
+/* Widen the modal so the style gallery fits comfortably */
+.lh-export-modal .modal {
+  width: min(640px, 90vw);
+}
+
+.lh-export-modal-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.lh-export-title {
+  margin: 0 0 0.25rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.lh-export-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.lh-section-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+/* ── Format tabs ──────────────────────────────── */
+.lh-format-tabs {
+  display: flex;
+  gap: 0.2rem;
+  background: var(--background-modifier-form-field);
+  border-radius: var(--radius-m);
+  padding: 0.2rem;
+}
+
+.lh-format-tab {
+  flex: 1;
+  padding: 0.3rem 0.5rem;
+  border-radius: calc(var(--radius-m) - 2px);
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.lh-format-tab.active,
+.lh-format-tab[aria-selected="true"] {
+  background: var(--background-primary);
+  color: var(--text-normal);
+  box-shadow: var(--shadow-s);
+}
+
+.lh-format-tab:hover:not(.active):not([aria-selected="true"]) {
+  color: var(--text-normal);
+}
+
+/* ── Style gallery ────────────────────────────── */
+.lh-style-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
+  gap: 0.5rem;
+}
+
+.lh-style-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.5rem;
+  border-radius: var(--radius-m);
+  border: 2px solid transparent;
+  background: var(--background-modifier-form-field);
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease;
+  text-align: center;
+}
+
+.lh-style-card:hover {
+  border-color: var(--background-modifier-border-hover);
+}
+
+.lh-style-card.selected,
+.lh-style-card[aria-selected="true"] {
+  border-color: var(--color-accent);
+}
+
+.lh-style-thumbnail {
+  width: 100%;
+  aspect-ratio: 11 / 8.5;
+  border-radius: calc(var(--radius-m) - 2px);
+  overflow: hidden;
+  background: var(--background-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lh-style-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.lh-style-thumbnail-placeholder {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text-faint);
+}
+
+.lh-style-name {
+  font-size: 0.76rem;
+  font-weight: 500;
+  color: var(--text-normal);
+  line-height: 1.25;
+  word-break: break-word;
+}
+
+.lh-style-size {
+  font-size: 0.68rem;
+  color: var(--text-faint);
+}
+
+/* ── Output form ──────────────────────────────── */
+.lh-form-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.lh-form-row {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.lh-form-row--full {
+  grid-template-columns: 1fr;
+}
+
+.lh-form-label {
+  font-size: 0.83rem;
+  color: var(--text-muted);
+}
+
+.lh-form-input {
+  width: 100%;
+  padding: 0.3rem 0.5rem;
+  background: var(--background-modifier-form-field);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  color: var(--text-normal);
+  font-size: 0.83rem;
+}
+
+/* ── Options ──────────────────────────────────── */
+.lh-export-options > summary.lh-options-summary {
+  font-size: 0.83rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  user-select: none;
+}
+
+.lh-export-options > summary.lh-options-summary::-webkit-details-marker {
+  display: none;
+}
+
+.lh-export-options > summary.lh-options-summary::before {
+  content: '▶';
+  font-size: 0.58rem;
+  transition: transform 150ms ease;
+  display: inline-block;
+}
+
+.lh-export-options[open] > summary.lh-options-summary::before {
+  transform: rotate(90deg);
+}
+
+.lh-options-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding-top: 0.5rem;
+}
+
+.lh-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.83rem;
+  color: var(--text-normal);
+  cursor: pointer;
+}
+
+/* ── Error ────────────────────────────────────── */
+.lh-export-error {
+  padding: 0.45rem 0.7rem;
+  border-radius: var(--radius-s);
+  background: var(--background-modifier-error);
+  color: var(--text-error);
+  font-size: 0.81rem;
+}
+
+/* ── Actions ──────────────────────────────────── */
+.lh-export-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding-top: 0.25rem;
+}

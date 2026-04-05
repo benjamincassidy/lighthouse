@@ -2,6 +2,7 @@
   import { activeProject, projects } from '@/core/stores'
   import type LighthousePlugin from '@/main'
   import type { Project } from '@/types/types'
+  import { ExportModal } from '@/ui/modals/ExportModal'
   import { ProjectModal } from '@/ui/modals/ProjectModal'
   import {
     computeStreak,
@@ -70,6 +71,11 @@
     if (!currentProject) return
     const modal = new ProjectModal(plugin, 'edit', currentProject)
     modal.open()
+  }
+
+  function exportProject() {
+    if (!currentProject) return
+    new ExportModal(plugin, currentProject).open()
   }
 
   async function deleteProject() {
@@ -245,6 +251,22 @@
       <h3>Active Project</h3>
       <div class="lighthouse-header-actions">
         {#if currentProject}
+          <button class="clickable-icon" onclick={exportProject} aria-label="Export project">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              ><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline
+                points="7 10 12 15 17 10"
+              /><line x1="12" y1="15" x2="12" y2="3" /></svg
+            >
+          </button>
           <button class="clickable-icon" onclick={editProject} aria-label="Edit project">
             <svg
               xmlns="http://www.w3.org/2000/svg"

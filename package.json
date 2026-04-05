@@ -55,5 +55,9 @@
     "typescript-eslint": "^8.20.0",
     "vite": "^6.0.7",
     "vitest": "^4.0.16"
+  },
+  "dependencies": {
+    "docx": "^9.6.1",
+    "epub-gen-memory": "^1.1.2"
   }
 }
