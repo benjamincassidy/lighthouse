@@ -215,17 +215,20 @@ body.lh-flow-active[style*='--lh-flow-line-width'] .cm-editor {
   color: var(--text-normal);
 }
 
-/* ── Style gallery ────────────────────────────── */
-.lh-style-gallery {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
+/* ── Style rail ───────────────────────────────── */
+.lh-style-rail {
+  display: flex;
+  flex-direction: row;
   gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 2px;
 }
 
 .lh-style-card {
+  flex: 0 0 auto;
+  width: 120px;
   display: flex;
   flex-direction: column;
-  align-items: stretch;
   gap: 0.3rem;
   padding: 0.5rem;
   border-radius: var(--radius-m);
@@ -245,33 +248,34 @@ body.lh-flow-active[style*='--lh-flow-line-width'] .cm-editor {
 .lh-style-card.selected,
 .lh-style-card[aria-selected='true'] {
   border-color: var(--color-accent);
-}
-
-.lh-style-thumbnail {
-  width: 100%;
-  height: 110px;
-  border-radius: calc(var(--radius-m) - 2px);
-  overflow: hidden;
   background: var(--background-primary);
 }
 
-.lh-style-thumbnail svg,
-.lh-style-thumbnail img {
-  display: block;
+/* Thumbnail — height driven by SVG intrinsic aspect ratio (viewBox 160×220) */
+.lh-style-thumb {
   width: 100%;
-  height: 100%;
-  object-fit: cover;
+  border-radius: calc(var(--radius-m) - 2px);
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
 }
 
-.lh-style-thumbnail-placeholder {
+.lh-style-thumb svg,
+.lh-style-thumb img {
+  display: block;
   width: 100%;
-  height: 100%;
+  height: auto;
+}
+
+.lh-style-thumb-placeholder {
+  width: 100%;
+  aspect-ratio: 8 / 11;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 1.4rem;
   font-weight: 700;
   color: var(--text-faint);
+  background: var(--background-secondary);
 }
 
 .lh-style-name {

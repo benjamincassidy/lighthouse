@@ -248,28 +248,25 @@
   <h2 class="lh-export-title">Export — {project.name}</h2>
 
   <!-- ── Format selector ─────────────────────────────────── -->
-  <div class="lh-export-section">
-    <div class="lh-section-label">Format</div>
-    <div class="lh-format-tabs" role="tablist">
-      {#each ['pdf', 'docx', 'epub', 'markdown'] as ExportFormat[] as fmt}
-        <button
-          role="tab"
-          aria-selected={format === fmt}
-          class="lh-format-tab"
-          class:active={format === fmt}
-          onclick={() => (format = fmt)}
-        >
-          {fmt === 'markdown' ? 'Markdown' : fmt.toUpperCase()}
-        </button>
-      {/each}
-    </div>
+  <div class="lh-format-tabs" role="tablist" aria-label="Export format">
+    {#each ['pdf', 'docx', 'epub', 'markdown'] as ExportFormat[] as fmt}
+      <button
+        role="tab"
+        aria-selected={format === fmt}
+        class="lh-format-tab"
+        class:active={format === fmt}
+        onclick={() => (format = fmt)}
+      >
+        {fmt === 'markdown' ? 'Markdown' : fmt.toUpperCase()}
+      </button>
+    {/each}
   </div>
 
-  <!-- ── Style gallery (not shown for plain Markdown) ──── -->
+  <!-- ── Style rail (not shown for Markdown) ─────────────── -->
   {#if format !== 'markdown'}
-    <div class="lh-export-section">
-      <div class="lh-section-label">Style</div>
-      <div class="lh-style-gallery" role="listbox" aria-label="Export styles">
+    <div class="lh-style-section">
+      <p class="lh-style-section-label">Style</p>
+      <div class="lh-style-rail" role="listbox" aria-label="Export styles">
         {#each allStyles as style (style.id)}
           <button
             role="option"
@@ -278,13 +275,13 @@
             class:selected={selectedStyleId === style.id}
             onclick={() => (selectedStyleId = style.id)}
           >
-            <div class="lh-style-thumbnail" aria-hidden="true">
+            <div class="lh-style-thumb" aria-hidden="true">
               {#if style.builtIn}
                 {@html style.previewSvg}
               {:else if style.previewSvg}
                 <img src={style.previewSvg} alt="" />
               {:else}
-                <div class="lh-style-thumbnail-placeholder">
+                <div class="lh-style-thumb-placeholder">
                   {style.name.charAt(0)}
                 </div>
               {/if}
@@ -298,35 +295,32 @@
   {/if}
 
   <!-- ── Output settings ─────────────────────────────────── -->
-  <div class="lh-export-section">
-    <div class="lh-section-label">Output</div>
-    <div class="lh-form-grid">
-      <div class="lh-form-row">
-        <label class="lh-form-label" for="lh-export-filename">Filename</label>
-        <input
-          id="lh-export-filename"
-          class="lh-form-input"
-          type="text"
-          bind:value={filename}
-          placeholder={sanitizeFilename(project.name)}
-        />
-      </div>
-      <div class="lh-form-row">
-        <label class="lh-form-label" for="lh-export-folder">Output folder</label>
-        <input
-          id="lh-export-folder"
-          class="lh-form-input"
-          type="text"
-          bind:value={outputFolder}
-          placeholder="Vault root"
-        />
-      </div>
+  <div class="lh-output-section">
+    <div class="lh-form-row">
+      <label class="lh-form-label" for="lh-export-filename">Filename</label>
+      <input
+        id="lh-export-filename"
+        class="lh-form-input"
+        type="text"
+        bind:value={filename}
+        placeholder={sanitizeFilename(project.name)}
+      />
+    </div>
+    <div class="lh-form-row">
+      <label class="lh-form-label" for="lh-export-folder">Output folder</label>
+      <input
+        id="lh-export-folder"
+        class="lh-form-input"
+        type="text"
+        bind:value={outputFolder}
+        placeholder="Vault root"
+      />
     </div>
   </div>
 
   <!-- ── Compilation options (collapsible) ───────────────── -->
-  <details class="lh-export-section lh-export-options">
-    <summary class="lh-options-summary">Options</summary>
+  <details class="lh-export-options">
+    <summary>Options</summary>
     <div class="lh-options-grid">
       <label class="lh-checkbox-row">
         <input type="checkbox" bind:checked={stripFrontmatter} />
@@ -387,20 +381,6 @@
     font-weight: 600;
   }
 
-  .lh-export-section {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .lh-section-label {
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--text-muted);
-  }
-
   /* ── Format tabs ─────────────────────────── */
   .lh-format-tabs {
     display: flex;
@@ -435,27 +415,45 @@
     color: var(--text-normal);
   }
 
-  /* ── Style gallery ───────────────────────── */
-  .lh-style-gallery {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  /* ── Style rail ──────────────────────────── */
+  .lh-style-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .lh-style-section-label {
+    margin: 0;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+  }
+
+  .lh-style-rail {
+    display: flex;
+    flex-direction: row;
     gap: 0.5rem;
+    overflow-x: auto;
+    padding-bottom: 2px;
   }
 
   .lh-style-card {
+    flex: 0 0 auto;
+    width: 120px;
     display: flex;
     flex-direction: column;
-    align-items: stretch;
     gap: 0.35rem;
     padding: 0.5rem;
     border-radius: var(--radius-m);
     border: 2px solid transparent;
     background: var(--background-modifier-form-field);
     cursor: pointer;
+    text-align: center;
     transition:
       border-color 120ms ease,
       background 120ms ease;
-    text-align: center;
   }
 
   .lh-style-card:hover {
@@ -464,35 +462,49 @@
 
   .lh-style-card.selected {
     border-color: var(--color-accent);
-  }
-
-  .lh-style-thumbnail {
-    width: 100%;
-    height: 110px;
-    border-radius: calc(var(--radius-m) - 2px);
-    overflow: hidden;
     background: var(--background-primary);
   }
 
-  .lh-style-thumbnail :global(svg) {
-    display: block;
+  /*
+   * Thumbnail container — no explicit height. Height is driven entirely by
+   * the SVG's intrinsic aspect ratio computed from its viewBox (160×220 = 8:11).
+   */
+  .lh-style-thumb {
     width: 100%;
-    height: 100%;
+    border-radius: calc(var(--radius-m) - 2px);
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
   }
 
-  .lh-style-thumbnail img {
+  /*
+   * The SVG has only a viewBox attribute (no width/height attrs).
+   * display:block + width:100% + height:auto → the browser computes height
+   * from the 160:220 intrinsic aspect ratio. No height tricks required.
+   */
+  .lh-style-thumb :global(svg) {
     display: block;
     width: 100%;
-    height: 100%;
+    height: auto;
+  }
+
+  .lh-style-thumb img {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 8 / 11;
     object-fit: cover;
   }
 
-  .lh-style-thumbnail-placeholder {
+  .lh-style-thumb-placeholder {
     width: 100%;
-    height: 100%;
+    aspect-ratio: 8 / 11;
     display: flex;
     align-items: center;
     justify-content: center;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    background: var(--background-secondary);
   }
 
   .lh-style-name {
@@ -509,7 +521,7 @@
   }
 
   /* ── Output form ─────────────────────────── */
-  .lh-form-grid {
+  .lh-output-section {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
@@ -542,7 +554,7 @@
   }
 
   /* ── Options ─────────────────────────────── */
-  .lh-export-options > summary.lh-options-summary {
+  .lh-export-options > summary {
     font-size: 0.85rem;
     font-weight: 500;
     color: var(--text-muted);
@@ -554,13 +566,13 @@
     user-select: none;
   }
 
-  .lh-export-options > summary.lh-options-summary::before {
+  .lh-export-options > summary::before {
     content: '▶';
     font-size: 0.6rem;
     transition: transform 150ms ease;
   }
 
-  .lh-export-options[open] > summary.lh-options-summary::before {
+  .lh-export-options[open] > summary::before {
     transform: rotate(90deg);
   }
 
