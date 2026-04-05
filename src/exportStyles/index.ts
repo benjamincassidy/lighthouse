@@ -123,10 +123,10 @@ function makeThumbnail(opts: {
   textRect(Math.round(textW * 0.95), false)
   textRect(Math.round(textW * 0.65), false)
 
-  // No width/height attributes — just viewBox. The browser derives the
-  // rendered height from the intrinsic 160:220 aspect ratio when CSS sets
-  // width:100% + height:auto, so no container height is ever needed.
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}">
+  // Explicit pixel width/height are required so browsers have definite
+  // intrinsic dimensions. CSS width:100% + height:auto then scales the SVG
+  // while preserving the 160:220 aspect ratio — no container height needed.
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
   <rect width="${w}" height="${h}" fill="${bgColor}" rx="3"/>
   ${els.join('\n  ')}
 </svg>`

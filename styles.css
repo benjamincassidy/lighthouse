@@ -215,58 +215,64 @@ body.lh-flow-active[style*='--lh-flow-line-width'] .cm-editor {
   color: var(--text-normal);
 }
 
-/* ── Style rail ───────────────────────────────── */
-.lh-style-rail {
+/* ── Style picker ─────────────────────────────── */
+.lh-pick-row {
   display: flex;
   flex-direction: row;
   gap: 0.5rem;
   overflow-x: auto;
-  padding-bottom: 2px;
+  padding-bottom: 4px;
 }
 
-.lh-style-card {
+.lh-card {
   flex: 0 0 auto;
-  width: 120px;
+  width: 110px;
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
-  padding: 0.5rem;
+  padding: 0.4rem;
   border-radius: var(--radius-m);
-  border: 2px solid transparent;
-  background: var(--background-modifier-form-field);
+  border: 2px solid var(--background-modifier-border);
+  background: var(--background-secondary);
   cursor: pointer;
+  text-align: center;
   transition:
     border-color 120ms ease,
     background 120ms ease;
-  text-align: center;
 }
 
-.lh-style-card:hover {
+.lh-card:hover {
   border-color: var(--background-modifier-border-hover);
 }
 
-.lh-style-card.selected,
-.lh-style-card[aria-selected='true'] {
+.lh-card--on,
+.lh-card[aria-selected='true'] {
   border-color: var(--color-accent);
   background: var(--background-primary);
 }
 
-/* Thumbnail — height driven by SVG intrinsic aspect ratio (viewBox 160×220) */
-.lh-style-thumb {
+/*
+ * Thumbnail: the SVG has explicit width="160" height="220" attributes so
+ * the browser has definite intrinsic dimensions. CSS width:100% + height:auto
+ * scales it to fill the card while the 160:220 ratio sets the height.
+ * No container height or padding tricks needed.
+ */
+.lh-card-thumb {
   width: 100%;
-  border-radius: calc(var(--radius-m) - 2px);
   overflow: hidden;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+  border-radius: 3px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  line-height: 0;
 }
 
-.lh-style-thumb svg,
-.lh-style-thumb img {
+.lh-card-thumb svg,
+.lh-card-thumb img {
   display: block;
   width: 100%;
   height: auto;
 }
 
-.lh-style-thumb-placeholder {
+.lh-card-initial {
   width: 100%;
   aspect-ratio: 8 / 11;
   display: flex;
@@ -275,10 +281,10 @@ body.lh-flow-active[style*='--lh-flow-line-width'] .cm-editor {
   font-size: 1.4rem;
   font-weight: 700;
   color: var(--text-faint);
-  background: var(--background-secondary);
+  background: var(--background-modifier-form-field);
 }
 
-.lh-style-name {
+.lh-card-name {
   font-size: 0.76rem;
   font-weight: 500;
   color: var(--text-normal);
@@ -286,7 +292,7 @@ body.lh-flow-active[style*='--lh-flow-line-width'] .cm-editor {
   word-break: break-word;
 }
 
-.lh-style-size {
+.lh-card-size {
   font-size: 0.68rem;
   color: var(--text-faint);
 }

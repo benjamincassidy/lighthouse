@@ -244,17 +244,17 @@
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-<div class="lh-export-modal-content" role="dialog" aria-label="Export project">
-  <h2 class="lh-export-title">Export — {project.name}</h2>
+<div class="lh-export" role="dialog" aria-label="Export project">
+  <h2 class="lh-export-heading">Export — {project.name}</h2>
 
-  <!-- ── Format selector ─────────────────────────────────── -->
-  <div class="lh-format-tabs" role="tablist" aria-label="Export format">
+  <!-- ── Format tabs ─────────────────────────────────────── -->
+  <div class="lh-tabs" role="tablist" aria-label="Export format">
     {#each ['pdf', 'docx', 'epub', 'markdown'] as ExportFormat[] as fmt}
       <button
         role="tab"
         aria-selected={format === fmt}
-        class="lh-format-tab"
-        class:active={format === fmt}
+        class="lh-tab"
+        class:lh-tab--active={format === fmt}
         onclick={() => (format = fmt)}
       >
         {fmt === 'markdown' ? 'Markdown' : fmt.toUpperCase()}
@@ -262,127 +262,97 @@
     {/each}
   </div>
 
-  <!-- ── Style rail (not shown for Markdown) ─────────────── -->
+  <!-- ── Style picker (hidden for Markdown) ──────────────── -->
   {#if format !== 'markdown'}
-    <div class="lh-style-section">
-      <p class="lh-style-section-label">Style</p>
-      <div class="lh-style-rail" role="listbox" aria-label="Export styles">
+    <div class="lh-pick">
+      <span class="lh-pick-label">Style</span>
+      <div class="lh-pick-row" role="listbox" aria-label="Export styles">
         {#each allStyles as style (style.id)}
+          {@const isSelected = selectedStyleId === style.id}
           <button
             role="option"
-            aria-selected={selectedStyleId === style.id}
-            class="lh-style-card"
-            class:selected={selectedStyleId === style.id}
+            aria-selected={isSelected}
+            class="lh-card"
+            class:lh-card--on={isSelected}
             onclick={() => (selectedStyleId = style.id)}
           >
-            <div class="lh-style-thumb" aria-hidden="true">
+            <!--
+              The SVG has explicit width/height attrs (160×220) giving it
+              definite intrinsic dimensions. The inline style then overrides
+              those to fill the card width while height:auto preserves the
+              8:11 aspect ratio. This is bulletproof across all Chromium builds.
+            -->
+            <div class="lh-card-thumb">
               {#if style.builtIn}
                 {@html style.previewSvg}
               {:else if style.previewSvg}
                 <img src={style.previewSvg} alt="" />
               {:else}
-                <div class="lh-style-thumb-placeholder">
-                  {style.name.charAt(0)}
-                </div>
+                <div class="lh-card-initial">{style.name.charAt(0)}</div>
               {/if}
             </div>
-            <div class="lh-style-name">{style.name}</div>
-            <div class="lh-style-size">{style.pageSize}</div>
+            <div class="lh-card-name">{style.name}</div>
+            <div class="lh-card-size">{style.pageSize}</div>
           </button>
         {/each}
       </div>
     </div>
   {/if}
 
-  <!-- ── Output settings ─────────────────────────────────── -->
-  <div class="lh-output-section">
-    <div class="lh-form-row">
-      <label class="lh-form-label" for="lh-export-filename">Filename</label>
-      <input
-        id="lh-export-filename"
-        class="lh-form-input"
-        type="text"
-        bind:value={filename}
-        placeholder={sanitizeFilename(project.name)}
-      />
+  <!-- ── Output ───────────────────────────────────────────── -->
+  <div class="lh-fields">
+    <div class="lh-field">
+      <label for="lh-fname">Filename</label>
+      <input id="lh-fname" type="text" bind:value={filename} placeholder={sanitizeFilename(project.name)} />
     </div>
-    <div class="lh-form-row">
-      <label class="lh-form-label" for="lh-export-folder">Output folder</label>
-      <input
-        id="lh-export-folder"
-        class="lh-form-input"
-        type="text"
-        bind:value={outputFolder}
-        placeholder="Vault root"
-      />
+    <div class="lh-field">
+      <label for="lh-folder">Output folder</label>
+      <input id="lh-folder" type="text" bind:value={outputFolder} placeholder="Vault root" />
     </div>
   </div>
 
-  <!-- ── Compilation options (collapsible) ───────────────── -->
-  <details class="lh-export-options">
+  <!-- ── Options (collapsible) ────────────────────────────── -->
+  <details class="lh-options">
     <summary>Options</summary>
-    <div class="lh-options-grid">
-      <label class="lh-checkbox-row">
-        <input type="checkbox" bind:checked={stripFrontmatter} />
-        <span>Strip YAML frontmatter</span>
-      </label>
-      <label class="lh-checkbox-row">
-        <input type="checkbox" bind:checked={convertWikiLinks} />
-        <span>Convert [[wiki links]] to plain text</span>
-      </label>
-      <label class="lh-checkbox-row">
-        <input type="checkbox" bind:checked={stripEmbeds} />
-        <span>Remove ![[embedded file]] links</span>
-      </label>
-      <label class="lh-checkbox-row">
-        <input type="checkbox" bind:checked={stripHighlights} />
-        <span>Strip ==highlight== markers</span>
-      </label>
-      <div class="lh-form-row lh-form-row--full">
-        <label class="lh-form-label" for="lh-separator">File separator</label>
-        <input
-          id="lh-separator"
-          class="lh-form-input"
-          type="text"
-          bind:value={fileSeparator}
-          placeholder="(none — files joined directly)"
-        />
+    <div class="lh-options-body">
+      <label><input type="checkbox" bind:checked={stripFrontmatter} /> Strip YAML frontmatter</label>
+      <label><input type="checkbox" bind:checked={convertWikiLinks} /> Convert [[wiki links]] to plain text</label>
+      <label><input type="checkbox" bind:checked={stripEmbeds} /> Remove ![[embedded file]] links</label>
+      <label><input type="checkbox" bind:checked={stripHighlights} /> Strip ==highlight== markers</label>
+      <div class="lh-field lh-field--full">
+        <label for="lh-sep">File separator</label>
+        <input id="lh-sep" type="text" bind:value={fileSeparator} placeholder="(none — files joined directly)" />
       </div>
     </div>
   </details>
 
-  <!-- ── Error message ───────────────────────────────────── -->
   {#if errorMessage}
-    <div class="lh-export-error" role="alert">{errorMessage}</div>
+    <div class="lh-error" role="alert">{errorMessage}</div>
   {/if}
 
-  <!-- ── Action buttons ──────────────────────────────────── -->
-  <div class="lh-export-actions">
-    <button class="mod-secondary" onclick={copyToClipboard} disabled={exporting}>
-      Copy to clipboard
-    </button>
-    <button class="mod-cta" onclick={doExport} disabled={exporting}>
-      {exporting ? 'Exporting…' : 'Export'}
-    </button>
+  <div class="lh-footer">
+    <button class="mod-secondary" onclick={copyToClipboard} disabled={exporting}>Copy to clipboard</button>
+    <button class="mod-cta" onclick={doExport} disabled={exporting}>{exporting ? 'Exporting…' : 'Export'}</button>
   </div>
 </div>
 
 <style>
-  .lh-export-modal-content {
+  /* ── Shell ───────────────────────────────── */
+  .lh-export {
     display: flex;
     flex-direction: column;
     gap: 1rem;
     padding: 0.25rem 0;
   }
 
-  .lh-export-title {
-    margin: 0 0 0.25rem;
+  .lh-export-heading {
+    margin: 0;
     font-size: 1.1rem;
     font-weight: 600;
   }
 
   /* ── Format tabs ─────────────────────────── */
-  .lh-format-tabs {
+  .lh-tabs {
     display: flex;
     gap: 0.25rem;
     background: var(--background-modifier-form-field);
@@ -390,7 +360,7 @@
     padding: 0.25rem;
   }
 
-  .lh-format-tab {
+  .lh-tab {
     flex: 1;
     padding: 0.3rem 0.75rem;
     border-radius: calc(var(--radius-m) - 2px);
@@ -405,25 +375,24 @@
       color 120ms ease;
   }
 
-  .lh-format-tab.active {
+  .lh-tab--active {
     background: var(--background-primary);
     color: var(--text-normal);
     box-shadow: var(--shadow-s);
   }
 
-  .lh-format-tab:hover:not(.active) {
+  .lh-tab:hover:not(.lh-tab--active) {
     color: var(--text-normal);
   }
 
-  /* ── Style rail ──────────────────────────── */
-  .lh-style-section {
+  /* ── Style picker ────────────────────────── */
+  .lh-pick {
     display: flex;
     flex-direction: column;
     gap: 0.4rem;
   }
 
-  .lh-style-section-label {
-    margin: 0;
+  .lh-pick-label {
     font-size: 0.75rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -431,24 +400,24 @@
     color: var(--text-muted);
   }
 
-  .lh-style-rail {
+  .lh-pick-row {
     display: flex;
     flex-direction: row;
     gap: 0.5rem;
     overflow-x: auto;
-    padding-bottom: 2px;
+    padding-bottom: 4px;
   }
 
-  .lh-style-card {
+  .lh-card {
     flex: 0 0 auto;
-    width: 120px;
+    width: 110px;
     display: flex;
     flex-direction: column;
-    gap: 0.35rem;
-    padding: 0.5rem;
+    gap: 0.3rem;
+    padding: 0.4rem;
     border-radius: var(--radius-m);
-    border: 2px solid transparent;
-    background: var(--background-modifier-form-field);
+    border: 2px solid var(--background-modifier-border);
+    background: var(--background-secondary);
     cursor: pointer;
     text-align: center;
     transition:
@@ -456,38 +425,40 @@
       background 120ms ease;
   }
 
-  .lh-style-card:hover {
+  .lh-card:hover {
     border-color: var(--background-modifier-border-hover);
   }
 
-  .lh-style-card.selected {
+  .lh-card--on {
     border-color: var(--color-accent);
     background: var(--background-primary);
   }
 
   /*
-   * Thumbnail container — no explicit height. Height is driven entirely by
-   * the SVG's intrinsic aspect ratio computed from its viewBox (160×220 = 8:11).
+   * Thumbnail wrapper — let it size to content (the SVG inside).
+   * No height, no padding tricks.
    */
-  .lh-style-thumb {
+  .lh-card-thumb {
     width: 100%;
-    border-radius: calc(var(--radius-m) - 2px);
     overflow: hidden;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+    border-radius: 3px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    line-height: 0; /* collapse whitespace gap below inline SVG */
   }
 
   /*
-   * The SVG has only a viewBox attribute (no width/height attrs).
-   * display:block + width:100% + height:auto → the browser computes height
-   * from the 160:220 intrinsic aspect ratio. No height tricks required.
+   * The SVG has explicit width="160" height="220" attributes, giving it a
+   * definite 160:220 intrinsic size. CSS overrides: width fills the card,
+   * height:auto lets the browser compute it from the intrinsic aspect ratio.
+   * This works in every Chromium version — no flex height context needed.
    */
-  .lh-style-thumb :global(svg) {
+  .lh-card-thumb :global(svg) {
     display: block;
     width: 100%;
     height: auto;
   }
 
-  .lh-style-thumb img {
+  .lh-card-thumb img {
     display: block;
     width: 100%;
     height: auto;
@@ -495,55 +466,55 @@
     object-fit: cover;
   }
 
-  .lh-style-thumb-placeholder {
+  .lh-card-initial {
     width: 100%;
     aspect-ratio: 8 / 11;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 1.5rem;
-    font-weight: 600;
+    font-weight: 700;
     color: var(--text-muted);
-    background: var(--background-secondary);
+    background: var(--background-modifier-form-field);
   }
 
-  .lh-style-name {
-    font-size: 0.78rem;
+  .lh-card-name {
+    font-size: 0.76rem;
     font-weight: 500;
     color: var(--text-normal);
     line-height: 1.2;
     word-break: break-word;
   }
 
-  .lh-style-size {
-    font-size: 0.7rem;
+  .lh-card-size {
+    font-size: 0.68rem;
     color: var(--text-faint);
   }
 
-  /* ── Output form ─────────────────────────── */
-  .lh-output-section {
+  /* ── Output fields ───────────────────────── */
+  .lh-fields {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.45rem;
   }
 
-  .lh-form-row {
+  .lh-field {
     display: grid;
-    grid-template-columns: 120px 1fr;
+    grid-template-columns: 110px 1fr;
     align-items: center;
     gap: 0.5rem;
   }
 
-  .lh-form-row--full {
+  .lh-field--full {
     grid-template-columns: 1fr;
   }
 
-  .lh-form-label {
+  .lh-field label {
     font-size: 0.85rem;
     color: var(--text-muted);
   }
 
-  .lh-form-input {
+  .lh-field input[type='text'] {
     width: 100%;
     padding: 0.3rem 0.5rem;
     background: var(--background-modifier-form-field);
@@ -554,7 +525,7 @@
   }
 
   /* ── Options ─────────────────────────────── */
-  .lh-export-options > summary {
+  .lh-options > summary {
     font-size: 0.85rem;
     font-weight: 500;
     color: var(--text-muted);
@@ -566,24 +537,24 @@
     user-select: none;
   }
 
-  .lh-export-options > summary::before {
+  .lh-options > summary::before {
     content: '▶';
     font-size: 0.6rem;
     transition: transform 150ms ease;
   }
 
-  .lh-export-options[open] > summary::before {
+  .lh-options[open] > summary::before {
     transform: rotate(90deg);
   }
 
-  .lh-options-grid {
+  .lh-options-body {
     display: flex;
     flex-direction: column;
     gap: 0.4rem;
     padding-top: 0.5rem;
   }
 
-  .lh-checkbox-row {
+  .lh-options-body label {
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -593,7 +564,7 @@
   }
 
   /* ── Error ───────────────────────────────── */
-  .lh-export-error {
+  .lh-error {
     padding: 0.5rem 0.75rem;
     border-radius: var(--radius-s);
     background: var(--background-modifier-error);
@@ -601,8 +572,8 @@
     font-size: 0.83rem;
   }
 
-  /* ── Actions ─────────────────────────────── */
-  .lh-export-actions {
+  /* ── Footer ──────────────────────────────── */
+  .lh-footer {
     display: flex;
     justify-content: flex-end;
     gap: 0.5rem;
