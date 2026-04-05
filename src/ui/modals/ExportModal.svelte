@@ -1,19 +1,20 @@
 <script lang="ts">
+  import { join } from 'path'
+
   import { untrack } from 'svelte'
 
   import { DocxExporter } from '@/core/exporters/DocxExporter'
   import { EpubExporter } from '@/core/exporters/EpubExporter'
   import { PdfExporter } from '@/core/exporters/PdfExporter'
   import { ProjectCompiler } from '@/core/ProjectCompiler'
-  import { BinaryManager, getBinDir, getBinPath } from '@/core/tools/BinaryManager'
+  import { BinaryManager, getBinDir, getBinPath, getStylePath } from '@/core/tools/BinaryManager'
   import type { DownloadProgress } from '@/core/tools/BinaryManager'
   import { PandocRunner } from '@/core/tools/PandocRunner'
-  import type { ToolName } from '@/core/tools/ToolsManifest'
+  import type { StyleName, ToolName } from '@/core/tools/ToolsManifest'
   import { BUILT_IN_STYLES, cssForScreenPreview, type ExportStyle } from '@/exportStyles/index'
   import type LighthousePlugin from '@/main'
   import type { Project } from '@/types/types'
 
-  import { join } from 'path'
   import type { TFile, TFolder } from 'obsidian'
 
   interface Props {
@@ -272,7 +273,10 @@
       } else if (format === 'docx') {
         const pandoc = makePandocRunner()
         const exporter = new DocxExporter(pandoc)
-        const buffer = await exporter.export(doc)
+        const referenceDoc = binaryManager.isStyleReady(selectedStyleId as StyleName, 'docx')
+          ? getStylePath(selectedStyleId as StyleName, 'docx', plugin)
+          : undefined
+        const buffer = await exporter.export(doc, { referenceDoc })
         const outPath = resolveOutputPath('docx')
         await plugin.app.vault.adapter.writeBinary(outPath, buffer)
         onSuccess(`Exported to ${outPath}`)
@@ -286,14 +290,17 @@
       } else if (format === 'pdf') {
         const pandoc = makePandocRunner()
         const exporter = new PdfExporter(pandoc)
-        // Resolve output path to an absolute filesystem path for typst
         const adapter = plugin.app.vault.adapter as unknown as { basePath: string }
         const relPath = resolveOutputPath('pdf')
         const absPath = join(adapter.basePath, relPath)
+        const template = binaryManager.isStyleReady(selectedStyleId as StyleName, 'typst')
+          ? getStylePath(selectedStyleId as StyleName, 'typst', plugin)
+          : undefined
         await exporter.export(doc, {
           outputPath: absPath,
           typstBinDir: getBinDir(plugin),
           paperSize: typstPaperSize(selectedPaperSizeId),
+          template,
         })
         onSuccess(`Exported PDF to ${relPath}`)
       }
@@ -356,7 +363,7 @@
   // Live preview state
   // ---------------------------------------------------------------------------
 
-  let previewHtml = $state('')       // Pandoc-generated HTML body
+  let previewHtml = $state('') // Pandoc-generated HTML body
   let previewLoading = $state(true)
   let previewPandocAvailable = $state(false)
 
@@ -565,7 +572,9 @@
         <div class="lh-tool-progress">
           <div
             class="lh-tool-progress-fill"
-            style="width: {downloadProgress.fraction >= 0 ? Math.round(downloadProgress.fraction * 100) : 50}%"
+            style="width: {downloadProgress.fraction >= 0
+              ? Math.round(downloadProgress.fraction * 100)
+              : 50}%"
           ></div>
         </div>
         {#if downloadError}

@@ -1,0 +1,313 @@
+name: Tools Release
+
+# Manually triggered to bundle Pandoc + Typst binaries and any style templates
+# into a GitHub release. The plugin downloads these on demand at export time.
+#
+# Workflow steps:
+#   1. Download Pandoc from jgm/pandoc for all supported platforms
+#   2. Download Typst from typst/typst for all supported platforms
+#   3. Extract just the binary from each archive
+#   4. gzip the raw binary (BinaryManager expects .gz — gunzips on install)
+#   5. Compute SHA-256 of the decompressed binary for integrity verification
+#   6. Bundle any style templates from src/exportStyles/resources/ if present
+#   7. Generate tools-manifest.json with URLs, hashes, and sizes
+#   8. Create or update the GitHub release with all assets
+
+on:
+  workflow_dispatch:
+    inputs:
+      pandoc_version:
+        description: 'Pandoc version to bundle (e.g. 3.6.4)'
+        required: true
+        default: '3.6.4'
+      typst_version:
+        description: 'Typst version to bundle (e.g. 0.13.1)'
+        required: true
+        default: '0.13.1'
+      release_tag:
+        description: 'Release tag — increment only on breaking binary format changes'
+        required: true
+        default: 'tools-v1'
+
+permissions:
+  contents: write
+
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+
+    env:
+      PANDOC_VER: ${{ inputs.pandoc_version }}
+      TYPST_VER: ${{ inputs.typst_version }}
+      RELEASE_TAG: ${{ inputs.release_tag }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # ------------------------------------------------------------------
+      # Pandoc binaries
+      # ------------------------------------------------------------------
+      - name: Download and package Pandoc binaries
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+
+          PANDOC_BASE="https://github.com/jgm/pandoc/releases/download/${PANDOC_VER}"
+
+          # ---- darwin-arm64 ----
+          echo "▶ pandoc darwin-arm64"
+          curl -fsSL "${PANDOC_BASE}/pandoc-${PANDOC_VER}-arm64-macOS.zip" -o /tmp/pandoc-macos-arm64.zip
+          unzip -p /tmp/pandoc-macos-arm64.zip "pandoc-${PANDOC_VER}/bin/pandoc" \
+            > dist/pandoc-darwin-arm64-raw
+          gzip -c dist/pandoc-darwin-arm64-raw > dist/pandoc-darwin-arm64.gz
+          echo "PANDOC_SHA_DARWIN_ARM64=$(sha256sum dist/pandoc-darwin-arm64-raw | cut -d' ' -f1)" >> "$GITHUB_ENV"
+          echo "PANDOC_SIZE_DARWIN_ARM64=$(stat -c%s dist/pandoc-darwin-arm64-raw)" >> "$GITHUB_ENV"
+
+          # ---- darwin-x64 ----
+          echo "▶ pandoc darwin-x64"
+          curl -fsSL "${PANDOC_BASE}/pandoc-${PANDOC_VER}-x86_64-macOS.zip" -o /tmp/pandoc-macos-x64.zip
+          unzip -p /tmp/pandoc-macos-x64.zip "pandoc-${PANDOC_VER}/bin/pandoc" \
+            > dist/pandoc-darwin-x64-raw
+          gzip -c dist/pandoc-darwin-x64-raw > dist/pandoc-darwin-x64.gz
+          echo "PANDOC_SHA_DARWIN_X64=$(sha256sum dist/pandoc-darwin-x64-raw | cut -d' ' -f1)" >> "$GITHUB_ENV"
+          echo "PANDOC_SIZE_DARWIN_X64=$(stat -c%s dist/pandoc-darwin-x64-raw)" >> "$GITHUB_ENV"
+
+          # ---- linux-x64 ----
+          echo "▶ pandoc linux-x64"
+          curl -fsSL "${PANDOC_BASE}/pandoc-${PANDOC_VER}-linux-amd64.tar.gz" -o /tmp/pandoc-linux-x64.tar.gz
+          tar -xzf /tmp/pandoc-linux-x64.tar.gz -O "pandoc-${PANDOC_VER}/bin/pandoc" \
+            > dist/pandoc-linux-x64-raw
+          gzip -c dist/pandoc-linux-x64-raw > dist/pandoc-linux-x64.gz
+          echo "PANDOC_SHA_LINUX_X64=$(sha256sum dist/pandoc-linux-x64-raw | cut -d' ' -f1)" >> "$GITHUB_ENV"
+          echo "PANDOC_SIZE_LINUX_X64=$(stat -c%s dist/pandoc-linux-x64-raw)" >> "$GITHUB_ENV"
+
+          # ---- linux-arm64 ----
+          echo "▶ pandoc linux-arm64"
+          curl -fsSL "${PANDOC_BASE}/pandoc-${PANDOC_VER}-linux-arm64.tar.gz" -o /tmp/pandoc-linux-arm64.tar.gz
+          tar -xzf /tmp/pandoc-linux-arm64.tar.gz -O "pandoc-${PANDOC_VER}/bin/pandoc" \
+            > dist/pandoc-linux-arm64-raw
+          gzip -c dist/pandoc-linux-arm64-raw > dist/pandoc-linux-arm64.gz
+          echo "PANDOC_SHA_LINUX_ARM64=$(sha256sum dist/pandoc-linux-arm64-raw | cut -d' ' -f1)" >> "$GITHUB_ENV"
+          echo "PANDOC_SIZE_LINUX_ARM64=$(stat -c%s dist/pandoc-linux-arm64-raw)" >> "$GITHUB_ENV"
+
+          # ---- win32-x64 ----
+          echo "▶ pandoc win32-x64"
+          curl -fsSL "${PANDOC_BASE}/pandoc-${PANDOC_VER}-windows-x86_64.zip" -o /tmp/pandoc-win.zip
+          unzip -p /tmp/pandoc-win.zip "pandoc-${PANDOC_VER}/pandoc.exe" \
+            > dist/pandoc-win32-x64-raw
+          gzip -c dist/pandoc-win32-x64-raw > dist/pandoc-win32-x64.gz
+          echo "PANDOC_SHA_WIN32_X64=$(sha256sum dist/pandoc-win32-x64-raw | cut -d' ' -f1)" >> "$GITHUB_ENV"
+          echo "PANDOC_SIZE_WIN32_X64=$(stat -c%s dist/pandoc-win32-x64-raw)" >> "$GITHUB_ENV"
+
+      # ------------------------------------------------------------------
+      # Typst binaries
+      # ------------------------------------------------------------------
+      - name: Download and package Typst binaries
+        run: |
+          set -euo pipefail
+
+          TYPST_BASE="https://github.com/typst/typst/releases/download/v${TYPST_VER}"
+
+          # ---- darwin-arm64 ----
+          echo "▶ typst darwin-arm64"
+          curl -fsSL "${TYPST_BASE}/typst-aarch64-apple-darwin.tar.xz" -o /tmp/typst-darwin-arm64.tar.xz
+          tar -xJf /tmp/typst-darwin-arm64.tar.xz -O "typst-aarch64-apple-darwin/typst" \
+            > dist/typst-darwin-arm64-raw
+          gzip -c dist/typst-darwin-arm64-raw > dist/typst-darwin-arm64.gz
+          echo "TYPST_SHA_DARWIN_ARM64=$(sha256sum dist/typst-darwin-arm64-raw | cut -d' ' -f1)" >> "$GITHUB_ENV"
+          echo "TYPST_SIZE_DARWIN_ARM64=$(stat -c%s dist/typst-darwin-arm64-raw)" >> "$GITHUB_ENV"
+
+          # ---- darwin-x64 ----
+          echo "▶ typst darwin-x64"
+          curl -fsSL "${TYPST_BASE}/typst-x86_64-apple-darwin.tar.xz" -o /tmp/typst-darwin-x64.tar.xz
+          tar -xJf /tmp/typst-darwin-x64.tar.xz -O "typst-x86_64-apple-darwin/typst" \
+            > dist/typst-darwin-x64-raw
+          gzip -c dist/typst-darwin-x64-raw > dist/typst-darwin-x64.gz
+          echo "TYPST_SHA_DARWIN_X64=$(sha256sum dist/typst-darwin-x64-raw | cut -d' ' -f1)" >> "$GITHUB_ENV"
+          echo "TYPST_SIZE_DARWIN_X64=$(stat -c%s dist/typst-darwin-x64-raw)" >> "$GITHUB_ENV"
+
+          # ---- linux-x64 ----
+          echo "▶ typst linux-x64"
+          curl -fsSL "${TYPST_BASE}/typst-x86_64-unknown-linux-musl.tar.xz" -o /tmp/typst-linux-x64.tar.xz
+          tar -xJf /tmp/typst-linux-x64.tar.xz -O "typst-x86_64-unknown-linux-musl/typst" \
+            > dist/typst-linux-x64-raw
+          gzip -c dist/typst-linux-x64-raw > dist/typst-linux-x64.gz
+          echo "TYPST_SHA_LINUX_X64=$(sha256sum dist/typst-linux-x64-raw | cut -d' ' -f1)" >> "$GITHUB_ENV"
+          echo "TYPST_SIZE_LINUX_X64=$(stat -c%s dist/typst-linux-x64-raw)" >> "$GITHUB_ENV"
+
+          # ---- linux-arm64 ----
+          echo "▶ typst linux-arm64"
+          curl -fsSL "${TYPST_BASE}/typst-aarch64-unknown-linux-musl.tar.xz" -o /tmp/typst-linux-arm64.tar.xz
+          tar -xJf /tmp/typst-linux-arm64.tar.xz -O "typst-aarch64-unknown-linux-musl/typst" \
+            > dist/typst-linux-arm64-raw
+          gzip -c dist/typst-linux-arm64-raw > dist/typst-linux-arm64.gz
+          echo "TYPST_SHA_LINUX_ARM64=$(sha256sum dist/typst-linux-arm64-raw | cut -d' ' -f1)" >> "$GITHUB_ENV"
+          echo "TYPST_SIZE_LINUX_ARM64=$(stat -c%s dist/typst-linux-arm64-raw)" >> "$GITHUB_ENV"
+
+          # ---- win32-x64 ----
+          echo "▶ typst win32-x64"
+          curl -fsSL "${TYPST_BASE}/typst-x86_64-pc-windows-msvc.zip" -o /tmp/typst-win.zip
+          unzip -p /tmp/typst-win.zip "typst-x86_64-pc-windows-msvc/typst.exe" \
+            > dist/typst-win32-x64-raw
+          gzip -c dist/typst-win32-x64-raw > dist/typst-win32-x64.gz
+          echo "TYPST_SHA_WIN32_X64=$(sha256sum dist/typst-win32-x64-raw | cut -d' ' -f1)" >> "$GITHUB_ENV"
+          echo "TYPST_SIZE_WIN32_X64=$(stat -c%s dist/typst-win32-x64-raw)" >> "$GITHUB_ENV"
+
+      # ------------------------------------------------------------------
+      # Style templates (from src/exportStyles/resources/ if present)
+      # Each .docx / .typ is gzipped so BinaryManager can handle it with
+      # the same gunzip+SHA-256 pipeline used for binaries.
+      # ------------------------------------------------------------------
+      - name: Package style templates
+        run: |
+          set -euo pipefail
+          RESOURCES_DIR="src/exportStyles/resources"
+
+          # Initialise style manifest data as an empty JSON object
+          echo '{}' > /tmp/styles-data.json
+
+          for STYLE_ID in novel-trade manuscript-standard academic-a4; do
+            for FORMAT in docx typst; do
+              EXT=${FORMAT}
+              [ "$FORMAT" = "typst" ] && EXT="typ"
+              SRC="${RESOURCES_DIR}/${STYLE_ID}.${EXT}"
+
+              if [ -f "$SRC" ]; then
+                ASSET="dist/style-${STYLE_ID}-${FORMAT}.gz"
+                echo "▶ style ${STYLE_ID} ${FORMAT}"
+                gzip -c "$SRC" > "$ASSET"
+                SHA=$(sha256sum "$SRC" | cut -d' ' -f1)
+                SIZE=$(stat -c%s "$SRC")
+                # Accumulate into styles-data.json using node
+                node -e "
+                  const fs = require('fs');
+                  const d = JSON.parse(fs.readFileSync('/tmp/styles-data.json', 'utf8'));
+                  d['${STYLE_ID}'] = d['${STYLE_ID}'] || {};
+                  d['${STYLE_ID}']['${FORMAT}'] = { sha256: '${SHA}', size: ${SIZE} };
+                  fs.writeFileSync('/tmp/styles-data.json', JSON.stringify(d));
+                "
+              fi
+            done
+          done
+
+      # ------------------------------------------------------------------
+      # Generate tools-manifest.json
+      # ------------------------------------------------------------------
+      - name: Generate tools-manifest.json
+        run: |
+          node - <<'NODE_EOF'
+          const fs = require('fs')
+          const repo = process.env.GITHUB_REPOSITORY
+          const tag  = process.env.RELEASE_TAG
+          const pVer = process.env.PANDOC_VER
+          const tVer = process.env.TYPST_VER
+          const base = `https://github.com/${repo}/releases/download/${tag}`
+
+          function entry(filename, sha, size) {
+            return { url: `${base}/${filename}`, sha256: sha, size: Number(size) }
+          }
+
+          const manifest = {
+            pandoc: {
+              version: pVer,
+              platforms: {
+                'darwin-arm64': entry('pandoc-darwin-arm64.gz', process.env.PANDOC_SHA_DARWIN_ARM64, process.env.PANDOC_SIZE_DARWIN_ARM64),
+                'darwin-x64':   entry('pandoc-darwin-x64.gz',   process.env.PANDOC_SHA_DARWIN_X64,   process.env.PANDOC_SIZE_DARWIN_X64),
+                'linux-x64':    entry('pandoc-linux-x64.gz',    process.env.PANDOC_SHA_LINUX_X64,    process.env.PANDOC_SIZE_LINUX_X64),
+                'linux-arm64':  entry('pandoc-linux-arm64.gz',  process.env.PANDOC_SHA_LINUX_ARM64,  process.env.PANDOC_SIZE_LINUX_ARM64),
+                'win32-x64':    entry('pandoc-win32-x64.gz',    process.env.PANDOC_SHA_WIN32_X64,    process.env.PANDOC_SIZE_WIN32_X64),
+              },
+            },
+            typst: {
+              version: tVer,
+              platforms: {
+                'darwin-arm64': entry('typst-darwin-arm64.gz', process.env.TYPST_SHA_DARWIN_ARM64, process.env.TYPST_SIZE_DARWIN_ARM64),
+                'darwin-x64':   entry('typst-darwin-x64.gz',   process.env.TYPST_SHA_DARWIN_X64,   process.env.TYPST_SIZE_DARWIN_X64),
+                'linux-x64':    entry('typst-linux-x64.gz',    process.env.TYPST_SHA_LINUX_X64,    process.env.TYPST_SIZE_LINUX_X64),
+                'linux-arm64':  entry('typst-linux-arm64.gz',  process.env.TYPST_SHA_LINUX_ARM64,  process.env.TYPST_SIZE_LINUX_ARM64),
+                'win32-x64':    entry('typst-win32-x64.gz',    process.env.TYPST_SHA_WIN32_X64,    process.env.TYPST_SIZE_WIN32_X64),
+              },
+            },
+            // Styles section: populated per asset; empty object if no templates published yet.
+            styles: {},
+          }
+
+          // Merge in style assets (URLs added here since we know the release base URL)
+          const stylesData = JSON.parse(fs.readFileSync('/tmp/styles-data.json', 'utf8'))
+          for (const [styleId, formats] of Object.entries(stylesData)) {
+            manifest.styles[styleId] = {}
+            for (const [fmt, info] of Object.entries(formats)) {
+              const filename = `style-${styleId}-${fmt}.gz`
+              manifest.styles[styleId][fmt] = {
+                url: `${base}/${filename}`,
+                sha256: info.sha256,
+                size: info.size,
+              }
+            }
+          }
+
+          fs.writeFileSync('dist/tools-manifest.json', JSON.stringify(manifest, null, 2))
+          console.log('✅ tools-manifest.json written')
+          console.log(JSON.stringify(manifest, null, 2))
+          NODE_EOF
+
+      # ------------------------------------------------------------------
+      # Create / update the GitHub release
+      # ------------------------------------------------------------------
+      - name: Collect release assets
+        id: assets
+        run: |
+          # Build a newline-separated list of files that actually exist in dist/
+          FILES=$(find dist -name '*.gz' -o -name '*.json' | sort | tr '\n' '\n')
+          echo "Found assets:"
+          echo "$FILES"
+          # Emit as multiline output
+          {
+            echo "files<<EOF"
+            find dist -name '*.gz' -o -name '*.json' | sort
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create or update GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.release_tag }}
+          name: 'Export Tools ${{ inputs.release_tag }} (pandoc ${{ inputs.pandoc_version }}, typst ${{ inputs.typst_version }})'
+          body: |
+            Bundled export tool binaries for the Lighthouse Obsidian plugin.
+
+            | Tool   | Version |
+            |--------|---------|
+            | pandoc | ${{ inputs.pandoc_version }} |
+            | typst  | ${{ inputs.typst_version }} |
+
+            **Platforms:** darwin-arm64, darwin-x64, linux-x64, linux-arm64, win32-x64
+
+            Each binary is gzip-compressed. The plugin downloads and decompresses
+            the appropriate binary for the user's platform on first use.
+
+            SHA-256 checksums are embedded in `tools-manifest.json` and verified
+            by the plugin before writing to disk.
+          draft: false
+          prerelease: false
+          files: ${{ steps.assets.outputs.files }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Summary
+        run: |
+          echo "### ✅ Tools release ${{ inputs.release_tag }} published" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Asset | Size |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|-------|------|" >> "$GITHUB_STEP_SUMMARY"
+          for f in dist/*.gz dist/*.json; do
+            [ -f "$f" ] || continue
+            SIZE=$(du -sh "$f" | cut -f1)
+            echo "| $(basename "$f") | $SIZE |" >> "$GITHUB_STEP_SUMMARY"
+          done

@@ -26,6 +26,7 @@ import {
   binaryFilename,
   currentPlatformKey,
   TOOLS_MANIFEST_URL,
+  type StyleName,
   type ToolName,
   type ToolsManifest,
 } from './ToolsManifest'
@@ -37,6 +38,8 @@ import {
 export interface InstalledTools {
   pandoc?: string // installed version string
   typst?: string
+  /** Tracks which manifest version was used when each style asset was installed */
+  styles?: Partial<Record<string, { docx?: string; typst?: string }>>
 }
 
 export interface DownloadProgress {
@@ -67,6 +70,23 @@ export function getBinDir(plugin: LighthousePlugin): string {
 
 export function getBinPath(tool: ToolName, plugin: LighthousePlugin): string {
   return join(getBinDir(plugin), binaryFilename(tool))
+}
+
+export function getStylesDir(plugin: LighthousePlugin): string {
+  return join(getPluginBaseDir(plugin), 'styles')
+}
+
+/**
+ * Returns the absolute path where a style asset is (or will be) stored.
+ * format is 'docx' or 'typst'.
+ */
+export function getStylePath(
+  styleId: StyleName,
+  format: 'docx' | 'typst',
+  plugin: LighthousePlugin,
+): string {
+  const ext = format === 'docx' ? '.docx' : '.typ'
+  return join(getStylesDir(plugin), `${styleId}${ext}`)
 }
 
 function getInstalledPath(plugin: LighthousePlugin): string {
@@ -192,6 +212,59 @@ export class BinaryManager {
     // Record the installed version
     const installed = readInstalled(this.plugin)
     installed[tool] = toolEntry.version
+    writeInstalled(this.plugin, installed)
+  }
+
+  // ---------------------------------------------------------------------------
+  // Style asset methods
+  // ---------------------------------------------------------------------------
+
+  /** True if a style asset file is present on disk and recorded as installed */
+  isStyleReady(styleId: StyleName, format: 'docx' | 'typst'): boolean {
+    const path = getStylePath(styleId, format, this.plugin)
+    if (!existsSync(path)) return false
+    const installed = readInstalled(this.plugin)
+    return installed.styles?.[styleId]?.[format] != null
+  }
+
+  /**
+   * Download, verify, and install a style template asset.
+   * Throws if the style or format is not in the manifest.
+   */
+  async installStyle(
+    styleId: StyleName,
+    format: 'docx' | 'typst',
+    onProgress?: ProgressCallback,
+  ): Promise<void> {
+    const manifest = await this.fetchManifest()
+    const styleEntry = manifest.styles?.[styleId]
+    if (!styleEntry) throw new Error(`Style '${styleId}' is not in the tools manifest.`)
+
+    const assetEntry = styleEntry[format]
+    if (!assetEntry) throw new Error(`No ${format} template available for style '${styleId}'.`)
+
+    const stylesDir = getStylesDir(this.plugin)
+    if (!existsSync(stylesDir)) mkdirSync(stylesDir, { recursive: true })
+
+    const compressed = await this.downloadWithProgress(assetEntry.url, assetEntry.size, onProgress)
+    const raw = await gunzipAsync(compressed)
+
+    const actual = createHash('sha256').update(raw).digest('hex')
+    if (actual.toLowerCase() !== assetEntry.sha256.toLowerCase()) {
+      throw new Error(
+        `SHA-256 mismatch for ${styleId} ${format} template!\n` +
+          `  Expected: ${assetEntry.sha256}\n` +
+          `  Got:      ${actual}`,
+      )
+    }
+
+    writeFileSync(getStylePath(styleId, format, this.plugin), raw)
+
+    // Record the manifest version so we know when to re-download
+    const installed = readInstalled(this.plugin)
+    installed.styles ??= {}
+    installed.styles[styleId] ??= {}
+    installed.styles[styleId]![format] = manifest[format === 'docx' ? 'pandoc' : 'typst'].version
     writeInstalled(this.plugin, installed)
   }
 

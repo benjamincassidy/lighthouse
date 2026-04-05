@@ -63,9 +63,12 @@ export class PandocRunner {
   async toDocx(markdown: string, opts: PandocDocxOptions = {}): Promise<Buffer> {
     const outputPath = tmpPath('lighthouse-export', '.docx')
     const args: string[] = [
-      '--from', 'markdown+smart',
-      '--to', 'docx',
-      '--output', outputPath,
+      '--from',
+      'markdown+smart',
+      '--to',
+      'docx',
+      '--output',
+      outputPath,
       '--standalone',
     ]
 
@@ -84,9 +87,12 @@ export class PandocRunner {
   async toEpub(markdown: string, opts: PandocEpubOptions = {}): Promise<Buffer> {
     const outputPath = tmpPath('lighthouse-export', '.epub')
     const args: string[] = [
-      '--from', 'markdown+smart',
-      '--to', 'epub3',
-      '--output', outputPath,
+      '--from',
+      'markdown+smart',
+      '--to',
+      'epub3',
+      '--output',
+      outputPath,
       '--standalone',
     ]
 
@@ -105,10 +111,14 @@ export class PandocRunner {
   /** Convert markdown → .pdf via typst; writes directly to outputPath */
   async toPdf(markdown: string, outputPath: string, opts: PandocPdfOptions = {}): Promise<void> {
     const args: string[] = [
-      '--from', 'markdown+smart',
-      '--to', 'pdf',
-      '--pdf-engine', 'typst',
-      '--output', outputPath,
+      '--from',
+      'markdown+smart',
+      '--to',
+      'pdf',
+      '--pdf-engine',
+      'typst',
+      '--output',
+      outputPath,
       '--standalone',
     ]
 
@@ -132,10 +142,7 @@ export class PandocRunner {
    * Returns the inner body HTML (no <html>/<head> wrapper).
    */
   async toHtml(markdown: string, opts: PandocHtmlOptions = {}): Promise<string> {
-    const args: string[] = [
-      '--from', 'markdown+smart',
-      '--to', 'html5',
-    ]
+    const args: string[] = ['--from', 'markdown+smart', '--to', 'html5']
 
     if (opts.css) {
       // Write CSS to a temp file so pandoc can embed it
@@ -154,11 +161,7 @@ export class PandocRunner {
   // Core execution
   // ---------------------------------------------------------------------------
 
-  private run(
-    args: string[],
-    stdinContent: string,
-    env?: NodeJS.ProcessEnv,
-  ): Promise<string> {
+  private run(args: string[], stdinContent: string, env?: NodeJS.ProcessEnv): Promise<string> {
     return new Promise((resolve, reject) => {
       const child = spawn(this.pandocPath, args, {
         env: env ?? process.env,

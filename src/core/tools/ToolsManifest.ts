@@ -42,10 +42,41 @@ export interface ToolEntry {
   platforms: Partial<Record<string, PlatformEntry>>
 }
 
+// ---------------------------------------------------------------------------
+// Style asset types
+// ---------------------------------------------------------------------------
+
+/** Built-in style IDs that can have downloadable export templates */
+export type StyleName = 'novel-trade' | 'manuscript-standard' | 'academic-a4'
+
+/** Format-specific asset entry for one style (platform-agnostic) */
+export interface StyleAssetEntry {
+  /** Direct download URL for the gzipped asset */
+  url: string
+  /** Lowercase hex SHA-256 of the raw (decompressed) file */
+  sha256: string
+  /** Byte size of the decompressed file */
+  size: number
+}
+
+/** Template assets available for one style */
+export interface StyleEntry {
+  /** Reference .docx for pandoc --reference-doc */
+  docx?: StyleAssetEntry
+  /** Typst template .typ for pandoc --template */
+  typst?: StyleAssetEntry
+}
+
+// ---------------------------------------------------------------------------
+// Full manifest
+// ---------------------------------------------------------------------------
+
 /** The full tools manifest */
 export interface ToolsManifest {
   pandoc: ToolEntry
   typst: ToolEntry
+  /** Per-style template assets; omitted or empty if none published yet */
+  styles: Partial<Record<StyleName, StyleEntry>>
 }
 
 // ---------------------------------------------------------------------------
