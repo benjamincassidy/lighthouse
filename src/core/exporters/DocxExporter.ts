@@ -80,7 +80,15 @@ function lineToParagraph(line: string, firstInSection: boolean): Paragraph | nul
   // Headings
   const headingMatch = /^(#{1,6})\s+(.*)$/.exec(line)
   if (headingMatch) {
-    const level = ['', 'HEADING_1', 'HEADING_2', 'HEADING_3', 'HEADING_4', 'HEADING_5', 'HEADING_6'][headingMatch[1].length] as keyof typeof HeadingLevel
+    const level = [
+      '',
+      'HEADING_1',
+      'HEADING_2',
+      'HEADING_3',
+      'HEADING_4',
+      'HEADING_5',
+      'HEADING_6',
+    ][headingMatch[1].length] as keyof typeof HeadingLevel
     return new Paragraph({
       text: headingMatch[2].trim(),
       heading: HeadingLevel[level],

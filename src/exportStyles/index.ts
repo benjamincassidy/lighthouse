@@ -16,7 +16,6 @@
 // ---------------------------------------------------------------------------
 
 // Raw imports handled by the text loader configured in esbuild.config.mjs
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import novelTradeCss from './styles/novel-trade.css'
 // @ts-ignore

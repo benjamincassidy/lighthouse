@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest'
 
+import type { Project } from '@/types/types'
+
 import {
   ProjectCompiler,
   extractFrontmatter,
@@ -8,7 +10,6 @@ import {
   stripHighlights,
   DEFAULT_COMPILE_OPTIONS,
 } from './ProjectCompiler'
-import type { Project } from '@/types/types'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -82,9 +83,7 @@ describe('extractFrontmatter', () => {
 
 describe('convertWikiLinks', () => {
   it('converts bare [[Target]] to Target', () => {
-    expect(convertWikiLinks('See [[Chapter One]] for details')).toBe(
-      'See Chapter One for details',
-    )
+    expect(convertWikiLinks('See [[Chapter One]] for details')).toBe('See Chapter One for details')
   })
 
   it('uses alias when present', () => {

@@ -1,16 +1,15 @@
 <script lang="ts">
-  import type LighthousePlugin from '@/main'
-  import type { Project } from '@/types/types'
-  import {
-    BUILT_IN_STYLES,
-    type ExportStyle,
-  } from '@/exportStyles/index'
-  import { ProjectCompiler } from '@/core/ProjectCompiler'
+  import { untrack } from 'svelte'
+
   import { DocxExporter } from '@/core/exporters/DocxExporter'
   import { EpubExporter } from '@/core/exporters/EpubExporter'
   import { PdfExporter } from '@/core/exporters/PdfExporter'
+  import { ProjectCompiler } from '@/core/ProjectCompiler'
+  import { BUILT_IN_STYLES, cssForScreenPreview, type ExportStyle } from '@/exportStyles/index'
+  import type LighthousePlugin from '@/main'
+  import type { Project } from '@/types/types'
+
   import type { TFile, TFolder } from 'obsidian'
-  import { untrack } from 'svelte'
 
   interface Props {
     plugin: LighthousePlugin
@@ -187,7 +186,10 @@
         onSuccess(`Exported to ${outPath}`)
       } else if (format === 'epub') {
         const exporter = new EpubExporter()
-        const bytes = await exporter.export(doc, { title: doc.projectName })
+        const bytes = await exporter.export(doc, {
+          title: doc.projectName,
+          css: cssForScreenPreview(selectedStyle.css),
+        })
         const outPath = resolveOutputPath('epub')
         await plugin.app.vault.adapter.writeBinary(outPath, new Uint8Array(bytes))
         onSuccess(`Exported to ${outPath}`)
@@ -249,7 +251,7 @@
   <div class="lh-export-section">
     <div class="lh-section-label">Format</div>
     <div class="lh-format-tabs" role="tablist">
-      {#each (['pdf', 'docx', 'epub', 'markdown'] as ExportFormat[]) as fmt}
+      {#each ['pdf', 'docx', 'epub', 'markdown'] as ExportFormat[] as fmt}
         <button
           role="tab"
           aria-selected={format === fmt}
@@ -263,12 +265,11 @@
     </div>
   </div>
 
-  <!-- ── Style gallery (PDF only) ────────────────────────── -->
-  {#if format === 'pdf'}
-    <div class="lh-export-section">
-      <div class="lh-section-label">Export Style</div>
-      <div class="lh-style-gallery" role="listbox" aria-label="Export styles">
-        {#each allStyles as style (style.id)}
+  <!-- ── Style gallery ─────────────────────────────────── -->
+  <div class="lh-export-section">
+    <div class="lh-section-label">Style</div>
+    <div class="lh-style-gallery" role="listbox" aria-label="Export styles">
+      {#each allStyles as style (style.id)}
           <button
             role="option"
             aria-selected={selectedStyleId === style.id}
@@ -293,7 +294,6 @@
         {/each}
       </div>
     </div>
-  {/if}
 
   <!-- ── Output settings ─────────────────────────────────── -->
   <div class="lh-export-section">
@@ -418,7 +418,9 @@
     font-size: 0.85rem;
     font-weight: 500;
     cursor: pointer;
-    transition: background 120ms ease, color 120ms ease;
+    transition:
+      background 120ms ease,
+      color 120ms ease;
   }
 
   .lh-format-tab.active {
@@ -448,7 +450,9 @@
     border: 2px solid transparent;
     background: var(--background-modifier-form-field);
     cursor: pointer;
-    transition: border-color 120ms ease, background 120ms ease;
+    transition:
+      border-color 120ms ease,
+      background 120ms ease;
     text-align: center;
   }
 
@@ -461,20 +465,28 @@
   }
 
   .lh-style-thumbnail {
+    position: relative;
     width: 100%;
     aspect-ratio: 8 / 11;
     border-radius: calc(var(--radius-m) - 2px);
     overflow: hidden;
     background: var(--background-primary);
-    display: flex;
-    align-items: center;
-    justify-content: center;
   }
 
+  /* {@html} SVG fills via absolute positioning — reliable even when
+     the parent height is derived from aspect-ratio */
   .lh-style-thumbnail :global(svg) {
-    display: block;
+    position: absolute;
+    inset: 0;
     width: 100%;
     height: 100%;
+    display: block;
+  }
+
+  .lh-style-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
   }
 
   .lh-style-thumbnail-placeholder {

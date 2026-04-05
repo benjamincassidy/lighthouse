@@ -13,9 +13,8 @@
  *   5. Clean up the injected style tag and the temp file.
  */
 
-import type { App, TFile } from 'obsidian'
-
 import type { CompiledDocument } from '../ProjectCompiler'
+import type { App, TFile } from 'obsidian'
 
 export interface PdfExportOptions {
   /** The @media print CSS to inject for this export */
@@ -24,9 +23,7 @@ export interface PdfExportOptions {
   outputPath?: string
 }
 
-export type PdfExportResult =
-  | { method: 'silent'; outputPath: string }
-  | { method: 'dialog' }
+export type PdfExportResult = { method: 'silent'; outputPath: string } | { method: 'dialog' }
 
 export class PdfExporter {
   constructor(private app: App) {}
@@ -55,7 +52,9 @@ export class PdfExporter {
       result = await this.attemptElectronPrint(options.outputPath)
     } catch {
       // Fall back to Obsidian's built-in export (shows system dialog)
-      ;(this.app as App & { commands: { executeCommandById(id: string): void } }).commands.executeCommandById('editor:export-to-pdf')
+      ;(
+        this.app as App & { commands: { executeCommandById(id: string): void } }
+      ).commands.executeCommandById('editor:export-to-pdf')
       result = { method: 'dialog' }
     }
 
