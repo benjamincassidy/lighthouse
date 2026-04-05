@@ -241,13 +241,124 @@
 
   // Preview the currently selected style's CSS scoped for the modal
   // (reserved for a future live-preview pane)
+
+  // ---------------------------------------------------------------------------
+  // Live preview state
+  // ---------------------------------------------------------------------------
+
+  let compiledText = $state('')
+  let previewLoading = $state(true)
+
+  /** Rebuild the iframe srcdoc whenever format or style changes — no recompile needed */
+  const previewSrcdoc = $derived.by(() => {
+    if (previewLoading) return buildLoadingDoc()
+    const truncated = compiledText.slice(0, 5000)
+    if (format === 'markdown') return buildMarkdownDoc(truncated)
+    return buildStyledDoc(markdownToHtml(truncated), selectedStyle)
+  })
+
+  $effect(() => {
+    void compileForPreview()
+  })
+
+  async function compileForPreview(): Promise<void> {
+    previewLoading = true
+    try {
+      const filePaths = getContentFilePaths()
+      if (filePaths.length === 0) {
+        compiledText = 'No content files found in the project content folders.'
+        return
+      }
+      const compiler = new ProjectCompiler((path) => plugin.app.vault.adapter.read(path))
+      const doc = await compiler.compile(project, filePaths, {
+        stripFrontmatter: true,
+        convertWikiLinks: true,
+        stripEmbeds: true,
+        stripHighlights: false,
+        fileSeparator: '',
+      })
+      compiledText = doc.fullText
+    } catch (err) {
+      compiledText = `Could not load preview: ${err instanceof Error ? err.message : String(err)}`
+    } finally {
+      previewLoading = false
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Preview document builders
+  // The preview lives in an <iframe srcdoc> — a fully isolated document so the
+  // style CSS renders with zero interference from Obsidian's own styles.
+  // ---------------------------------------------------------------------------
+
+  function markdownToHtml(md: string): string {
+    const blocks: string[] = []
+    let para: string[] = []
+
+    const flush = () => {
+      if (para.length) {
+        const text = para
+          .join(' ')
+          .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+          .replace(/\*(.+?)\*/g, '<em>$1</em>')
+          .replace(/_(.+?)_/g, '<em>$1</em>')
+        blocks.push(`<p>${text}</p>`)
+        para = []
+      }
+    }
+
+    for (const raw of md.split('\n')) {
+      const t = raw.trim()
+      if (!t) {
+        flush()
+      } else if (t.startsWith('### ')) {
+        flush()
+        blocks.push(`<h3>${t.slice(4)}</h3>`)
+      } else if (t.startsWith('## ')) {
+        flush()
+        blocks.push(`<h2>${t.slice(3)}</h2>`)
+      } else if (t.startsWith('# ')) {
+        flush()
+        blocks.push(`<h1>${t.slice(2)}</h1>`)
+      } else if (/^[-*_]{3,}$/.test(t) || t === '* * *') {
+        flush()
+        blocks.push('<hr />')
+      } else {
+        para.push(t)
+      }
+    }
+    flush()
+    return blocks.join('\n')
+  }
+
+  // The iframe preview document builders.
+  // Opening/closing style tags are assembled at runtime to avoid the literal
+  // substrings appearing in Svelte source (which would confuse the block parser).
+  function buildLoadingDoc(): string {
+    const o = '<' + 'style>',
+      c = '<' + '/style>'
+    return `<!DOCTYPE html><html><head><meta charset="utf-8">${o}html,body{height:100%;margin:0}body{display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif;font-size:13px;color:#999;background:#fff}${c}</head><body>Loading preview\u2026</body></html>`
+  }
+
+  function buildMarkdownDoc(text: string): string {
+    const safe = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    const o = '<' + 'style>',
+      c = '<' + '/style>'
+    return `<!DOCTYPE html><html><head><meta charset="utf-8">${o}html,body{margin:0;height:100%}body{padding:1.5rem 2rem;box-sizing:border-box;background:#f8f8f8}pre{margin:0;font-family:Menlo,monospace;font-size:12px;line-height:1.6;color:#333;white-space:pre-wrap;word-break:break-word}${c}</head><body><pre>${safe}</pre></body></html>`
+  }
+
+  function buildStyledDoc(html: string, style: ExportStyle): string {
+    const css = cssForScreenPreview(style.css)
+    const o = '<' + 'style>',
+      c = '<' + '/style>'
+    return `<!DOCTYPE html><html><head><meta charset="utf-8">${o}html,body{margin:0}body{padding:1.75rem 2.5rem;box-sizing:border-box;background:#fff}${css}${c}</head><body><div class="markdown-preview-view markdown-preview-sizer">${html}</div></body></html>`
+  }
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <div class="lh-export" role="dialog" aria-label="Export project">
-  <h2 class="lh-export-heading">Export — {project.name}</h2>
 
-  <!-- ── Format tabs ─────────────────────────────────────── -->
+  <!-- ── Format tabs ───────────────────────────────────────── -->
   <div class="lh-tabs" role="tablist" aria-label="Export format">
     {#each ['pdf', 'docx', 'epub', 'markdown'] as ExportFormat[] as fmt}
       <button
@@ -262,66 +373,68 @@
     {/each}
   </div>
 
-  <!-- ── Style picker (hidden for Markdown) ──────────────── -->
-  {#if format !== 'markdown'}
-    <div class="lh-pick">
-      <span class="lh-pick-label">Style</span>
-      <div class="lh-pick-row" role="listbox" aria-label="Export styles">
-        {#each allStyles as style (style.id)}
-          {@const isSelected = selectedStyleId === style.id}
-          <button
-            role="option"
-            aria-selected={isSelected}
-            class="lh-card"
-            class:lh-card--on={isSelected}
-            onclick={() => (selectedStyleId = style.id)}
-          >
-            <!--
-              The SVG has explicit width/height attrs (160×220) giving it
-              definite intrinsic dimensions. The inline style then overrides
-              those to fill the card width while height:auto preserves the
-              8:11 aspect ratio. This is bulletproof across all Chromium builds.
-            -->
-            <div class="lh-card-thumb">
-              {#if style.builtIn}
-                {@html style.previewSvg}
-              {:else if style.previewSvg}
-                <img src={style.previewSvg} alt="" />
-              {:else}
-                <div class="lh-card-initial">{style.name.charAt(0)}</div>
-              {/if}
-            </div>
-            <div class="lh-card-name">{style.name}</div>
-            <div class="lh-card-size">{style.pageSize}</div>
-          </button>
-        {/each}
-      </div>
-    </div>
-  {/if}
+  <!-- ── Live preview ──────────────────────────────────────── -->
+  <!--
+    The preview renders inside an <iframe srcdoc> — a completely isolated
+    document where the style CSS applies cleanly with no Obsidian interference.
+    No SVG tricks, no flex height hacks. Changing the style dropdown rebuilds
+    the srcdoc string (CSS swap only, no recompile).
+  -->
+  <div class="lh-preview-shell">
+    <iframe class="lh-preview" title="Document preview" srcdoc={previewSrcdoc}></iframe>
+  </div>
 
-  <!-- ── Output ───────────────────────────────────────────── -->
-  <div class="lh-fields">
-    <div class="lh-field">
-      <label for="lh-fname">Filename</label>
-      <input id="lh-fname" type="text" bind:value={filename} placeholder={sanitizeFilename(project.name)} />
+  <!-- ── Style + output controls ───────────────────────────── -->
+  <div class="lh-controls">
+    {#if format !== 'markdown'}
+      <div class="lh-row">
+        <label class="lh-lbl" for="lh-style">Style</label>
+        <select id="lh-style" class="lh-select" bind:value={selectedStyleId}>
+          {#each allStyles as style (style.id)}
+            <option value={style.id}>{style.name} — {style.pageSize}</option>
+          {/each}
+        </select>
+      </div>
+    {/if}
+    <div class="lh-row">
+      <label class="lh-lbl" for="lh-fname">Filename</label>
+      <input
+        id="lh-fname"
+        class="lh-input"
+        type="text"
+        bind:value={filename}
+        placeholder={sanitizeFilename(project.name)}
+      />
     </div>
-    <div class="lh-field">
-      <label for="lh-folder">Output folder</label>
-      <input id="lh-folder" type="text" bind:value={outputFolder} placeholder="Vault root" />
+    <div class="lh-row">
+      <label class="lh-lbl" for="lh-folder">Output folder</label>
+      <input
+        id="lh-folder"
+        class="lh-input"
+        type="text"
+        bind:value={outputFolder}
+        placeholder="Vault root"
+      />
     </div>
   </div>
 
-  <!-- ── Options (collapsible) ────────────────────────────── -->
-  <details class="lh-options">
+  <!-- ── Options (collapsible) ─────────────────────────────── -->
+  <details class="lh-opts">
     <summary>Options</summary>
-    <div class="lh-options-body">
+    <div class="lh-opts-body">
       <label><input type="checkbox" bind:checked={stripFrontmatter} /> Strip YAML frontmatter</label>
       <label><input type="checkbox" bind:checked={convertWikiLinks} /> Convert [[wiki links]] to plain text</label>
       <label><input type="checkbox" bind:checked={stripEmbeds} /> Remove ![[embedded file]] links</label>
       <label><input type="checkbox" bind:checked={stripHighlights} /> Strip ==highlight== markers</label>
-      <div class="lh-field lh-field--full">
-        <label for="lh-sep">File separator</label>
-        <input id="lh-sep" type="text" bind:value={fileSeparator} placeholder="(none — files joined directly)" />
+      <div class="lh-row lh-row--full">
+        <label class="lh-lbl" for="lh-sep">File separator</label>
+        <input
+          id="lh-sep"
+          class="lh-input"
+          type="text"
+          bind:value={fileSeparator}
+          placeholder="(none — files joined directly)"
+        />
       </div>
     </div>
   </details>
@@ -330,25 +443,24 @@
     <div class="lh-error" role="alert">{errorMessage}</div>
   {/if}
 
+  <!-- ── Footer ────────────────────────────────────────────── -->
   <div class="lh-footer">
-    <button class="mod-secondary" onclick={copyToClipboard} disabled={exporting}>Copy to clipboard</button>
-    <button class="mod-cta" onclick={doExport} disabled={exporting}>{exporting ? 'Exporting…' : 'Export'}</button>
+    <button class="mod-secondary" onclick={copyToClipboard} disabled={exporting}>
+      Copy to clipboard
+    </button>
+    <button class="mod-cta" onclick={doExport} disabled={exporting}>
+      {exporting ? 'Exporting…' : 'Export'}
+    </button>
   </div>
+
 </div>
 
 <style>
-  /* ── Shell ───────────────────────────────── */
   .lh-export {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
-    padding: 0.25rem 0;
-  }
-
-  .lh-export-heading {
-    margin: 0;
-    font-size: 1.1rem;
-    font-weight: 600;
+    gap: 0.85rem;
+    padding: 0.1rem 0;
   }
 
   /* ── Format tabs ─────────────────────────── */
@@ -385,136 +497,47 @@
     color: var(--text-normal);
   }
 
-  /* ── Style picker ────────────────────────── */
-  .lh-pick {
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-  }
-
-  .lh-pick-label {
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--text-muted);
-  }
-
-  .lh-pick-row {
-    display: flex;
-    flex-direction: row;
-    gap: 0.5rem;
-    overflow-x: auto;
-    padding-bottom: 4px;
-  }
-
-  .lh-card {
-    flex: 0 0 auto;
-    width: 110px;
-    display: flex;
-    flex-direction: column;
-    gap: 0.3rem;
-    padding: 0.4rem;
+  /* ── Preview ─────────────────────────────── */
+  .lh-preview-shell {
+    height: 340px;
     border-radius: var(--radius-m);
-    border: 2px solid var(--background-modifier-border);
-    background: var(--background-secondary);
-    cursor: pointer;
-    text-align: center;
-    transition:
-      border-color 120ms ease,
-      background 120ms ease;
-  }
-
-  .lh-card:hover {
-    border-color: var(--background-modifier-border-hover);
-  }
-
-  .lh-card--on {
-    border-color: var(--color-accent);
-    background: var(--background-primary);
-  }
-
-  /*
-   * Thumbnail wrapper — let it size to content (the SVG inside).
-   * No height, no padding tricks.
-   */
-  .lh-card-thumb {
-    width: 100%;
     overflow: hidden;
-    border-radius: 3px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-    line-height: 0; /* collapse whitespace gap below inline SVG */
-  }
-
-  /*
-   * The SVG has explicit width="160" height="220" attributes, giving it a
-   * definite 160:220 intrinsic size. CSS overrides: width fills the card,
-   * height:auto lets the browser compute it from the intrinsic aspect ratio.
-   * This works in every Chromium version — no flex height context needed.
-   */
-  .lh-card-thumb :global(svg) {
-    display: block;
-    width: 100%;
-    height: auto;
-  }
-
-  .lh-card-thumb img {
-    display: block;
-    width: 100%;
-    height: auto;
-    aspect-ratio: 8 / 11;
-    object-fit: cover;
-  }
-
-  .lh-card-initial {
-    width: 100%;
-    aspect-ratio: 8 / 11;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--text-muted);
+    border: 1px solid var(--background-modifier-border);
     background: var(--background-modifier-form-field);
   }
 
-  .lh-card-name {
-    font-size: 0.76rem;
-    font-weight: 500;
-    color: var(--text-normal);
-    line-height: 1.2;
-    word-break: break-word;
+  .lh-preview {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: none;
   }
 
-  .lh-card-size {
-    font-size: 0.68rem;
-    color: var(--text-faint);
-  }
-
-  /* ── Output fields ───────────────────────── */
-  .lh-fields {
+  /* ── Controls ────────────────────────────── */
+  .lh-controls {
     display: flex;
     flex-direction: column;
     gap: 0.45rem;
   }
 
-  .lh-field {
+  .lh-row {
     display: grid;
-    grid-template-columns: 110px 1fr;
+    grid-template-columns: 100px 1fr;
     align-items: center;
     gap: 0.5rem;
   }
 
-  .lh-field--full {
+  .lh-row--full {
     grid-template-columns: 1fr;
   }
 
-  .lh-field label {
+  .lh-lbl {
     font-size: 0.85rem;
     color: var(--text-muted);
   }
 
-  .lh-field input[type='text'] {
+  .lh-input,
+  .lh-select {
     width: 100%;
     padding: 0.3rem 0.5rem;
     background: var(--background-modifier-form-field);
@@ -524,8 +547,12 @@
     font-size: 0.85rem;
   }
 
+  .lh-select {
+    cursor: pointer;
+  }
+
   /* ── Options ─────────────────────────────── */
-  .lh-options > summary {
+  .lh-opts > summary {
     font-size: 0.85rem;
     font-weight: 500;
     color: var(--text-muted);
@@ -537,24 +564,29 @@
     user-select: none;
   }
 
-  .lh-options > summary::before {
+  .lh-opts > summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .lh-opts > summary::before {
     content: '▶';
     font-size: 0.6rem;
+    display: inline-block;
     transition: transform 150ms ease;
   }
 
-  .lh-options[open] > summary::before {
+  .lh-opts[open] > summary::before {
     transform: rotate(90deg);
   }
 
-  .lh-options-body {
+  .lh-opts-body {
     display: flex;
     flex-direction: column;
     gap: 0.4rem;
     padding-top: 0.5rem;
   }
 
-  .lh-options-body label {
+  .lh-opts-body label {
     display: flex;
     align-items: center;
     gap: 0.5rem;
