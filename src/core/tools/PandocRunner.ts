@@ -1,17 +1,13 @@
 /**
- * PandocRunner — executes the local pandoc binary to convert between document
- * formats. Used for DOCX, ePub, and (via --pdf-engine=typst) PDF export.
+ * PandocRunner — executes the local pandoc binary to convert Markdown to
+ * DOCX and ePub3. PDF is handled separately by TypestRunner.
  *
- * Pandoc reads markdown from stdin and writes the result to either stdout
- * (for DOCX/ePub we use a temp file because those formats can't go via stdout
- * cleanly) or directly to an output file.
- *
- * The typst binary directory is prepended to PATH so that pandoc's
- * --pdf-engine=typst invocation finds it automatically.
+ * Pandoc reads markdown from stdin; binary outputs (DOCX, ePub) are written
+ * to a temp file then read back and returned as a Buffer.
  */
 
 import { spawn } from 'child_process'
-import { existsSync, mkdirSync, unlinkSync, writeFileSync } from 'fs'
+import { existsSync, mkdirSync, unlinkSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 
@@ -32,21 +28,7 @@ export interface PandocEpubOptions {
   language?: string
 }
 
-export interface PandocPdfOptions {
-  /** Path to a Typst template file (.typ) */
-  template?: string
-  /** Full path to the typst binary (prepended to PATH) */
-  typstBinDir?: string
-  /** Paper size string understood by Typst, e.g. "us-letter", "a4", "us-trade" */
-  paperSize?: string
-}
-
-export interface PandocHtmlOptions {
-  /** CSS string to embed inline in the output */
-  css?: string
-}
-
-export type PandocFormat = 'docx' | 'epub3' | 'pdf' | 'html5'
+export type PandocFormat = 'docx' | 'epub3'
 
 // ---------------------------------------------------------------------------
 // PandocRunner
@@ -108,55 +90,6 @@ export class PandocRunner {
     return buf
   }
 
-  /** Convert markdown → .pdf via typst; writes directly to outputPath */
-  async toPdf(markdown: string, outputPath: string, opts: PandocPdfOptions = {}): Promise<void> {
-    const args: string[] = [
-      '--from',
-      'markdown+smart',
-      '--to',
-      'pdf',
-      '--pdf-engine',
-      'typst',
-      '--output',
-      outputPath,
-      '--standalone',
-    ]
-
-    if (opts.template) {
-      args.push('--template', opts.template)
-    }
-
-    if (opts.paperSize) {
-      // Pass paper size as a Typst variable that templates can consume
-      args.push('--variable', `papersize=${opts.paperSize}`)
-    }
-
-    // Build an env with our bin dir prepended so pandoc finds typst
-    const env = buildEnv(opts.typstBinDir)
-
-    await this.run(args, markdown, env)
-  }
-
-  /**
-   * Convert markdown → HTML5 for live preview.
-   * Returns the inner body HTML (no <html>/<head> wrapper).
-   */
-  async toHtml(markdown: string, opts: PandocHtmlOptions = {}): Promise<string> {
-    const args: string[] = ['--from', 'markdown+smart', '--to', 'html5']
-
-    if (opts.css) {
-      // Write CSS to a temp file so pandoc can embed it
-      const cssPath = tmpPath('lh-preview-style', '.css')
-      writeFileSync(cssPath, opts.css, 'utf8')
-      args.push('--css', cssPath)
-      const result = await this.run(args, markdown)
-      tryUnlink(cssPath)
-      return result
-    }
-
-    return this.run(args, markdown)
-  }
-
   // ---------------------------------------------------------------------------
   // Core execution
   // ---------------------------------------------------------------------------
@@ -204,15 +137,6 @@ function tmpPath(prefix: string, ext: string): string {
   const dir = tmpdir()
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
   return join(dir, `${prefix}-${Date.now()}-${_tmpCounter++}${ext}`)
-}
-
-function buildEnv(extraBinDir?: string): NodeJS.ProcessEnv {
-  if (!extraBinDir) return process.env
-  const separator = process.platform === 'win32' ? ';' : ':'
-  return {
-    ...process.env,
-    PATH: `${extraBinDir}${separator}${process.env.PATH ?? ''}`,
-  }
 }
 
 function readFileSyncBuffer(path: string): Buffer {

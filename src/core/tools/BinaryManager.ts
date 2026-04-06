@@ -77,6 +77,15 @@ export function getStylesDir(plugin: LighthousePlugin): string {
 }
 
 /**
+ * Directory used as Typst's package cache (TYPST_PACKAGE_CACHE_PATH).
+ * Typst downloads cmarker here on first PDF export; subsequent exports
+ * are fully offline.
+ */
+export function getPackagesCacheDir(plugin: LighthousePlugin): string {
+  return join(getBinDir(plugin), 'packages')
+}
+
+/**
  * Returns the absolute path where a style asset is (or will be) stored.
  * format is 'docx' or 'typst'.
  */

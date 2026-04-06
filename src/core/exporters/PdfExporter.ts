@@ -1,19 +1,19 @@
 /**
- * PdfExporter — converts a CompiledDocument to PDF via the
- * Pandoc → Typst pipeline.
+ * PdfExporter — converts a CompiledDocument to PDF via the Typst pipeline.
  *
- * Pandoc converts the markdown to Typst markup, then calls the Typst binary
- * as the PDF engine. This gives publication-quality typesetting: proper
- * widow’s/orphan control, font embedding, exact page geometry, and
- * running headers/footers — none of which Chromium’s printToPDF can provide.
+ * Typst compiles a .typ entry point that uses the cmarker package to render
+ * the Markdown content directly. This gives publication-quality typesetting
+ * without requiring pandoc.
  *
- * An optional .typ template file controls the visual style. The typstBinDir
- * is prepended to PATH so pandoc’s ‘--pdf-engine typst’ invocation resolves
- * without requiring the user to have typst globally installed.
+ * An optional .typ template controls the visual style. The template must
+ * render the document body via:
+ *   #cmarker.render(read(sys.inputs.content))
+ *
+ * When no template is provided, a minimal built-in shim is used.
  */
 
 import type { CompiledDocument } from '../ProjectCompiler'
-import type { PandocRunner } from '../tools/PandocRunner'
+import type { TypestRunner } from '../tools/TypestRunner'
 
 export interface PdfExportOptions {
   /**
@@ -24,19 +24,20 @@ export interface PdfExportOptions {
   outputPath: string
   /** Path to a .typ Typst template for visual styling */
   template?: string
-  /** Directory containing the typst binary (prepended to PATH) */
-  typstBinDir?: string
+  /** Directory to use as Typst's package cache (TYPST_PACKAGE_CACHE_PATH) */
+  packageCacheDir?: string
   /** Typst paper size identifier, e.g. "us-letter", "a4", "us-trade" */
   paperSize?: string
 }
 
 export class PdfExporter {
-  constructor(private pandoc: PandocRunner) {}
+  constructor(private typst: TypestRunner) {}
 
   async export(doc: CompiledDocument, options: PdfExportOptions): Promise<void> {
-    await this.pandoc.toPdf(doc.fullText, options.outputPath, {
+    await this.typst.toPdf(doc.fullText, {
+      outputPath: options.outputPath,
       template: options.template,
-      typstBinDir: options.typstBinDir,
+      packageCacheDir: options.packageCacheDir,
       paperSize: options.paperSize,
     })
   }

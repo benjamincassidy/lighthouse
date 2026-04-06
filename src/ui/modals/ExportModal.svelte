@@ -7,9 +7,10 @@
   import { EpubExporter } from '@/core/exporters/EpubExporter'
   import { PdfExporter } from '@/core/exporters/PdfExporter'
   import { ProjectCompiler } from '@/core/ProjectCompiler'
-  import { BinaryManager, getBinDir, getBinPath, getStylePath } from '@/core/tools/BinaryManager'
+  import { BinaryManager, getBinPath, getPackagesCacheDir, getStylePath } from '@/core/tools/BinaryManager'
   import type { DownloadProgress } from '@/core/tools/BinaryManager'
   import { PandocRunner } from '@/core/tools/PandocRunner'
+  import { TypestRunner } from '@/core/tools/TypestRunner'
   import type { StyleName, ToolName } from '@/core/tools/ToolsManifest'
   import { BUILT_IN_STYLES, type ExportStyle } from '@/exportStyles/index'
   import type LighthousePlugin from '@/main'
@@ -62,7 +63,7 @@
 
   // Which tools each format needs
   const FORMAT_TOOLS: Record<ExportFormat, ToolName[]> = {
-    pdf: ['pandoc', 'typst'],
+    pdf: ['typst'],
     docx: ['pandoc'],
     epub: ['pandoc'],
     markdown: [],
@@ -288,8 +289,8 @@
         await plugin.app.vault.adapter.writeBinary(outPath, new Uint8Array(bytes))
         onSuccess(`Exported to ${outPath}`)
       } else if (format === 'pdf') {
-        const pandoc = makePandocRunner()
-        const exporter = new PdfExporter(pandoc)
+        const typst = new TypestRunner(getBinPath('typst', plugin))
+        const exporter = new PdfExporter(typst)
         const adapter = plugin.app.vault.adapter as unknown as { basePath: string }
         const relPath = resolveOutputPath('pdf')
         const absPath = join(adapter.basePath, relPath)
@@ -298,7 +299,7 @@
           : undefined
         await exporter.export(doc, {
           outputPath: absPath,
-          typstBinDir: getBinDir(plugin),
+          packageCacheDir: getPackagesCacheDir(plugin),
           paperSize: typstPaperSize(selectedPaperSizeId),
           template,
         })
