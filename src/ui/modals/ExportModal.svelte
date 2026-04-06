@@ -11,7 +11,7 @@
   import type { DownloadProgress } from '@/core/tools/BinaryManager'
   import { PandocRunner } from '@/core/tools/PandocRunner'
   import type { StyleName, ToolName } from '@/core/tools/ToolsManifest'
-  import { BUILT_IN_STYLES, cssForScreenPreview, type ExportStyle } from '@/exportStyles/index'
+  import { BUILT_IN_STYLES, type ExportStyle } from '@/exportStyles/index'
   import type LighthousePlugin from '@/main'
   import type { Project } from '@/types/types'
 
@@ -352,191 +352,14 @@
   }
 
   // ---------------------------------------------------------------------------
-  // Pandoc runner (shared across export and preview)
+  // ---------------------------------------------------------------------------
+  // Pandoc runner
   // ---------------------------------------------------------------------------
 
   function makePandocRunner(): PandocRunner {
     return new PandocRunner(getBinPath('pandoc', plugin))
   }
 
-  // ---------------------------------------------------------------------------
-  // Live preview state
-  // ---------------------------------------------------------------------------
-
-  let previewHtml = $state('') // Pandoc-generated HTML body
-  let previewLoading = $state(true)
-  let previewPandocAvailable = $state(false)
-
-  /** Rebuild the iframe srcdoc whenever format, style, paper size, or preview HTML changes */
-  const previewSrcdoc = $derived.by(() => {
-    if (previewLoading) return buildLoadingDoc()
-    if (format === 'markdown') return buildMarkdownDoc(previewHtml)
-    if (format === 'epub') return buildEreaderDoc(previewHtml)
-    return buildPageDoc(previewHtml, selectedStyle, selectedPaperSize.ratio)
-  })
-
-  $effect(() => {
-    void compileForPreview()
-  })
-
-  async function compileForPreview(): Promise<void> {
-    previewLoading = true
-    try {
-      const filePaths = getContentFilePaths()
-      if (filePaths.length === 0) {
-        previewHtml = '<p><em>No content files found in the project content folders.</em></p>'
-        previewPandocAvailable = false
-        return
-      }
-      const compiler = new ProjectCompiler((path) => plugin.app.vault.adapter.read(path))
-      const doc = await compiler.compile(project, filePaths, {
-        stripFrontmatter: true,
-        convertWikiLinks: true,
-        stripEmbeds: true,
-        stripHighlights: false,
-        fileSeparator: '',
-      })
-
-      // Prefer Pandoc for the preview — same parse pipeline as the actual export
-      // so the HTML preview is structurally identical to the output document.
-      if (pandocStatus === 'ready') {
-        previewPandocAvailable = true
-        const pandoc = makePandocRunner()
-        const css = format === 'epub' ? '' : cssForScreenPreview(selectedStyle.css)
-        // Use up to 8000 chars for preview — enough for a representatve sample
-        const sample = doc.fullText.slice(0, 8000)
-        previewHtml = await pandoc.toHtml(sample, { css })
-      } else {
-        // Pandoc not installed — fall back to built-in mini-converter
-        previewPandocAvailable = false
-        const sample = doc.fullText.slice(0, 5000)
-        previewHtml = format === 'markdown' ? sample : markdownToHtml(sample)
-      }
-    } catch (err) {
-      previewHtml = `<p><em>Preview unavailable: ${err instanceof Error ? err.message : String(err)}</em></p>`
-      previewPandocAvailable = false
-    } finally {
-      previewLoading = false
-    }
-  }
-
-  // ---------------------------------------------------------------------------
-  // Preview document builders
-  // The preview lives in an <iframe srcdoc> — a fully isolated document so the
-  // style CSS renders with zero interference from Obsidian's own styles.
-  // ---------------------------------------------------------------------------
-
-  function markdownToHtml(md: string): string {
-    const blocks: string[] = []
-    let para: string[] = []
-
-    const flush = () => {
-      if (para.length) {
-        const text = para
-          .join(' ')
-          .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-          .replace(/\*(.+?)\*/g, '<em>$1</em>')
-          .replace(/_(.+?)_/g, '<em>$1</em>')
-        blocks.push(`<p>${text}</p>`)
-        para = []
-      }
-    }
-
-    for (const raw of md.split('\n')) {
-      const t = raw.trim()
-      if (!t) {
-        flush()
-      } else if (t.startsWith('### ')) {
-        flush()
-        blocks.push(`<h3>${t.slice(4)}</h3>`)
-      } else if (t.startsWith('## ')) {
-        flush()
-        blocks.push(`<h2>${t.slice(3)}</h2>`)
-      } else if (t.startsWith('# ')) {
-        flush()
-        blocks.push(`<h1>${t.slice(2)}</h1>`)
-      } else if (/^[-*_]{3,}$/.test(t) || t === '* * *') {
-        flush()
-        blocks.push('<hr />')
-      } else {
-        para.push(t)
-      }
-    }
-    flush()
-    return blocks.join('\n')
-  }
-
-  // ---------------------------------------------------------------------------
-  // iframe document builders
-  // Opening/closing style tags split across concatenation so Svelte's raw-text
-  // scanner never sees the literal substrings as block boundaries.
-  // ---------------------------------------------------------------------------
-
-  function buildLoadingDoc(): string {
-    const o = '<' + 'style>',
-      c = '<' + '/style>'
-    return `<!DOCTYPE html><html><head><meta charset="utf-8">${o}*{box-sizing:border-box}html,body{height:100%;margin:0}body{display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif;font-size:13px;color:#999;background:#e8e8e8}${c}</head><body>Loading preview\u2026</body></html>`
-  }
-
-  /** Markdown: monospace raw text on a neutral background */
-  function buildMarkdownDoc(text: string): string {
-    const safe = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    const o = '<' + 'style>',
-      c = '<' + '/style>'
-    return `<!DOCTYPE html><html><head><meta charset="utf-8">${o}*{box-sizing:border-box}html,body{margin:0;height:100%}body{padding:1.5rem 2rem;background:#1e1e1e}pre{margin:0;font-family:Menlo,'Cascadia Code',monospace;font-size:11.5px;line-height:1.65;color:#d4d4d4;white-space:pre-wrap;word-break:break-word}${c}</head><body><pre>${safe}</pre></body></html>`
-  }
-
-  /**
-   * PDF / DOCX: the entire page is always visible as a white rectangle centred
-   * on a dark background. Height is fixed to the iframe viewport; width is
-   * derived from the paper's aspect ratio so Letter, Trade, A4, A5 all look
-   * visually distinct.
-   */
-  function buildPageDoc(html: string, style: ExportStyle, paperRatio: number): string {
-    const css = cssForScreenPreview(style.css)
-    const o = '<' + 'style>',
-      c = '<' + '/style>'
-    return (
-      `<!DOCTYPE html><html><head><meta charset="utf-8">${o}` +
-      `*{box-sizing:border-box}` +
-      `html,body{height:100%;margin:0}` +
-      `body{background:#525659;display:flex;align-items:center;justify-content:center;padding:24px}` +
-      `.page{height:calc(100vh - 48px);width:auto;aspect-ratio:${paperRatio};` +
-      `background:#fff;box-shadow:0 4px 24px rgba(0,0,0,.55);overflow:hidden;flex-shrink:0}` +
-      `.page-inner{height:100%;padding:6% 8%;overflow:hidden}` +
-      `${css}` +
-      `${c}</head><body>` +
-      `<div class="page"><div class="page-inner">` +
-      `<div class="markdown-preview-view markdown-preview-sizer">${html}</div>` +
-      `</div></div></body></html>`
-    )
-  }
-
-  /**
-   * ePub: content rendered in an e-reader–style frame.
-   * No style or paper size controls apply here — the reading app owns the
-   * presentation. We show clean semantic HTML with comfortable reading defaults.
-   */
-  function buildEreaderDoc(html: string): string {
-    const o = '<' + 'style>',
-      c = '<' + '/style>'
-    return (
-      `<!DOCTYPE html><html><head><meta charset="utf-8">${o}` +
-      `*{box-sizing:border-box}` +
-      `html,body{margin:0;min-height:100%}` +
-      `body{background:#3a3a3c;padding:20px;display:flex;justify-content:center}` +
-      `.reader{width:100%;max-width:420px;background:#faf8f2;border-radius:6px;padding:2rem 2.25rem;` +
-      `font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:1.75;color:#1c1c1e;` +
-      `box-shadow:0 4px 24px rgba(0,0,0,.5)}` +
-      `.reader h1{font-size:1.2em;font-weight:normal;font-style:italic;text-align:center;margin:0 0 2em}` +
-      `.reader h2,.reader h3{font-size:1em;font-weight:bold;text-align:center;margin:1.5em 0 0.75em}` +
-      `.reader p{margin:0;text-indent:1.5em}.reader p:first-of-type,.reader h1+p,.reader h2+p,.reader h3+p,.reader hr+p{text-indent:0}` +
-      `.reader hr{border:none;text-align:center;margin:1.5em 0}.reader hr::after{content:'* * *';color:#888}` +
-      `${c}</head><body>` +
-      `<div class="reader"><div class="markdown-preview-view">${html}</div></div>` +
-      `</body></html>`
-    )
-  }
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
@@ -610,27 +433,6 @@
         {/if}
       {/if}
     </div>
-  {/if}
-
-  <!-- ── Live preview ──────────────────────────────────────── -->
-  <!--
-    The preview renders inside an <iframe srcdoc> — a completely isolated
-    document where the style CSS applies cleanly with no Obsidian interference.
-    No SVG tricks, no flex height hacks. Changing the style dropdown rebuilds
-    the srcdoc string (CSS swap only, no recompile).
-  -->
-  <div class="lh-preview-shell">
-    <iframe class="lh-preview" title="Document preview" srcdoc={previewSrcdoc}></iframe>
-  </div>
-  {#if format === 'docx'}
-    <p class="lh-format-note">
-      {#if previewPandocAvailable}
-        Preview rendered by Pandoc — structural layout matches your export. Word may apply its own
-        default fonts and spacing on top of the reference style.
-      {:else}
-        Install Pandoc above to see an accurate preview. Word may apply its own fonts and spacing.
-      {/if}
-    </p>
   {/if}
 
   <!-- ── Controls ─────────────────────────────────────────── -->
@@ -838,23 +640,6 @@
     color: var(--text-normal);
   }
 
-  /* ── Preview ─────────────────────────────── */
-  .lh-preview-shell {
-    height: 480px;
-    width: 100%;
-    border-radius: var(--radius-m);
-
-    border: 1px solid var(--background-modifier-border);
-    background: var(--background-modifier-form-field);
-  }
-
-  .lh-preview {
-    display: block;
-    width: 100%;
-    height: 100%;
-    border: none;
-  }
-
   /* ── Controls ────────────────────────────── */
   .lh-controls {
     display: flex;
@@ -868,13 +653,6 @@
     color: var(--text-muted);
     line-height: 1.45;
     font-style: italic;
-  }
-
-  .lh-format-note {
-    margin: -0.35rem 0 0;
-    font-size: 0.8rem;
-    color: var(--text-faint);
-    line-height: 1.4;
   }
 
   .lh-row {
