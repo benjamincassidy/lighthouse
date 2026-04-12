@@ -26,16 +26,16 @@ export class CslStyleDownloadModal extends Modal {
   onOpen(): void {
     const { contentEl } = this
 
-    contentEl.createEl('h2', { text: 'Download Citation Style' })
+    contentEl.createEl('h2', { text: 'Download citation style' })
 
     contentEl.createEl('p', {
-      text: 'Search for citation styles from the official CSL repository.',
+      text: 'Download citation styles from GitHub',
       cls: 'setting-item-description',
     })
 
     // Search input
-    new Setting(contentEl).setName('Search styles').addText((text) => {
-      text.setPlaceholder('E.g., ACS, Lancet, PNAS...').onChange(async (value) => {
+    new Setting(contentEl).setName('Search').addText((text) => {
+      text.setPlaceholder('Enter style name').onChange(async (value) => {
         if (value.length >= 2) {
           await this.search(value)
         } else {
@@ -102,23 +102,25 @@ export class CslStyleDownloadModal extends Modal {
         cls: 'mod-cta',
       })
 
-      downloadBtn.addEventListener('click', async () => {
+      downloadBtn.addEventListener('click', () => {
         downloadBtn.disabled = true
         downloadBtn.textContent = 'Downloading...'
 
-        try {
-          await this.cslManager.downloadStyle(style)
-          new Notice(`Downloaded ${style.name}`)
-          this.onSelect(style.id)
-          this.close()
-        } catch (err) {
-          new Notice(
-            `Failed to download: ${err instanceof Error ? err.message : String(err)}`,
-            5000,
-          )
-          downloadBtn.disabled = false
-          downloadBtn.textContent = 'Download'
-        }
+        void (async () => {
+          try {
+            await this.cslManager.downloadStyle(style)
+            new Notice(`Downloaded ${style.name}`)
+            this.onSelect(style.id)
+            this.close()
+          } catch (err) {
+            new Notice(
+              `Failed to download: ${err instanceof Error ? err.message : String(err)}`,
+              5000,
+            )
+            downloadBtn.disabled = false
+            downloadBtn.textContent = 'Download'
+          }
+        })()
       })
     }
   }

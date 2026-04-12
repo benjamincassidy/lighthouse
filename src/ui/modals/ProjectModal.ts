@@ -5,6 +5,7 @@ import { CslStyleManager, BUNDLED_CSL_STYLES } from '@/core/CslStyleManager'
 import type LighthousePlugin from '@/main'
 import type { GoalDirection, Project } from '@/types/types'
 import { CslStyleDownloadModal } from '@/ui/modals/CslStyleDownloadModal'
+import { getElectronDialog } from '@/utils/electron'
 
 /**
  * Modal mode - create new or edit existing project
@@ -264,10 +265,10 @@ export class ProjectModal extends Modal {
     )
 
     // Bibliography path
-    let bibliographyTextInput: unknown = null
+    let bibliographyTextInput: { setValue: (value: string) => void } | null = null
     new Setting(contentEl)
       .setName('Bibliography file')
-      .setDesc('Optional citation database for exports (.bib, .yml, .yaml, .json)')
+      .setDesc('Optional citation database for exports')
       .addText((text) => {
         bibliographyTextInput = text
         text
@@ -279,29 +280,26 @@ export class ProjectModal extends Modal {
       })
       .addButton((button) => {
         button
-          .setButtonText('Browse...')
+          .setButtonText('Browse')
           .setTooltip('Choose bibliography file')
           .onClick(() => {
-            // @ts-ignore - Electron available in Obsidian
-            const electron = require('electron')
-            // @ts-ignore
-            const dialog = electron.remote?.dialog || require('@electron/remote')?.dialog
+            const dialog = getElectronDialog()
+            if (!dialog) {
+              new Notice('File picker not available')
+              return
+            }
+
             const result = dialog.showOpenDialogSync({
-              title: 'Select Bibliography File',
+              title: 'Select bibliography file',
               properties: ['openFile'],
               filters: [
-                { name: 'Bibliography Files', extensions: ['bib', 'yml', 'yaml', 'json'] },
-                { name: 'All Files', extensions: ['*'] },
+                { name: 'Bibliography files', extensions: ['bib', 'yml', 'yaml', 'json'] },
+                { name: 'All files', extensions: ['*'] },
               ],
             })
             if (result && result.length > 0) {
-              // Store as absolute path - will resolve relative to vault when needed
               this.bibliographyPath = result[0]
-              // Update the text input to show the selected path
-              if (bibliographyTextInput) {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                ;(bibliographyTextInput as any).setValue(result[0])
-              }
+              bibliographyTextInput?.setValue(result[0])
             }
           })
       })
@@ -312,7 +310,7 @@ export class ProjectModal extends Modal {
 
     const citationStyleSetting = new Setting(contentEl)
       .setName('Citation style')
-      .setDesc('Format for citations and bibliography (APA, Chicago, MLA, etc.)')
+      .setDesc('Format for citations and bibliography')
 
     citationStyleSetting.addDropdown((dropdown) => {
       dropdown.addOption('', 'None')
@@ -337,17 +335,20 @@ export class ProjectModal extends Modal {
       dropdown.onChange((value) => {
         this.citationStyle = value
         if (value === 'custom') {
-          // Open file picker for custom CSL file
-          // @ts-ignore - Electron available in Obsidian
-          const electron = require('electron')
-          // @ts-ignore
-          const dialog = electron.remote?.dialog || require('@electron/remote')?.dialog
+          const dialog = getElectronDialog()
+          if (!dialog) {
+            new Notice('File picker not available')
+            this.citationStyle = ''
+            dropdown.setValue('')
+            return
+          }
+
           const result = dialog.showOpenDialogSync({
-            title: 'Select Citation Style (CSL)',
+            title: 'Select citation style file',
             properties: ['openFile'],
             filters: [
-              { name: 'Citation Style Language', extensions: ['csl'] },
-              { name: 'All Files', extensions: ['*'] },
+              { name: 'Citation style language', extensions: ['csl'] },
+              { name: 'All files', extensions: ['*'] },
             ],
           })
           if (result && result.length > 0) {

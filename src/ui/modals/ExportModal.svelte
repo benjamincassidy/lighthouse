@@ -33,7 +33,7 @@
     onSuccess: (message: string) => void
   }
 
-  let { plugin, project, onClose, onSuccess }: Props = $props()
+  let { plugin, project, onClose: _onClose, onSuccess }: Props = $props()
 
   type ExportFormat = 'pdf' | 'docx' | 'epub' | 'markdown'
 
@@ -209,10 +209,10 @@
   }
 
   const allStyles = $derived([...BUILT_IN_STYLES, ...userStyles])
-  const selectedStyle = $derived(
+  const _selectedStyle = $derived(
     allStyles.find((s) => s.id === selectedStyleId) ?? BUILT_IN_STYLES[0],
   )
-  const selectedPaperSize = $derived(
+  const _selectedPaperSize = $derived(
     PAPER_SIZES.find((p) => p.id === selectedPaperSizeId) ?? PAPER_SIZES[0],
   )
 
@@ -627,11 +627,10 @@
   }
 </script>
 
-<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <div class="lh-export" role="dialog" aria-label="Export project">
   <!-- ── Format tabs ───────────────────────────────────────── -->
   <div class="lh-tabs" role="tablist" aria-label="Export format">
-    {#each ['pdf', 'docx', 'epub', 'markdown'] as ExportFormat[] as fmt}
+    {#each ['pdf', 'docx', 'epub', 'markdown'] as ExportFormat[] as fmt (fmt)}
       <button
         role="tab"
         aria-selected={format === fmt}

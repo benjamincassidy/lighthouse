@@ -31,17 +31,17 @@ declare const __LIGHTHOUSE_VERSION__: string
 /**
  * Default manifest URL - points to the latest plugin release's manifest.
  * The version is injected at build time by esbuild.
- * 
+ *
  * Format: https://github.com/owner/repo/releases/download/<version>/tools-manifest.json
  */
 function getVersionSpecificManifestUrl(): string | null {
   // Check if version was injected (will be a string like "1.1.0")
   const version = typeof __LIGHTHOUSE_VERSION__ !== 'undefined' ? __LIGHTHOUSE_VERSION__ : null
-  
+
   if (version) {
     return `https://github.com/benjamincassidy/obsidian-lighthouse/releases/download/${version}/tools-manifest.json`
   }
-  
+
   return null
 }
 

@@ -111,30 +111,30 @@ jobs:
           mkdir -p dist/binaries
           VERSION="${{ steps.version_check.outputs.VERSION }}"
           PANDOC_VER="3.6.4"
-          
+
           echo "📦 Downloading Pandoc ${PANDOC_VER} for all platforms..."
           PANDOC_BASE="https://github.com/jgm/pandoc/releases/download/${PANDOC_VER}"
-          
+
           # Darwin ARM64
           curl -fsSL "${PANDOC_BASE}/pandoc-${PANDOC_VER}-arm64-macOS.zip" -o /tmp/pandoc-darwin-arm64.zip
           unzip -p /tmp/pandoc-darwin-arm64.zip "pandoc-${PANDOC_VER}/bin/pandoc" | gzip > "dist/binaries/pandoc-darwin-arm64.gz"
-          
+
           # Darwin x64
           curl -fsSL "${PANDOC_BASE}/pandoc-${PANDOC_VER}-x86_64-macOS.zip" -o /tmp/pandoc-darwin-x64.zip
           unzip -p /tmp/pandoc-darwin-x64.zip "pandoc-${PANDOC_VER}/bin/pandoc" | gzip > "dist/binaries/pandoc-darwin-x64.gz"
-          
+
           # Linux x64
           curl -fsSL "${PANDOC_BASE}/pandoc-${PANDOC_VER}-linux-amd64.tar.gz" -o /tmp/pandoc-linux-x64.tar.gz
           tar -xzf /tmp/pandoc-linux-x64.tar.gz -O "pandoc-${PANDOC_VER}/bin/pandoc" | gzip > "dist/binaries/pandoc-linux-x64.gz"
-          
+
           # Linux ARM64
           curl -fsSL "${PANDOC_BASE}/pandoc-${PANDOC_VER}-linux-arm64.tar.gz" -o /tmp/pandoc-linux-arm64.tar.gz
           tar -xzf /tmp/pandoc-linux-arm64.tar.gz -O "pandoc-${PANDOC_VER}/bin/pandoc" | gzip > "dist/binaries/pandoc-linux-arm64.gz"
-          
+
           # Windows x64
           curl -fsSL "${PANDOC_BASE}/pandoc-${PANDOC_VER}-windows-x86_64.zip" -o /tmp/pandoc-win32-x64.zip
           unzip -p /tmp/pandoc-win32-x64.zip "pandoc-${PANDOC_VER}/pandoc.exe" | gzip > "dist/binaries/pandoc-win32-x64.gz"
-          
+
           echo "✅ Pandoc binaries downloaded"
 
       - name: Download Typst binaries
@@ -142,30 +142,30 @@ jobs:
         run: |
           set -euo pipefail
           TYPST_VER="0.12.0"
-          
+
           echo "📦 Downloading Typst ${TYPST_VER} for all platforms..."
           TYPST_BASE="https://github.com/typst/typst/releases/download/v${TYPST_VER}"
-          
+
           # Darwin ARM64
           curl -fsSL "${TYPST_BASE}/typst-aarch64-apple-darwin.tar.xz" -o /tmp/typst-darwin-arm64.tar.xz
           tar -xJf /tmp/typst-darwin-arm64.tar.xz -O "typst-aarch64-apple-darwin/typst" | gzip > "dist/binaries/typst-darwin-arm64.gz"
-          
+
           # Darwin x64
           curl -fsSL "${TYPST_BASE}/typst-x86_64-apple-darwin.tar.xz" -o /tmp/typst-darwin-x64.tar.xz
           tar -xJf /tmp/typst-darwin-x64.tar.xz -O "typst-x86_64-apple-darwin/typst" | gzip > "dist/binaries/typst-darwin-x64.gz"
-          
+
           # Linux x64
           curl -fsSL "${TYPST_BASE}/typst-x86_64-unknown-linux-musl.tar.xz" -o /tmp/typst-linux-x64.tar.xz
           tar -xJf /tmp/typst-linux-x64.tar.xz -O "typst-x86_64-unknown-linux-musl/typst" | gzip > "dist/binaries/typst-linux-x64.gz"
-          
+
           # Linux ARM64
           curl -fsSL "${TYPST_BASE}/typst-aarch64-unknown-linux-musl.tar.xz" -o /tmp/typst-linux-arm64.tar.xz
           tar -xJf /tmp/typst-linux-arm64.tar.xz -O "typst-aarch64-unknown-linux-musl/typst" | gzip > "dist/binaries/typst-linux-arm64.gz"
-          
+
           # Windows x64
           curl -fsSL "${TYPST_BASE}/typst-x86_64-pc-windows-msvc.zip" -o /tmp/typst-win32-x64.zip
           unzip -p /tmp/typst-win32-x64.zip "typst-x86_64-pc-windows-msvc/typst.exe" | gzip > "dist/binaries/typst-win32-x64.gz"
-          
+
           echo "✅ Typst binaries downloaded"
 
       - name: Generate tools manifest
@@ -175,10 +175,10 @@ jobs:
           VERSION="${{ steps.version_check.outputs.VERSION }}"
           REPO="${{ github.repository }}"
           BASE_URL="https://github.com/${REPO}/releases/download/${VERSION}"
-          
+
           echo "📝 Generating tools-manifest.json..."
           node scripts/generate-manifest.js "${VERSION}" "${BASE_URL}"
-          
+
           echo "✅ Manifest generated"
 
       - name: Create Release
