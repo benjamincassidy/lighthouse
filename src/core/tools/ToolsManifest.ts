@@ -15,6 +15,10 @@
  * Each binary is a gzipped executable hosted as a GitHub release asset.
  */
 
+/* eslint-disable no-undef */
+// Desktop-only code: requires process global
+
+
 /** URL of the manifest JSON in our GitHub releases */
 export const TOOLS_MANIFEST_URL =
   'https://github.com/benjamincassidy/obsidian-lighthouse/releases/download/tools-v1/tools-manifest.json'

@@ -15,6 +15,8 @@
  *   7. Update installed.json
  */
 
+/* eslint-disable import/no-nodejs-modules, no-undef, no-restricted-globals */
+// Desktop-only code: requires Node.js modules and globals for binary management
 import { createHash } from 'crypto'
 import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'

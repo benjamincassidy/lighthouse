@@ -264,7 +264,7 @@ export class ProjectModal extends Modal {
     )
 
     // Bibliography path
-    let bibliographyTextInput: any = null
+    let bibliographyTextInput: unknown = null
     new Setting(contentEl)
       .setName('Bibliography file')
       .setDesc('Optional citation database for exports (.bib, .yml, .yaml, .json)')

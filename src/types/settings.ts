@@ -21,6 +21,9 @@ export interface LighthouseSettings {
   excludeCodeBlocks: boolean
   excludeFrontmatter: boolean
 
+  // CSL Citation Styles
+  downloadedCslStyles?: Record<string, string> // styleId -> absolute path
+
   // General Settings
   debugMode: boolean
 

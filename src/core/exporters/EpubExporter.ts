@@ -27,6 +27,7 @@ export class EpubExporter {
   constructor(private pandoc: PandocRunner) {}
 
   async export(doc: CompiledDocument, options: EpubExportOptions = {}): Promise<Buffer> {
+    /* global Buffer */
     return this.pandoc.toEpub(doc.fullText, {
       title: options.title ?? doc.projectName,
       author: options.author,

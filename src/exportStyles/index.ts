@@ -142,7 +142,7 @@ export const BUILT_IN_STYLES: ExportStyle[] = [
     name: 'Novel — Trade',
     description: '5.5 × 8.5 in, Palatino serif, first-line indent, chapter page breaks',
     pageSize: '5.5 × 8.5 in',
-    css: novelTradeCss as string,
+    css: novelTradeCss,
     builtIn: true,
     previewSvg: makeThumbnail({
       fontFamily: 'Palatino, serif',
@@ -158,7 +158,7 @@ export const BUILT_IN_STYLES: ExportStyle[] = [
     name: 'Manuscript Standard',
     description: 'US Letter, 12pt Courier, double-spaced — industry submission format',
     pageSize: 'US Letter',
-    css: manuscriptStandardCss as string,
+    css: manuscriptStandardCss,
     builtIn: true,
     previewSvg: makeThumbnail({
       fontFamily: 'Courier New, monospace',
@@ -174,7 +174,7 @@ export const BUILT_IN_STYLES: ExportStyle[] = [
     name: 'Academic — A4',
     description: 'A4, 12pt Times New Roman, 1.5 spacing — for essays, theses, dissertations',
     pageSize: 'A4',
-    css: academicA4Css as string,
+    css: academicA4Css,
     builtIn: true,
     previewSvg: makeThumbnail({
       fontFamily: 'Times New Roman, serif',

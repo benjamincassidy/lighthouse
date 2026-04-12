@@ -27,6 +27,9 @@
  *   <!--raw-typst #bibliography("refs.bib") -->
  */
 
+/* eslint-disable import/no-nodejs-modules, no-undef */
+// Desktop-only code: requires Node.js modules for process execution
+
 import { spawn } from 'child_process'
 import { existsSync, mkdirSync, unlinkSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'

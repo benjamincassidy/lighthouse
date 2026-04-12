@@ -101,8 +101,9 @@ export function extractFrontmatter(text: string): {
 export function convertWikiLinks(text: string): string {
   // [[Target|Alias]] → Alias
   // [[Target]]       → Target
-  return text.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_, target, alias) =>
-    (alias ?? target).trim(),
+  return text.replace(
+    /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g,
+    (_: string, target: string, alias: string | undefined) => (alias ?? target).trim(),
   )
 }
 

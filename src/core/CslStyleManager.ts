@@ -2,6 +2,8 @@
  * CslStyleManager - Manages bundled and downloaded CSL citation styles
  */
 
+import { requestUrl } from 'obsidian'
+
 import type LighthousePlugin from '@/main'
 
 export interface CslStyle {
@@ -60,7 +62,8 @@ export class CslStyleManager {
     if (!style?.path) return undefined
 
     // Return path to bundled style in plugin directory
-    const pluginDir = (this.plugin.app.vault.adapter as any).basePath
+    const adapter = this.plugin.app.vault.adapter as { basePath: string }
+    const pluginDir = adapter.basePath
     const manifestDir = this.plugin.manifest.dir
     return `${pluginDir}/${manifestDir}/csl-styles/${style.path}`
   }
@@ -99,14 +102,11 @@ export class CslStyleManager {
    */
   async searchStyles(query: string): Promise<CslStyle[]> {
     try {
-      const response = await fetch(
-        'https://api.github.com/repos/citation-style-language/styles/contents',
-      )
-      if (!response.ok) {
-        throw new Error(`GitHub API error: ${response.status}`)
-      }
+      const response = await requestUrl({
+        url: 'https://api.github.com/repos/citation-style-language/styles/contents',
+      })
 
-      const entries: GitHubStyleEntry[] = await response.json()
+      const entries: GitHubStyleEntry[] = response.json as GitHubStyleEntry[]
 
       // Filter to .csl files and search by name
       const cslFiles = entries.filter((e) => e.type === 'file' && e.name.endsWith('.csl'))
@@ -140,27 +140,24 @@ export class CslStyleManager {
     }
 
     try {
-      const response = await fetch(style.path)
-      if (!response.ok) {
-        throw new Error(`Failed to download style: ${response.status}`)
-      }
-
-      const content = await response.text()
+      const response = await requestUrl({ url: style.path })
+      const content = response.text
 
       // Save to plugin data directory
       const dataDir = `${this.plugin.manifest.dir}/csl-styles/downloaded`
-      const adapter = this.plugin.app.vault.adapter as any
+      const adapter = this.plugin.app.vault.adapter as { basePath: string; mkdir: (path: string) => Promise<void>; write: (path: string, data: string) => Promise<void> }
       const fullPath = `${adapter.basePath}/${dataDir}`
 
-      // Ensure directory exists
-      const fs = require('fs') as typeof import('fs')
-      if (!fs.existsSync(fullPath)) {
-        fs.mkdirSync(fullPath, { recursive: true })
+      // Ensure directory exists (Obsidian API - works on all platforms)
+      try {
+        await adapter.mkdir(fullPath)
+      } catch {
+        // Directory might already exist, that's fine
       }
 
       // Write file
       const filePath = `${fullPath}/${style.id}.csl`
-      fs.writeFileSync(filePath, content, 'utf8')
+      await adapter.write(filePath, content)
 
       // Track in memory
       this.downloadedStyles.set(style.id, filePath)
@@ -200,8 +197,8 @@ export class CslStyleManager {
    * Load downloaded styles from plugin settings
    */
   private loadDownloadedStyles(): void {
-    const settings = (this.plugin as any).settings
-    if (settings?.downloadedCslStyles) {
+    const settings = this.plugin.settings
+    if (settings.downloadedCslStyles) {
       this.downloadedStyles = new Map(Object.entries(settings.downloadedCslStyles))
     }
   }
@@ -210,8 +207,7 @@ export class CslStyleManager {
    * Save downloaded styles to plugin settings
    */
   private async saveDownloadedStyles(): Promise<void> {
-    const settings = (this.plugin as any).settings || {}
-    settings.downloadedCslStyles = Object.fromEntries(this.downloadedStyles)
-    await this.plugin.saveData(settings)
+    this.plugin.settings.downloadedCslStyles = Object.fromEntries(this.downloadedStyles)
+    await this.plugin.saveSettings()
   }
 }

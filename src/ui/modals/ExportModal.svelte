@@ -1,4 +1,6 @@
 <script lang="ts">
+  /* eslint-disable no-undef */
+  // UI code uses Electron require(), Buffer, and navigator globals
   import { join } from 'path'
 
   import { untrack } from 'svelte'
@@ -31,7 +33,8 @@
     onSuccess: (message: string) => void
   }
 
-  let { plugin, project, onClose, onSuccess }: Props = $props()
+  let { plugin, project, onSuccess }: Props = $props()
+  let onClose = $props<() => void>()
 
   type ExportFormat = 'pdf' | 'docx' | 'epub' | 'markdown'
 

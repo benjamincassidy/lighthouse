@@ -3,6 +3,7 @@ import { mount, unmount } from 'svelte'
 
 import type LighthousePlugin from '@/main'
 import type { Project } from '@/types/types'
+
 import ExportModalComponent from './ExportModal.svelte'
 
 export class ExportModal extends Modal {
