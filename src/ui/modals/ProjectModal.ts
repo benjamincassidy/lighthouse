@@ -299,7 +299,8 @@ export class ProjectModal extends Modal {
               this.bibliographyPath = result[0]
               // Update the text input to show the selected path
               if (bibliographyTextInput) {
-                bibliographyTextInput.setValue(result[0])
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                ;(bibliographyTextInput as any).setValue(result[0])
               }
             }
           })

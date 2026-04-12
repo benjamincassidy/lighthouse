@@ -18,10 +18,53 @@
 /* eslint-disable no-undef */
 // Desktop-only code: requires process global
 
+// ---------------------------------------------------------------------------
+// Manifest URL configuration
+// ---------------------------------------------------------------------------
 
-/** URL of the manifest JSON in our GitHub releases */
-export const TOOLS_MANIFEST_URL =
+/**
+ * Plugin version injected at build time by esbuild.
+ * This is replaced with the actual version from manifest.json during the build.
+ */
+declare const __LIGHTHOUSE_VERSION__: string
+
+/**
+ * Default manifest URL - points to the latest plugin release's manifest.
+ * The version is injected at build time by esbuild.
+ * 
+ * Format: https://github.com/owner/repo/releases/download/<version>/tools-manifest.json
+ */
+function getVersionSpecificManifestUrl(): string | null {
+  // Check if version was injected (will be a string like "1.1.0")
+  const version = typeof __LIGHTHOUSE_VERSION__ !== 'undefined' ? __LIGHTHOUSE_VERSION__ : null
+  
+  if (version) {
+    return `https://github.com/benjamincassidy/obsidian-lighthouse/releases/download/${version}/tools-manifest.json`
+  }
+  
+  return null
+}
+
+/**
+ * Fallback manifest URL - used if the version-specific manifest isn't available yet.
+ * Points to the tools-v1 release which has manually curated binaries.
+ */
+const FALLBACK_MANIFEST_URL =
   'https://github.com/benjamincassidy/obsidian-lighthouse/releases/download/tools-v1/tools-manifest.json'
+
+/**
+ * Get the manifest URL to use for downloading tool binaries.
+ * Tries the version-specific URL first, falls back to the tools-v1 release.
+ */
+export function getToolsManifestUrl(): string {
+  return getVersionSpecificManifestUrl() || FALLBACK_MANIFEST_URL
+}
+
+/**
+ * Legacy export for backward compatibility
+ * @deprecated Use getToolsManifestUrl() instead
+ */
+export const TOOLS_MANIFEST_URL = getToolsManifestUrl()
 
 // ---------------------------------------------------------------------------
 // Types

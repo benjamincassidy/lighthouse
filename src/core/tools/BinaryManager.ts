@@ -27,7 +27,7 @@ import type LighthousePlugin from '@/main'
 import {
   binaryFilename,
   currentPlatformKey,
-  TOOLS_MANIFEST_URL,
+  getToolsManifestUrl,
   type StyleName,
   type ToolName,
   type ToolsManifest,
@@ -161,9 +161,10 @@ export class BinaryManager {
   async fetchManifest(): Promise<ToolsManifest> {
     if (this.manifestCache) return this.manifestCache
 
-    const resp = await fetch(TOOLS_MANIFEST_URL)
+    const manifestUrl = getToolsManifestUrl()
+    const resp = await fetch(manifestUrl)
     if (!resp.ok) {
-      throw new Error(`Failed to fetch tools manifest (HTTP ${resp.status}): ${TOOLS_MANIFEST_URL}`)
+      throw new Error(`Failed to fetch tools manifest (HTTP ${resp.status}): ${manifestUrl}`)
     }
     this.manifestCache = (await resp.json()) as ToolsManifest
     return this.manifestCache

@@ -62,7 +62,7 @@ export class CslStyleManager {
     if (!style?.path) return undefined
 
     // Return path to bundled style in plugin directory
-    const adapter = this.plugin.app.vault.adapter as { basePath: string }
+    const adapter = this.plugin.app.vault.adapter as unknown as { basePath: string }
     const pluginDir = adapter.basePath
     const manifestDir = this.plugin.manifest.dir
     return `${pluginDir}/${manifestDir}/csl-styles/${style.path}`
@@ -145,7 +145,11 @@ export class CslStyleManager {
 
       // Save to plugin data directory
       const dataDir = `${this.plugin.manifest.dir}/csl-styles/downloaded`
-      const adapter = this.plugin.app.vault.adapter as { basePath: string; mkdir: (path: string) => Promise<void>; write: (path: string, data: string) => Promise<void> }
+      const adapter = this.plugin.app.vault.adapter as unknown as {
+        basePath: string
+        mkdir: (path: string) => Promise<void>
+        write: (path: string, data: string) => Promise<void>
+      }
       const fullPath = `${adapter.basePath}/${dataDir}`
 
       // Ensure directory exists (Obsidian API - works on all platforms)

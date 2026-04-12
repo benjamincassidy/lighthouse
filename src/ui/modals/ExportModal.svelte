@@ -33,8 +33,7 @@
     onSuccess: (message: string) => void
   }
 
-  let { plugin, project, onSuccess }: Props = $props()
-  let onClose = $props<() => void>()
+  let { plugin, project, onClose, onSuccess }: Props = $props()
 
   type ExportFormat = 'pdf' | 'docx' | 'epub' | 'markdown'
 
