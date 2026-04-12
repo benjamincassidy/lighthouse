@@ -140,3 +140,65 @@ body.lh-flow-active[style*='--lh-flow-line-width'] .cm-editor {
 .tree-item-icon.collapse-icon .svg-icon.right-triangle.is-collapsed {
   transform: rotate(-90deg);
 }
+
+/* ================================================================
+   Export modal
+   ================================================================ */
+
+/* Give the modal extra padding and a fixed width to comfortably fit the preview */
+.modal.lh-export-modal {
+  width: min(620px, 92vw);
+}
+
+.lh-export-modal .modal-content {
+  padding: 1.25rem 1.5rem 1.5rem;
+}
+
+/* ================================================================
+   CSL Style Download Modal
+   ================================================================ */
+
+.lighthouse-csl-results {
+  margin-top: 1rem;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.lighthouse-searching,
+.lighthouse-no-results {
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 1rem;
+  text-align: center;
+}
+
+.lighthouse-style-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.lighthouse-style-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  transition: background-color 0.15s ease;
+}
+
+.lighthouse-style-item:hover {
+  background-color: var(--background-modifier-hover);
+}
+
+.lighthouse-style-name {
+  flex: 1;
+  font-size: 0.95em;
+}
+
+.lighthouse-style-item button {
+  font-size: 0.85em;
+  padding: 0.25rem 0.75rem;
+}

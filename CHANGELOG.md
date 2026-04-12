@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-04-12
+
+### Added
+- **Bibliography Support**: Projects can now specify a bibliography file (BibTeX, YAML, or JSON) for citations
+- **CSL Citation Styles**: Comprehensive citation formatting system with 10 bundled popular styles (APA, Chicago, MLA, Harvard, IEEE, Vancouver, AMA, Nature, Elsevier Harvard, ACM)
+- **Searchable Style Download**: Download any of 10,000+ citation styles from the official CSL GitHub repository with live search
+- **Project-Level Citation Configuration**: Set citation style once per project, automatically applied to all exports
+- **Table of Contents**: Optional TOC generation for PDF, DOCX, and EPUB exports
+- **Chapter Page Breaks**: Optional page breaks before each content file in PDF and DOCX exports
+- **File Picker Dialogs**: Native system file picker for selecting bibliography files and output folders
+- **Export Settings Persistence**: Last export settings (format, style, output folder, etc.) are saved per-project and restored on next export
+
+### Fixed
+- **Citation Processing**: Citations now work correctly in PDF (via Typst), DOCX, and EPUB (via Pandoc --citeproc)
+- **Bibliography Formatting**: Bibliographies include proper headers and page breaks in all formats
+- **Export Modal Reactivity**: Fixed Svelte 5 reactivity warnings for plugin prop references
+
+### Changed
+- **TypstRunner**: Renamed from TypestRunner for correct spelling
+- **Export Workflow**: Streamlined export settings with better defaults and persistence
+
 ## [1.0.6] - 2026-03-15
 
 ### Added

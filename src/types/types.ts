@@ -36,6 +36,26 @@ export interface Project {
   // Dates the writer has marked as planned rest days (YYYY-MM-DD, local time).
   // Rest days count toward the writing streak but don't require words.
   daysOff?: string[]
+  // Bibliography file path (absolute or vault-relative) for citations
+  bibliographyPath?: string
+  // Citation style file (CSL format) for formatting citations
+  citationStyle?: string
+  // Last used export settings - remembers user's previous choices
+  lastExportSettings?: LastExportSettings
+}
+
+export interface LastExportSettings {
+  format?: 'pdf' | 'docx' | 'epub' | 'markdown'
+  outputFolder?: string
+  selectedStyleId?: string
+  selectedPaperSizeId?: 'letter' | 'a4' | 'trade' | 'a5'
+  stripFrontmatter?: boolean
+  convertWikiLinks?: boolean
+  stripEmbeds?: boolean
+  stripHighlights?: boolean
+  fileSeparator?: string
+  chapterPageBreaks?: boolean
+  tableOfContents?: boolean
 }
 
 export interface DashboardConfig {

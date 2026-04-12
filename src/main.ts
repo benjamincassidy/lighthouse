@@ -1,13 +1,15 @@
-import { Plugin } from 'obsidian'
+import { Notice, Plugin } from 'obsidian'
 
 import { FlowMode } from '@/core/FlowMode'
 import { FolderManager } from '@/core/FolderManager'
 import { HierarchicalCounter } from '@/core/HierarchicalCounter'
 import { ProjectManager } from '@/core/ProjectManager'
+import { BinaryManager } from '@/core/tools/BinaryManager'
 import { WordCounter } from '@/core/WordCounter'
 import { WorkspaceManager } from '@/core/WorkspaceManager'
 import { WritingSessionTracker } from '@/core/WritingSessionTracker'
 import type { LighthouseSettings } from '@/types/settings'
+import { ExportModal } from '@/ui/modals/ExportModal'
 import { ProjectModal } from '@/ui/modals/ProjectModal'
 import { ProjectSwitcherModal } from '@/ui/modals/ProjectSwitcher'
 import { LighthouseSettingTab } from '@/ui/SettingsTab'
@@ -24,6 +26,7 @@ export default class LighthousePlugin extends Plugin {
   flowMode!: FlowMode
   workspaceManager!: WorkspaceManager
   sessionTracker!: WritingSessionTracker
+  binaryManager!: BinaryManager
 
   async onload() {
     // Initialize core services
@@ -39,6 +42,7 @@ export default class LighthousePlugin extends Plugin {
     this.flowMode = new FlowMode(this.app, () => this.settings)
     this.workspaceManager = new WorkspaceManager(this)
     this.sessionTracker = new WritingSessionTracker(this)
+    this.binaryManager = new BinaryManager(this)
     await this.projectManager.initialize()
     // Settings are owned by ProjectStorage — sync the plugin reference
     this.settings = this.projectManager.getSettings()
@@ -110,6 +114,20 @@ export default class LighthousePlugin extends Plugin {
       callback: () => {
         const modal = new ProjectSwitcherModal(this)
         modal.open()
+      },
+    })
+
+    // Add command to export the active project
+    this.addCommand({
+      id: 'export-project',
+      name: 'Export project',
+      callback: () => {
+        const project = this.projectManager.getActiveProject()
+        if (!project) {
+          new Notice('No active project — open or create a project first.')
+          return
+        }
+        new ExportModal(this, project).open()
       },
     })
 
