@@ -58,9 +58,15 @@ export type ProgressCallback = (p: DownloadProgress) => void
 // ---------------------------------------------------------------------------
 
 function getPluginBaseDir(plugin: LighthousePlugin): string {
-  // FileSystemAdapter exposes the vault root via getBasePath()
-  // Config dir is typically ".obsidian"
   const adapter = plugin.app.vault.adapter as unknown as { basePath: string }
+  // plugin.manifest.dir is the vault-relative path Obsidian sets to the actual
+  // plugin folder — e.g. ".obsidian/plugins/obsidian-lighthouse". It is more
+  // reliable than building the path from manifest.id because the folder name
+  // on disk may differ from the id (common during local dev with symlinks).
+  if (plugin.manifest.dir) {
+    return join(adapter.basePath, plugin.manifest.dir)
+  }
+  // Fallback for environments where dir is not populated (e.g. unit tests)
   return join(adapter.basePath, plugin.app.vault.configDir, 'plugins', plugin.manifest.id)
 }
 
@@ -273,7 +279,7 @@ export class BinaryManager {
     const installed = readInstalled(this.plugin)
     installed.styles ??= {}
     installed.styles[styleId] ??= {}
-    installed.styles[styleId]![format] = manifest[format === 'docx' ? 'pandoc' : 'typst'].version
+    installed.styles[styleId][format] = manifest[format === 'docx' ? 'pandoc' : 'typst'].version
     writeInstalled(this.plugin, installed)
   }
 

@@ -15,6 +15,12 @@ export interface DocxExportOptions {
    * Controls Word paragraph styles, fonts, and page geometry.
    */
   referenceDoc?: string
+  /** Absolute path to a bibliography file (.bib, .yml, .yaml, .json) */
+  bibliography?: string
+  /** Absolute path to a CSL file for formatting citations */
+  citationStyle?: string
+  /** Include a table of contents at the start of the document */
+  tableOfContents?: boolean
 }
 
 export class DocxExporter {
@@ -23,6 +29,9 @@ export class DocxExporter {
   async export(doc: CompiledDocument, options: DocxExportOptions = {}): Promise<Buffer> {
     return this.pandoc.toDocx(doc.fullText, {
       referenceDoc: options.referenceDoc,
+      bibliography: options.bibliography,
+      citationStyle: options.citationStyle,
+      tableOfContents: options.tableOfContents,
     })
   }
 }

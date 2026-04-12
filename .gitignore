@@ -25,6 +25,14 @@ Thumbs.db
 # Obsidian dev
 data.json
 
+# Downloaded binaries (use scripts/bootstrap-tools.js to install locally)
+bin/pandoc
+bin/pandoc.exe
+bin/typst
+bin/typst.exe
+bin/installed.json
+bin/packages/
+
 # Logs
 *.log
 npm-debug.log*

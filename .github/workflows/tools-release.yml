@@ -21,9 +21,9 @@ on:
         required: true
         default: '3.6.4'
       typst_version:
-        description: 'Typst version to bundle (e.g. 0.13.1)'
+        description: 'Typst version to bundle (e.g. 0.14.2)'
         required: true
-        default: '0.13.1'
+        default: '0.14.2'
       release_tag:
         description: 'Release tag — increment only on breaking binary format changes'
         required: true

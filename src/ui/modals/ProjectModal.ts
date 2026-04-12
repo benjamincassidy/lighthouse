@@ -1,8 +1,10 @@
 import { FuzzySuggestModal, Modal, Notice, Setting } from 'obsidian'
 import { TFolder, type App } from 'obsidian'
 
+import { CslStyleManager, BUNDLED_CSL_STYLES } from '@/core/CslStyleManager'
 import type LighthousePlugin from '@/main'
 import type { GoalDirection, Project } from '@/types/types'
+import { CslStyleDownloadModal } from '@/ui/modals/CslStyleDownloadModal'
 
 /**
  * Modal mode - create new or edit existing project
@@ -153,6 +155,8 @@ export class ProjectModal extends Modal {
   private rootPath = ''
   private contentFolders: string[] = []
   private sourceFolders: string[] = []
+  private bibliographyPath = ''
+  private citationStyle = ''
   private wordCountGoal?: number
   private goalDirection: GoalDirection = 'at-least'
   private deadline = ''
@@ -178,6 +182,8 @@ export class ProjectModal extends Modal {
       this.rootPath = project.rootPath
       this.contentFolders = [...project.contentFolders]
       this.sourceFolders = [...project.sourceFolders]
+      this.bibliographyPath = project.bibliographyPath ?? ''
+      this.citationStyle = project.citationStyle ?? ''
       this.wordCountGoal = project.wordCountGoal
       this.goalDirection = project.goalDirection ?? 'at-least'
       this.deadline = project.deadline ?? ''
@@ -256,6 +262,115 @@ export class ProjectModal extends Modal {
       },
       this.sourceFolders,
     )
+
+    // Bibliography path
+    let bibliographyTextInput: any = null
+    new Setting(contentEl)
+      .setName('Bibliography file')
+      .setDesc('Optional citation database for exports (.bib, .yml, .yaml, .json)')
+      .addText((text) => {
+        bibliographyTextInput = text
+        text
+          .setPlaceholder('Path to bibliography file')
+          .setValue(this.bibliographyPath)
+          .onChange((value) => {
+            this.bibliographyPath = value
+          })
+      })
+      .addButton((button) => {
+        button
+          .setButtonText('Browse...')
+          .setTooltip('Choose bibliography file')
+          .onClick(() => {
+            // @ts-ignore - Electron available in Obsidian
+            const electron = require('electron')
+            // @ts-ignore
+            const dialog = electron.remote?.dialog || require('@electron/remote')?.dialog
+            const result = dialog.showOpenDialogSync({
+              title: 'Select Bibliography File',
+              properties: ['openFile'],
+              filters: [
+                { name: 'Bibliography Files', extensions: ['bib', 'yml', 'yaml', 'json'] },
+                { name: 'All Files', extensions: ['*'] },
+              ],
+            })
+            if (result && result.length > 0) {
+              // Store as absolute path - will resolve relative to vault when needed
+              this.bibliographyPath = result[0]
+              // Update the text input to show the selected path
+              if (bibliographyTextInput) {
+                bibliographyTextInput.setValue(result[0])
+              }
+            }
+          })
+      })
+
+    // Citation style (CSL)
+    const cslManager = new CslStyleManager(this.plugin)
+    const allStyles = cslManager.getAllStyles()
+
+    const citationStyleSetting = new Setting(contentEl)
+      .setName('Citation style')
+      .setDesc('Format for citations and bibliography (APA, Chicago, MLA, etc.)')
+
+    citationStyleSetting.addDropdown((dropdown) => {
+      dropdown.addOption('', 'None')
+      dropdown.addOption('custom', 'Custom file...')
+
+      // Add bundled styles
+      for (const style of BUNDLED_CSL_STYLES) {
+        dropdown.addOption(style.id, style.name)
+      }
+
+      // Add downloaded styles
+      const downloadedStyles = allStyles.filter(
+        (s) => !BUNDLED_CSL_STYLES.find((bs) => bs.id === s.id),
+      )
+      if (downloadedStyles.length > 0) {
+        for (const style of downloadedStyles) {
+          dropdown.addOption(style.id, `${style.name} (downloaded)`)
+        }
+      }
+
+      dropdown.setValue(this.citationStyle)
+      dropdown.onChange((value) => {
+        this.citationStyle = value
+        if (value === 'custom') {
+          // Open file picker for custom CSL file
+          // @ts-ignore - Electron available in Obsidian
+          const electron = require('electron')
+          // @ts-ignore
+          const dialog = electron.remote?.dialog || require('@electron/remote')?.dialog
+          const result = dialog.showOpenDialogSync({
+            title: 'Select Citation Style (CSL)',
+            properties: ['openFile'],
+            filters: [
+              { name: 'Citation Style Language', extensions: ['csl'] },
+              { name: 'All Files', extensions: ['*'] },
+            ],
+          })
+          if (result && result.length > 0) {
+            this.citationStyle = result[0]
+          } else {
+            this.citationStyle = ''
+            dropdown.setValue('')
+          }
+        }
+      })
+    })
+
+    citationStyleSetting.addButton((button) => {
+      button
+        .setButtonText('Download more...')
+        .setTooltip('Search and download citation styles from GitHub')
+        .onClick(() => {
+          const modal = new CslStyleDownloadModal(this.plugin, cslManager, (styleId) => {
+            this.citationStyle = styleId
+            // User will need to close and re-open to see new style in dropdown
+          })
+          modal.open()
+        })
+    })
 
     // Word count goal
     new Setting(contentEl)
@@ -440,6 +555,8 @@ export class ProjectModal extends Modal {
     // Update the project with additional fields
     project.contentFolders = this.contentFolders
     project.sourceFolders = this.sourceFolders
+    project.bibliographyPath = this.bibliographyPath || undefined
+    project.citationStyle = this.citationStyle || undefined
     project.wordCountGoal = this.wordCountGoal
     project.goalDirection = this.goalDirection
     project.deadline = this.deadline || undefined
@@ -462,6 +579,8 @@ export class ProjectModal extends Modal {
       rootPath: this.rootPath,
       contentFolders: this.contentFolders,
       sourceFolders: this.sourceFolders,
+      bibliographyPath: this.bibliographyPath || undefined,
+      citationStyle: this.citationStyle || undefined,
       wordCountGoal: this.wordCountGoal,
       goalDirection: this.goalDirection,
       deadline: this.deadline || undefined,

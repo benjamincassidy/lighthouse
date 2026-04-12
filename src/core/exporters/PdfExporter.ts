@@ -13,7 +13,7 @@
  */
 
 import type { CompiledDocument } from '../ProjectCompiler'
-import type { TypestRunner } from '../tools/TypestRunner'
+import type { TypstRunner } from '../tools/TypstRunner'
 
 export interface PdfExportOptions {
   /**
@@ -28,10 +28,18 @@ export interface PdfExportOptions {
   packageCacheDir?: string
   /** Typst paper size identifier, e.g. "us-letter", "a4", "us-trade" */
   paperSize?: string
+  /** Absolute path to a bibliography file (.bib, .yml, .yaml, .json) for resolving citations */
+  bibliography?: string
+  /** Absolute path to a CSL file for formatting citations */
+  citationStyle?: string
+  /** Include a table of contents at the start of the document */
+  tableOfContents?: boolean
+  /** Automatically insert page breaks before level-1 headings */
+  chapterPageBreaks?: boolean
 }
 
 export class PdfExporter {
-  constructor(private typst: TypestRunner) {}
+  constructor(private typst: TypstRunner) {}
 
   async export(doc: CompiledDocument, options: PdfExportOptions): Promise<void> {
     await this.typst.toPdf(doc.fullText, {
@@ -39,6 +47,10 @@ export class PdfExporter {
       template: options.template,
       packageCacheDir: options.packageCacheDir,
       paperSize: options.paperSize,
+      bibliography: options.bibliography,
+      citationStyle: options.citationStyle,
+      tableOfContents: options.tableOfContents,
+      chapterPageBreaks: options.chapterPageBreaks,
     })
   }
 }

@@ -25,6 +25,13 @@ export interface CompileOptions {
   stripHighlights: boolean
   /** String to insert between file sections (default: '') */
   fileSeparator: string
+  /**
+   * Handle [@citation] syntax: if true, strip citations entirely;
+   * if false, normalize multi-citations to individual ones (default: false)
+   */
+  stripCitations: boolean
+  /** Add page breaks between chapters (sections/files) for PDF/DOCX (default: false) */
+  chapterPageBreaks: boolean
 }
 
 export const DEFAULT_COMPILE_OPTIONS: CompileOptions = {
@@ -33,6 +40,8 @@ export const DEFAULT_COMPILE_OPTIONS: CompileOptions = {
   stripEmbeds: true,
   stripHighlights: false,
   fileSeparator: '',
+  stripCitations: false,
+  chapterPageBreaks: false,
 }
 
 /**
@@ -107,6 +116,21 @@ export function stripHighlights(text: string): string {
   return text.replace(/==([^=]+)==/g, '$1')
 }
 
+export function normalizeCitations(text: string, strip: boolean): string {
+  if (strip) {
+    // Remove all citations: [@key] or [@key1; @key2] → ''
+    return text.replace(/\[@[^\]]+\]/g, '')
+  }
+
+  // Split multi-citations into individual ones: [@key1; @key2] → [@key1] [@key2]
+  // This works around cmarker's limitation with multi-citation syntax
+  return text.replace(/\[(@[^\]]+)\]/g, (_match: string, citations: string) => {
+    // Split by semicolon, trim, and wrap each citation individually
+    const keys = citations.split(';').map((c: string) => c.trim())
+    return keys.map((k: string) => `[${k}]`).join(' ')
+  })
+}
+
 function titleFromPath(filePath: string): string {
   const name = filePath.split('/').pop() ?? filePath
   return name.replace(/\.md$/i, '')
@@ -152,6 +176,8 @@ export class ProjectCompiler {
       if (opts.convertWikiLinks) content = convertWikiLinks(content)
       if (opts.stripEmbeds) content = stripEmbeds(content)
       if (opts.stripHighlights) content = stripHighlights(content)
+      // Always normalize citations - either strip them or split multi-citations
+      content = normalizeCitations(content, opts.stripCitations)
 
       // Trim trailing whitespace from each section
       content = content.trimEnd()

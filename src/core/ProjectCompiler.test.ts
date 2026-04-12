@@ -8,6 +8,7 @@ import {
   convertWikiLinks,
   stripEmbeds,
   stripHighlights,
+  normalizeCitations,
   DEFAULT_COMPILE_OPTIONS,
 } from './ProjectCompiler'
 
@@ -250,5 +251,54 @@ describe('ProjectCompiler', () => {
     expect(DEFAULT_COMPILE_OPTIONS.stripFrontmatter).toBe(true)
     expect(DEFAULT_COMPILE_OPTIONS.convertWikiLinks).toBe(true)
     expect(DEFAULT_COMPILE_OPTIONS.fileSeparator).toBe('')
+    expect(DEFAULT_COMPILE_OPTIONS.stripCitations).toBe(false)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// normalizeCitations
+// ---------------------------------------------------------------------------
+
+describe('normalizeCitations', () => {
+  it('strips all citations when strip is true', () => {
+    const input = 'Some text [@citation2024] more text.'
+    expect(normalizeCitations(input, true)).toBe('Some text  more text.')
+  })
+
+  it('strips multi-citations when strip is true', () => {
+    const input = 'As shown [@smith2020; @jones2021] in the literature.'
+    expect(normalizeCitations(input, true)).toBe('As shown  in the literature.')
+  })
+
+  it('splits multi-citations into individual citations when strip is false', () => {
+    const input = 'Research shows [@smith2020; @jones2021] that...'
+    expect(normalizeCitations(input, false)).toBe(
+      'Research shows [@smith2020] [@jones2021] that...',
+    )
+  })
+
+  it('handles multiple separate multi-citations', () => {
+    const input = 'First [@a2020; @b2021] and second [@c2022; @d2023] citations.'
+    expect(normalizeCitations(input, false)).toBe(
+      'First [@a2020] [@b2021] and second [@c2022] [@d2023] citations.',
+    )
+  })
+
+  it('handles citations with extra whitespace', () => {
+    const input = 'Text [@key1  ;  @key2] more.'
+    const result = normalizeCitations(input, false)
+    expect(result).toContain('[@key1]')
+    expect(result).toContain('[@key2]')
+  })
+
+  it('preserves single citations unchanged', () => {
+    const input = 'As shown [@smith2020] in prior work.'
+    expect(normalizeCitations(input, false)).toBe('As shown [@smith2020] in prior work.')
+  })
+
+  it('handles text without citations', () => {
+    const input = 'No citations here.'
+    expect(normalizeCitations(input, false)).toBe('No citations here.')
+    expect(normalizeCitations(input, true)).toBe('No citations here.')
   })
 })

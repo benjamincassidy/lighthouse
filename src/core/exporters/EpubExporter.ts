@@ -15,6 +15,12 @@ export interface EpubExportOptions {
   language?: string
   /** Path to a CSS file to embed in the ePub */
   cssPath?: string
+  /** Absolute path to a bibliography file (.bib, .yml, .yaml, .json) */
+  bibliography?: string
+  /** Absolute path to a CSL file for formatting citations */
+  citationStyle?: string
+  /** Include a table of contents at the start of the document */
+  tableOfContents?: boolean
 }
 
 export class EpubExporter {
@@ -26,6 +32,9 @@ export class EpubExporter {
       author: options.author,
       language: options.language ?? 'en',
       cssPath: options.cssPath,
+      bibliography: options.bibliography,
+      citationStyle: options.citationStyle,
+      tableOfContents: options.tableOfContents,
     })
   }
 }

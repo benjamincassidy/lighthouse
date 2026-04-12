@@ -1,5 +1,5 @@
 /**
- * TypestRunner — compiles a Markdown document to PDF using the local Typst
+ * TypstRunner — compiles a Markdown document to PDF using the local Typst
  * binary and the cmarker Typst package.
  *
  * Pipeline:
@@ -66,6 +66,11 @@ export interface TypestPdfOptions {
    * When provided, citations in the markdown will be resolved against this file.
    */
   bibliography?: string
+  /**
+   * Absolute path to a CSL (Citation Style Language) file for formatting citations.
+   * Requires bibliography to be set. Common styles: APA, Chicago, MLA, etc.
+   */
+  citationStyle?: string
   /** Include a table of contents at the start of the document (default: false) */
   tableOfContents?: boolean
   /** Insert page breaks before top-level headings (default: false) */
@@ -73,7 +78,7 @@ export interface TypestPdfOptions {
 }
 
 // ---------------------------------------------------------------------------
-// TypestRunner
+// TypstRunner
 // ---------------------------------------------------------------------------
 
 export class TypstRunner {
@@ -100,6 +105,7 @@ export class TypstRunner {
             !!opts.bibliography,
             !!opts.tableOfContents,
             !!opts.chapterPageBreaks,
+            opts.citationStyle,
           ),
           'utf8',
         )
@@ -187,6 +193,7 @@ function buildShim(
   hasBibliography: boolean,
   hasTableOfContents: boolean,
   chapterPageBreaks: boolean = false,
+  citationStyle?: string,
 ): string {
   let shim = `#import "@preview/cmarker:${CMARKER_VERSION}"
 
@@ -217,8 +224,13 @@ function buildShim(
 `
 
   if (hasBibliography) {
-    shim += `\n#bibliography(sys.inputs.bibliography)
+    if (citationStyle) {
+      shim += `\n#bibliography(sys.inputs.bibliography, style: "${citationStyle}")
 `
+    } else {
+      shim += `\n#bibliography(sys.inputs.bibliography)
+`
+    }
   }
 
   return shim

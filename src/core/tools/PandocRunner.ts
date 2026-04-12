@@ -1,6 +1,6 @@
 /**
  * PandocRunner — executes the local pandoc binary to convert Markdown to
- * DOCX and ePub3. PDF is handled separately by TypestRunner.
+ * DOCX and ePub3. PDF is handled separately by TypstRunner.
  *
  * Pandoc reads markdown from stdin; binary outputs (DOCX, ePub) are written
  * to a temp file then read back and returned as a Buffer.
@@ -18,6 +18,12 @@ import { join } from 'path'
 export interface PandocDocxOptions {
   /** Path to a .docx reference document for styling */
   referenceDoc?: string
+  /** Absolute path to a bibliography file (.bib, .yml, .yaml, .json) */
+  bibliography?: string
+  /** Absolute path to a CSL file for formatting citations */
+  citationStyle?: string
+  /** Include a table of contents at the start of the document */
+  tableOfContents?: boolean
 }
 
 export interface PandocEpubOptions {
@@ -26,6 +32,12 @@ export interface PandocEpubOptions {
   title?: string
   author?: string
   language?: string
+  /** Absolute path to a bibliography file (.bib, .yml, .yaml, .json) */
+  bibliography?: string
+  /** Absolute path to a CSL file for formatting citations */
+  citationStyle?: string
+  /** Include a table of contents at the start of the document */
+  tableOfContents?: boolean
 }
 
 export type PandocFormat = 'docx' | 'epub3'
@@ -54,8 +66,25 @@ export class PandocRunner {
       '--standalone',
     ]
 
+    if (opts.tableOfContents) {
+      args.push('--toc')
+    }
+
     if (opts.referenceDoc) {
       args.push('--reference-doc', opts.referenceDoc)
+    }
+
+    if (opts.bibliography) {
+      // Add page break before bibliography section
+      markdown = markdown + '\n\n\\newpage\n\n'
+      args.push('--bibliography', opts.bibliography)
+      args.push('--citeproc') // Enable citation processing
+      args.push('--metadata', 'reference-section-title=Bibliography')
+      args.push('--metadata', 'link-citations=true')
+    }
+
+    if (opts.citationStyle) {
+      args.push('--csl', opts.citationStyle)
     }
 
     await this.run(args, markdown)
@@ -78,10 +107,25 @@ export class PandocRunner {
       '--standalone',
     ]
 
+    if (opts.tableOfContents) {
+      args.push('--toc')
+    }
+
     if (opts.title) args.push('--metadata', `title=${opts.title}`)
     if (opts.author) args.push('--metadata', `author=${opts.author}`)
     if (opts.language) args.push('--metadata', `lang=${opts.language}`)
     if (opts.cssPath) args.push('--css', opts.cssPath)
+
+    if (opts.bibliography) {
+      args.push('--bibliography', opts.bibliography)
+      args.push('--citeproc') // Enable citation processing
+      args.push('--metadata', 'reference-section-title=Bibliography')
+      args.push('--metadata', 'link-citations=true')
+    }
+
+    if (opts.citationStyle) {
+      args.push('--csl', opts.citationStyle)
+    }
 
     await this.run(args, markdown)
 

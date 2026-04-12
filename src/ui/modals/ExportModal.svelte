@@ -3,18 +3,24 @@
 
   import { untrack } from 'svelte'
 
+  import { CslStyleManager } from '@/core/CslStyleManager'
   import { DocxExporter } from '@/core/exporters/DocxExporter'
   import { EpubExporter } from '@/core/exporters/EpubExporter'
   import { PdfExporter } from '@/core/exporters/PdfExporter'
   import { ProjectCompiler } from '@/core/ProjectCompiler'
-  import { BinaryManager, getBinPath, getPackagesCacheDir, getStylePath } from '@/core/tools/BinaryManager'
+  import {
+    BinaryManager,
+    getBinPath,
+    getPackagesCacheDir,
+    getStylePath,
+  } from '@/core/tools/BinaryManager'
   import type { DownloadProgress } from '@/core/tools/BinaryManager'
   import { PandocRunner } from '@/core/tools/PandocRunner'
-  import { TypestRunner } from '@/core/tools/TypestRunner'
   import type { StyleName, ToolName } from '@/core/tools/ToolsManifest'
+  import { TypstRunner } from '@/core/tools/TypstRunner'
   import { BUILT_IN_STYLES, type ExportStyle } from '@/exportStyles/index'
   import type LighthousePlugin from '@/main'
-  import type { Project } from '@/types/types'
+  import type { LastExportSettings, Project } from '@/types/types'
 
   import type { TFile, TFolder } from 'obsidian'
 
@@ -39,21 +45,92 @@
   type PaperSizeId = (typeof PAPER_SIZES)[number]['id']
 
   // Form state
-  let format = $state<ExportFormat>('pdf')
-  let selectedStyleId = $state('novel-trade')
-  let selectedPaperSizeId = $state<PaperSizeId>('letter')
-  let stripFrontmatter = $state(true)
-  let convertWikiLinks = $state(true)
-  let stripEmbeds = $state(true)
-  let stripHighlights = $state(false)
-  let fileSeparator = $state('')
+  let format = $state<ExportFormat>(untrack(() => project.lastExportSettings?.format ?? 'pdf'))
+  let selectedStyleId = $state(
+    untrack(() => project.lastExportSettings?.selectedStyleId ?? 'novel-trade'),
+  )
+  let selectedPaperSizeId = $state<PaperSizeId>(
+    untrack(() => (project.lastExportSettings?.selectedPaperSizeId ?? 'letter') as PaperSizeId),
+  )
+  let stripFrontmatter = $state(untrack(() => project.lastExportSettings?.stripFrontmatter ?? true))
+  let convertWikiLinks = $state(untrack(() => project.lastExportSettings?.convertWikiLinks ?? true))
+  let stripEmbeds = $state(untrack(() => project.lastExportSettings?.stripEmbeds ?? true))
+  let stripHighlights = $state(untrack(() => project.lastExportSettings?.stripHighlights ?? false))
+  let fileSeparator = $state(untrack(() => project.lastExportSettings?.fileSeparator ?? ''))
+  let chapterPageBreaks = $state(
+    untrack(() => project.lastExportSettings?.chapterPageBreaks ?? false),
+  )
+  let tableOfContents = $state(untrack(() => project.lastExportSettings?.tableOfContents ?? false))
   // Snapshot the initial filename at mount so the $state initialiser is a plain string,
   // not a reactive reference to the `project` prop.
   let filename = $state(untrack(() => sanitizeFilename(project.name)))
-  let outputFolder = $state('')
+  let outputFolder = $state(untrack(() => project.lastExportSettings?.outputFolder ?? ''))
+  let bibliography = $state(untrack(() => project.bibliographyPath ?? ''))
   let exporting = $state(false)
   let errorMessage = $state('')
   let userStyles = $state<ExportStyle[]>([])
+
+  // ---------------------------------------------------------------------------
+  // File picker helpers
+  // ---------------------------------------------------------------------------
+
+  async function chooseBibliography(): Promise<void> {
+    try {
+      // Access Electron's dialog API (available in Obsidian)
+      // @ts-ignore - Electron modules available in Obsidian but not typed
+      const electron = require('electron')
+      // @ts-ignore
+      const dialog = electron.remote?.dialog || require('@electron/remote')?.dialog
+      if (!dialog) {
+        throw new Error('Dialog API not available')
+      }
+      const result = await dialog.showOpenDialog({
+        title: 'Select Bibliography File',
+        properties: ['openFile'],
+        filters: [
+          { name: 'Bibliography Files', extensions: ['bib', 'yml', 'yaml', 'json'] },
+          { name: 'All Files', extensions: ['*'] },
+        ],
+      })
+      if (!result.canceled && result.filePaths.length > 0) {
+        bibliography = result.filePaths[0]
+      }
+    } catch (err) {
+      console.error('File picker error:', err)
+      // Fallback: user can still type the path manually
+    }
+  }
+
+  async function chooseOutputFolder(): Promise<void> {
+    try {
+      // Access Electron's dialog API (available in Obsidian)
+      // @ts-ignore - Electron modules available in Obsidian but not typed
+      const electron = require('electron')
+      // @ts-ignore
+      const dialog = electron.remote?.dialog || require('@electron/remote')?.dialog
+      if (!dialog) {
+        throw new Error('Dialog API not available')
+      }
+      const result = await dialog.showOpenDialog({
+        title: 'Select Output Folder',
+        properties: ['openDirectory'],
+      })
+      if (!result.canceled && result.filePaths.length > 0) {
+        // Convert to vault-relative path if inside vault
+        const adapter = plugin.app.vault.adapter as unknown as { basePath: string }
+        const vaultPath = adapter.basePath
+        const selectedPath = result.filePaths[0]
+        if (selectedPath.startsWith(vaultPath)) {
+          outputFolder = selectedPath.slice(vaultPath.length + 1)
+        } else {
+          outputFolder = selectedPath
+        }
+      }
+    } catch (err) {
+      console.error('File picker error:', err)
+      // Fallback: user can still type the path manually
+    }
+  }
 
   // ---------------------------------------------------------------------------
   // Tool installation state
@@ -69,7 +146,8 @@
     markdown: [],
   }
 
-  const binaryManager = new BinaryManager(plugin)
+  const binaryManager = $derived(new BinaryManager(plugin))
+  const cslManager = $derived(new CslStyleManager(plugin))
 
   let pandocStatus = $state<ToolStatus>('checking')
   let typstStatus = $state<ToolStatus>('checking')
@@ -243,6 +321,103 @@
     return dir ? `${dir}/${base}` : base
   }
 
+  /**
+   * Write file to disk, handling both vault-relative and absolute paths.
+   * For absolute paths outside the vault, uses Node.js fs directly.
+   * For vault-relative paths, uses Obsidian's vault adapter.
+   */
+  async function writeFile(
+    path: string,
+    content: string | ArrayBuffer | Uint8Array,
+  ): Promise<string> {
+    const adapter = plugin.app.vault.adapter as unknown as { basePath: string }
+    const isAbsolute = path.startsWith('/')
+
+    if (isAbsolute) {
+      // @ts-ignore - require available in Obsidian
+      const fs = require('fs') as typeof import('fs')
+      // @ts-ignore - require available in Obsidian
+      const { dirname } = require('path') as typeof import('path')
+
+      // Ensure directory exists
+      const dir = dirname(path)
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true })
+      }
+
+      // Write file using Node.js fs
+      if (typeof content === 'string') {
+        fs.writeFileSync(path, content, 'utf8')
+      } else if (content instanceof Uint8Array) {
+        fs.writeFileSync(path, content)
+      } else {
+        // ArrayBuffer
+        fs.writeFileSync(path, new Uint8Array(content))
+      }
+
+      return path
+    } else {
+      // Vault-relative path - use vault adapter
+      if (typeof content === 'string') {
+        await plugin.app.vault.adapter.write(path, content)
+      } else {
+        // Convert to ArrayBuffer
+        const buffer =
+          content instanceof Uint8Array
+            ? content.buffer.slice(content.byteOffset, content.byteOffset + content.byteLength)
+            : content
+        await plugin.app.vault.adapter.writeBinary(path, buffer as ArrayBuffer)
+      }
+
+      return join(adapter.basePath, path)
+    }
+  }
+
+  /**
+   * Save current export settings to project for next time
+   */
+  async function saveExportSettings(): Promise<void> {
+    const settings: LastExportSettings = {
+      format,
+      outputFolder,
+      selectedStyleId,
+      selectedPaperSizeId,
+      stripFrontmatter,
+      convertWikiLinks,
+      stripEmbeds,
+      stripHighlights,
+      fileSeparator,
+      chapterPageBreaks,
+      tableOfContents,
+    }
+
+    const updatedProject = {
+      ...project,
+      lastExportSettings: settings,
+      updatedAt: new Date().toISOString(),
+    }
+
+    await plugin.projectManager.updateProject(updatedProject)
+  }
+
+  /**
+   * Resolve a bibliography or citation style path to absolute
+   */
+  function resolveResourcePath(path: string): string | undefined {
+    if (!path || !path.trim()) return undefined
+    const trimmed = path.trim()
+    const adapter = plugin.app.vault.adapter as unknown as { basePath: string }
+    return trimmed.startsWith('/') ? trimmed : join(adapter.basePath, trimmed)
+  }
+
+  /**
+   * Resolve a citation style ID or path to absolute path
+   */
+  function resolveCitationStyle(styleIdOrPath: string | undefined): string | undefined {
+    if (!styleIdOrPath || !styleIdOrPath.trim()) return undefined
+    return cslManager.resolveStylePath(styleIdOrPath.trim())
+  }
+
   // ---------------------------------------------------------------------------
   // Export & clipboard
   // ---------------------------------------------------------------------------
@@ -258,55 +433,93 @@
         return
       }
 
+      // Strip citations if no bibliography provided for formats that process them
+      const shouldStripCitations =
+        !bibliography.trim() && (format === 'pdf' || format === 'docx' || format === 'epub')
+
+      // Set appropriate separator for chapter page breaks
+      let effectiveSeparator = fileSeparator
+      if (chapterPageBreaks && !fileSeparator) {
+        if (format === 'pdf') {
+          // Use raw-typst comment with blank lines to ensure it's treated as a block
+          effectiveSeparator = '\n\n<!--raw-typst #pagebreak() -->\n\n'
+        } else if (format === 'docx') {
+          effectiveSeparator = '\\newpage'
+        }
+      }
+
       const compiler = new ProjectCompiler((path) => plugin.app.vault.adapter.read(path))
       const doc = await compiler.compile(project, filePaths, {
         stripFrontmatter,
         convertWikiLinks,
         stripEmbeds,
         stripHighlights,
-        fileSeparator,
+        fileSeparator: effectiveSeparator,
+        stripCitations: shouldStripCitations,
+        chapterPageBreaks,
       })
 
       if (format === 'markdown') {
         const outPath = resolveOutputPath('md')
-        await plugin.app.vault.adapter.write(outPath, doc.fullText)
-        onSuccess(`Exported to ${outPath}`)
+        const absolutePath = await writeFile(outPath, doc.fullText)
+        await saveExportSettings()
+        onSuccess(`Exported to ${absolutePath}`)
       } else if (format === 'docx') {
         const pandoc = makePandocRunner()
         const exporter = new DocxExporter(pandoc)
         const referenceDoc = binaryManager.isStyleReady(selectedStyleId as StyleName, 'docx')
           ? getStylePath(selectedStyleId as StyleName, 'docx', plugin)
           : undefined
-        const buffer = await exporter.export(doc, { referenceDoc })
+        const buffer = await exporter.export(doc, {
+          referenceDoc,
+          bibliography: resolveResourcePath(bibliography),
+          citationStyle: resolveCitationStyle(project.citationStyle),
+          tableOfContents,
+        })
         const outPath = resolveOutputPath('docx')
-        await plugin.app.vault.adapter.writeBinary(outPath, buffer)
-        onSuccess(`Exported to ${outPath}`)
+        const absolutePath = await writeFile(outPath, buffer)
+        await saveExportSettings()
+        onSuccess(`Exported to ${absolutePath}`)
       } else if (format === 'epub') {
         const pandoc = makePandocRunner()
         const exporter = new EpubExporter(pandoc)
-        const bytes = await exporter.export(doc, { title: doc.projectName })
+        const bytes = await exporter.export(doc, {
+          title: doc.projectName,
+          bibliography: resolveResourcePath(bibliography),
+          citationStyle: resolveCitationStyle(project.citationStyle),
+          tableOfContents,
+        })
         const outPath = resolveOutputPath('epub')
-        await plugin.app.vault.adapter.writeBinary(outPath, new Uint8Array(bytes))
-        onSuccess(`Exported to ${outPath}`)
+        const absolutePath = await writeFile(outPath, bytes)
+        await saveExportSettings()
+        onSuccess(`Exported to ${absolutePath}`)
       } else if (format === 'pdf') {
-        const typst = new TypestRunner(getBinPath('typst', plugin))
+        const typst = new TypstRunner(getBinPath('typst', plugin))
         const exporter = new PdfExporter(typst)
         const adapter = plugin.app.vault.adapter as unknown as { basePath: string }
-        const relPath = resolveOutputPath('pdf')
-        const absPath = join(adapter.basePath, relPath)
+        const outPath = resolveOutputPath('pdf')
+        // For PDF, we need absolute path for Typst
+        const absPath = outPath.startsWith('/') ? outPath : join(adapter.basePath, outPath)
         const template = binaryManager.isStyleReady(selectedStyleId as StyleName, 'typst')
           ? getStylePath(selectedStyleId as StyleName, 'typst', plugin)
           : undefined
+
         await exporter.export(doc, {
           outputPath: absPath,
           packageCacheDir: getPackagesCacheDir(plugin),
           paperSize: typstPaperSize(selectedPaperSizeId),
           template,
+          bibliography: resolveResourcePath(bibliography),
+          citationStyle: resolveCitationStyle(project.citationStyle),
+          tableOfContents,
+          chapterPageBreaks,
         })
-        onSuccess(`Exported PDF to ${relPath}`)
+        await saveExportSettings()
+        onSuccess(`Exported PDF to ${absPath}`)
       }
     } catch (err) {
-      errorMessage = err instanceof Error ? err.message : String(err)
+      console.error('[Lighthouse] Export failed:', err)
+      errorMessage = formatErrorMessage(err)
     } finally {
       exporting = false
     }
@@ -330,12 +543,14 @@
         stripEmbeds,
         stripHighlights,
         fileSeparator,
+        stripCitations: false,
       })
 
       await navigator.clipboard.writeText(doc.fullText)
       onSuccess('Copied to clipboard')
     } catch (err) {
-      errorMessage = err instanceof Error ? err.message : String(err)
+      console.error('[Lighthouse] Copy failed:', err)
+      errorMessage = formatErrorMessage(err)
     } finally {
       exporting = false
     }
@@ -352,6 +567,54 @@
     return map[id] ?? 'us-letter'
   }
 
+  /**
+   * Format error messages to be more user-friendly.
+   * Detects common error patterns and provides helpful guidance.
+   */
+  function formatErrorMessage(err: unknown): string {
+    const message = err instanceof Error ? err.message : String(err)
+
+    // Detect citation/label errors from Typst
+    if (message.includes('label') && message.includes('does not exist in the document')) {
+      // Check for multi-citation syntax errors (e.g., label("key1; @key2"))
+      const hasMultiCitations = message.includes('label("') && message.includes('; @')
+
+      if (hasMultiCitations) {
+        return 'Multi-citation syntax detected (e.g., [@key1; @key2]). Please ensure you have a bibliography file specified in the "Bibliography" field. The plugin will automatically split multi-citations for processing.'
+      }
+
+      // Extract citation keys from the error
+      const labelMatches = message.match(/label `<([^>]+)>`/g)
+      const citationCount = labelMatches ? new Set(labelMatches).size : 0
+
+      return citationCount > 0
+        ? `Found ${citationCount} unresolved citation${citationCount === 1 ? '' : 's'}. Add a bibliography file (BibTeX, YAML, or JSON) in the "Bibliography" field below to resolve citations.`
+        : 'Found unresolved citations. Add a bibliography file to resolve them.'
+    }
+
+    // Detect Typst compilation errors
+    if (message.includes('Typst compilation failed')) {
+      // Extract the first actual error line if possible
+      const errorMatch = message.match(/error: ([^\n]+)/)
+      if (errorMatch) {
+        return `PDF compilation failed: ${errorMatch[1]}`
+      }
+      return 'PDF compilation failed. Check the console for details.'
+    }
+
+    // Detect Pandoc errors
+    if (message.includes('Pandoc conversion failed')) {
+      return 'Document conversion failed. Check the console for details.'
+    }
+
+    // Default: return the message as-is, but truncate if too long
+    if (message.length > 200) {
+      return message.slice(0, 197) + '...'
+    }
+
+    return message
+  }
+
   // ---------------------------------------------------------------------------
   // ---------------------------------------------------------------------------
   // Pandoc runner
@@ -360,7 +623,6 @@
   function makePandocRunner(): PandocRunner {
     return new PandocRunner(getBinPath('pandoc', plugin))
   }
-
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
@@ -455,6 +717,47 @@
           {/each}
         </select>
       </div>
+      {#if format === 'pdf'}
+        <div class="lh-row">
+          <label class="lh-lbl" for="lh-bib">Bibliography</label>
+          <div style="display: flex; gap: 4px; flex: 1;">
+            <input
+              id="lh-bib"
+              class="lh-input"
+              type="text"
+              bind:value={bibliography}
+              placeholder="path/to/refs.bib (optional)"
+              style="flex: 1;"
+            />
+            <button
+              class="lh-file-picker-btn"
+              type="button"
+              onclick={chooseBibliography}
+              aria-label="Choose bibliography file"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="svg-icon lucide-file-text"
+              >
+                <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"
+                ></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <line x1="10" y1="9" x2="8" y2="9"></line>
+              </svg>
+            </button>
+          </div>
+        </div>
+      {/if}
     {:else if format === 'epub'}
       <p class="lh-epub-note">
         ePub is a container format — typography is applied by the reader app (Apple Books, Kindle,
@@ -473,13 +776,39 @@
     </div>
     <div class="lh-row">
       <label class="lh-lbl" for="lh-folder">Output folder</label>
-      <input
-        id="lh-folder"
-        class="lh-input"
-        type="text"
-        bind:value={outputFolder}
-        placeholder="Vault root"
-      />
+      <div style="display: flex; gap: 4px; flex: 1;">
+        <input
+          id="lh-folder"
+          class="lh-input"
+          type="text"
+          bind:value={outputFolder}
+          placeholder="Vault root"
+          style="flex: 1;"
+        />
+        <button
+          class="lh-file-picker-btn"
+          type="button"
+          onclick={chooseOutputFolder}
+          aria-label="Choose output folder"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="svg-icon lucide-folder"
+          >
+            <path
+              d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"
+            ></path>
+          </svg>
+        </button>
+      </div>
     </div>
   </div>
 
@@ -498,6 +827,14 @@
       <label
         ><input type="checkbox" bind:checked={stripHighlights} /> Strip ==highlight== markers</label
       >
+      <label
+        ><input type="checkbox" bind:checked={chapterPageBreaks} /> Start chapters on new pages</label
+      >
+      {#if format === 'pdf'}
+        <label
+          ><input type="checkbox" bind:checked={tableOfContents} /> Generate table of contents</label
+        >
+      {/if}
       <div class="lh-row lh-row--full">
         <label class="lh-lbl" for="lh-sep">File separator</label>
         <input
@@ -532,6 +869,7 @@
     flex-direction: column;
     gap: 0.85rem;
     padding: 0.1rem 0;
+    margin-top: 1em;
   }
 
   /* ── Tool install banner ─────────────────── */
@@ -688,6 +1026,36 @@
     cursor: pointer;
   }
 
+  .lh-file-picker-btn {
+    height: 32px;
+    width: 32px;
+    padding: 0;
+    background: var(--background-modifier-form-field);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-s);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition:
+      background 120ms ease,
+      border-color 120ms ease,
+      color 120ms ease;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .lh-file-picker-btn:hover {
+    background: var(--background-modifier-form-field-highlighted);
+    border-color: var(--interactive-accent);
+    color: var(--text-normal);
+  }
+
+  .lh-file-picker-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+
   /* ── Options ─────────────────────────────── */
   .lh-opts > summary {
     font-size: 0.85rem;
@@ -734,11 +1102,13 @@
 
   /* ── Error ───────────────────────────────── */
   .lh-error {
-    padding: 0.5rem 0.75rem;
+    padding: 0.6rem 0.75rem;
     border-radius: var(--radius-s);
-    background: var(--background-modifier-error);
-    color: var(--text-error);
+    background: color-mix(in srgb, var(--color-red) 8%, var(--background-secondary));
+    border-left: 3px solid var(--color-red);
+    color: var(--text-normal);
     font-size: 0.83rem;
+    line-height: 1.4;
   }
 
   /* ── Footer ──────────────────────────────── */
