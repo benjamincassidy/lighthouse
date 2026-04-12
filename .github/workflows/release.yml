@@ -117,11 +117,11 @@ jobs:
 
           # Darwin ARM64
           curl -fsSL "${PANDOC_BASE}/pandoc-${PANDOC_VER}-arm64-macOS.zip" -o /tmp/pandoc-darwin-arm64.zip
-          unzip -p /tmp/pandoc-darwin-arm64.zip "pandoc-${PANDOC_VER}/bin/pandoc" | gzip > "dist/binaries/pandoc-darwin-arm64.gz"
+          unzip -p /tmp/pandoc-darwin-arm64.zip "bin/pandoc" | gzip > "dist/binaries/pandoc-darwin-arm64.gz"
 
           # Darwin x64
           curl -fsSL "${PANDOC_BASE}/pandoc-${PANDOC_VER}-x86_64-macOS.zip" -o /tmp/pandoc-darwin-x64.zip
-          unzip -p /tmp/pandoc-darwin-x64.zip "pandoc-${PANDOC_VER}/bin/pandoc" | gzip > "dist/binaries/pandoc-darwin-x64.gz"
+          unzip -p /tmp/pandoc-darwin-x64.zip "bin/pandoc" | gzip > "dist/binaries/pandoc-darwin-x64.gz"
 
           # Linux x64
           curl -fsSL "${PANDOC_BASE}/pandoc-${PANDOC_VER}-linux-amd64.tar.gz" -o /tmp/pandoc-linux-x64.tar.gz
@@ -133,7 +133,7 @@ jobs:
 
           # Windows x64
           curl -fsSL "${PANDOC_BASE}/pandoc-${PANDOC_VER}-windows-x86_64.zip" -o /tmp/pandoc-win32-x64.zip
-          unzip -p /tmp/pandoc-win32-x64.zip "pandoc-${PANDOC_VER}/pandoc.exe" | gzip > "dist/binaries/pandoc-win32-x64.gz"
+          unzip -p /tmp/pandoc-win32-x64.zip "pandoc.exe" | gzip > "dist/binaries/pandoc-win32-x64.gz"
 
           echo "✅ Pandoc binaries downloaded"
 
