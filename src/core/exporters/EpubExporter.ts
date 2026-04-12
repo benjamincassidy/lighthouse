@@ -6,6 +6,9 @@
  * An optional CSS file is embedded for reader apps that support it.
  */
 
+/* eslint-disable import/no-nodejs-modules -- Desktop-only: Buffer type needed for binary data */
+import { Buffer } from 'buffer'
+
 import type { CompiledDocument } from '../ProjectCompiler'
 import type { PandocRunner } from '../tools/PandocRunner'
 
@@ -27,7 +30,6 @@ export class EpubExporter {
   constructor(private pandoc: PandocRunner) {}
 
   async export(doc: CompiledDocument, options: EpubExportOptions = {}): Promise<Buffer> {
-    /* global Buffer */
     return this.pandoc.toEpub(doc.fullText, {
       title: options.title ?? doc.projectName,
       author: options.author,

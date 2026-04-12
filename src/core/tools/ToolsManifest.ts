@@ -15,8 +15,7 @@
  * Each binary is a gzipped executable hosted as a GitHub release asset.
  */
 
-/* eslint-disable no-undef */
-// Desktop-only code: requires process global
+/* eslint-disable no-undef -- Desktop-only code: requires process global */
 
 // ---------------------------------------------------------------------------
 // Manifest URL configuration

@@ -6,6 +6,9 @@
  * An optional reference .docx controls fonts, paragraph styles, and margins.
  */
 
+/* eslint-disable import/no-nodejs-modules -- Desktop-only: Buffer type needed for binary data */
+import { Buffer } from 'buffer'
+
 import type { CompiledDocument } from '../ProjectCompiler'
 import type { PandocRunner } from '../tools/PandocRunner'
 
@@ -27,7 +30,6 @@ export class DocxExporter {
   constructor(private pandoc: PandocRunner) {}
 
   async export(doc: CompiledDocument, options: DocxExportOptions = {}): Promise<Buffer> {
-    /* global Buffer */
     return this.pandoc.toDocx(doc.fullText, {
       referenceDoc: options.referenceDoc,
       bibliography: options.bibliography,

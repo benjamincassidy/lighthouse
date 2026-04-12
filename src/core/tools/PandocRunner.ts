@@ -6,9 +6,9 @@
  * to a temp file then read back and returned as a Buffer.
  */
 
-/* eslint-disable import/no-nodejs-modules, no-undef */
-// Desktop-only code: requires Node.js modules for process execution
+/* eslint-disable import/no-nodejs-modules, no-undef -- Desktop-only code: requires Node.js modules for process execution */
 
+import { Buffer } from 'buffer'
 import { spawn } from 'child_process'
 import { existsSync, mkdirSync, unlinkSync } from 'fs'
 import { tmpdir } from 'os'
