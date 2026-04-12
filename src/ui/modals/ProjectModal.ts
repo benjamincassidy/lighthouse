@@ -1,8 +1,11 @@
 import { FuzzySuggestModal, Modal, Notice, Setting } from 'obsidian'
 import { TFolder, type App } from 'obsidian'
 
+import { CslStyleManager, BUNDLED_CSL_STYLES } from '@/core/CslStyleManager'
 import type LighthousePlugin from '@/main'
 import type { GoalDirection, Project } from '@/types/types'
+import { CslStyleDownloadModal } from '@/ui/modals/CslStyleDownloadModal'
+import { getElectronDialog } from '@/utils/electron'
 
 /**
  * Modal mode - create new or edit existing project
@@ -153,6 +156,8 @@ export class ProjectModal extends Modal {
   private rootPath = ''
   private contentFolders: string[] = []
   private sourceFolders: string[] = []
+  private bibliographyPath = ''
+  private citationStyle = ''
   private wordCountGoal?: number
   private goalDirection: GoalDirection = 'at-least'
   private deadline = ''
@@ -178,6 +183,8 @@ export class ProjectModal extends Modal {
       this.rootPath = project.rootPath
       this.contentFolders = [...project.contentFolders]
       this.sourceFolders = [...project.sourceFolders]
+      this.bibliographyPath = project.bibliographyPath ?? ''
+      this.citationStyle = project.citationStyle ?? ''
       this.wordCountGoal = project.wordCountGoal
       this.goalDirection = project.goalDirection ?? 'at-least'
       this.deadline = project.deadline ?? ''
@@ -256,6 +263,116 @@ export class ProjectModal extends Modal {
       },
       this.sourceFolders,
     )
+
+    // Bibliography path
+    let bibliographyTextInput: { setValue: (value: string) => void } | null = null
+    new Setting(contentEl)
+      .setName('Bibliography file')
+      .setDesc('Optional citation database for exports')
+      .addText((text) => {
+        bibliographyTextInput = text
+        text
+          .setPlaceholder('Path to bibliography file')
+          .setValue(this.bibliographyPath)
+          .onChange((value) => {
+            this.bibliographyPath = value
+          })
+      })
+      .addButton((button) => {
+        button
+          .setButtonText('Browse')
+          .setTooltip('Choose bibliography file')
+          .onClick(() => {
+            const dialog = getElectronDialog()
+            if (!dialog) {
+              new Notice('File picker not available')
+              return
+            }
+
+            const result = dialog.showOpenDialogSync({
+              title: 'Select bibliography file',
+              properties: ['openFile'],
+              filters: [
+                { name: 'Bibliography files', extensions: ['bib', 'yml', 'yaml', 'json'] },
+                { name: 'All files', extensions: ['*'] },
+              ],
+            })
+            if (result && result.length > 0) {
+              this.bibliographyPath = result[0]
+              bibliographyTextInput?.setValue(result[0])
+            }
+          })
+      })
+
+    // Citation style (CSL)
+    const cslManager = new CslStyleManager(this.plugin)
+    const allStyles = cslManager.getAllStyles()
+
+    const citationStyleSetting = new Setting(contentEl)
+      .setName('Citation style')
+      .setDesc('Format for citations and bibliography')
+
+    citationStyleSetting.addDropdown((dropdown) => {
+      dropdown.addOption('', 'None')
+      dropdown.addOption('custom', 'Custom file...')
+
+      // Add bundled styles
+      for (const style of BUNDLED_CSL_STYLES) {
+        dropdown.addOption(style.id, style.name)
+      }
+
+      // Add downloaded styles
+      const downloadedStyles = allStyles.filter(
+        (s) => !BUNDLED_CSL_STYLES.find((bs) => bs.id === s.id),
+      )
+      if (downloadedStyles.length > 0) {
+        for (const style of downloadedStyles) {
+          dropdown.addOption(style.id, `${style.name} (downloaded)`)
+        }
+      }
+
+      dropdown.setValue(this.citationStyle)
+      dropdown.onChange((value) => {
+        this.citationStyle = value
+        if (value === 'custom') {
+          const dialog = getElectronDialog()
+          if (!dialog) {
+            new Notice('File picker not available')
+            this.citationStyle = ''
+            dropdown.setValue('')
+            return
+          }
+
+          const result = dialog.showOpenDialogSync({
+            title: 'Select citation style file',
+            properties: ['openFile'],
+            filters: [
+              { name: 'Citation style language', extensions: ['csl'] },
+              { name: 'All files', extensions: ['*'] },
+            ],
+          })
+          if (result && result.length > 0) {
+            this.citationStyle = result[0]
+          } else {
+            this.citationStyle = ''
+            dropdown.setValue('')
+          }
+        }
+      })
+    })
+
+    citationStyleSetting.addButton((button) => {
+      button
+        .setButtonText('Download more...')
+        .setTooltip('Search and download citation styles from GitHub')
+        .onClick(() => {
+          const modal = new CslStyleDownloadModal(this.plugin, cslManager, (styleId) => {
+            this.citationStyle = styleId
+            // User will need to close and re-open to see new style in dropdown
+          })
+          modal.open()
+        })
+    })
 
     // Word count goal
     new Setting(contentEl)
@@ -440,6 +557,8 @@ export class ProjectModal extends Modal {
     // Update the project with additional fields
     project.contentFolders = this.contentFolders
     project.sourceFolders = this.sourceFolders
+    project.bibliographyPath = this.bibliographyPath || undefined
+    project.citationStyle = this.citationStyle || undefined
     project.wordCountGoal = this.wordCountGoal
     project.goalDirection = this.goalDirection
     project.deadline = this.deadline || undefined
@@ -462,6 +581,8 @@ export class ProjectModal extends Modal {
       rootPath: this.rootPath,
       contentFolders: this.contentFolders,
       sourceFolders: this.sourceFolders,
+      bibliographyPath: this.bibliographyPath || undefined,
+      citationStyle: this.citationStyle || undefined,
       wordCountGoal: this.wordCountGoal,
       goalDirection: this.goalDirection,
       deadline: this.deadline || undefined,

@@ -375,6 +375,9 @@
     display: flex;
     flex-direction: column;
     padding: var(--size-4-2);
+    --lh-accent: #e8a430;
+    --lh-accent-hover: #d4941a;
+    --lh-accent-subtle: rgba(232, 164, 48, 0.12);
   }
 
   .lighthouse-stats-header {

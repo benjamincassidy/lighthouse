@@ -653,6 +653,8 @@
     height: 100%;
     display: flex;
     flex-direction: column;
+    --lh-accent: #e8a430;
+    --lh-accent-subtle: rgba(232, 164, 48, 0.12);
   }
 
   .pane-empty-message {

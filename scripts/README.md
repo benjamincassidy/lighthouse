@@ -1,15 +1,19 @@
-# Release Script
+# Release Scripts
 
-Automated script to prepare a new release by updating all version files and generating changelog entries.
+Automated scripts for preparing and releasing Lighthouse plugin versions.
 
-## Usage
+## Scripts
 
+### 1. `release.js` - Version Bump and Changelog
+
+Prepares a new release by updating all version files and generating changelog entries.
+
+**Usage:**
 ```bash
 npm run release <version>
 ```
 
-### Examples
-
+**Examples:**
 ```bash
 # Patch release (bug fixes)
 npm run release 0.9.3
@@ -25,9 +29,7 @@ npm run release 1.0.0-beta.1
 npm run release 1.0.0-rc.1
 ```
 
-## What It Does
-
-The script automatically:
+**What It Does:**
 
 1. ✅ **Updates `manifest.json`** with new version
 2. ✅ **Updates `package.json`** with new version
@@ -36,9 +38,132 @@ The script automatically:
 5. ✅ **Runs `npm install --legacy-peer-deps`** to update `package-lock.json`
 6. ✅ **Provides next steps** for completing the release
 
+### 2. `generate-manifest.js` - Binary Manifest Generation
+
+Generates `tools-manifest.json` for bundled Pandoc and Typst binaries during GitHub releases.
+
+**Usage:**
+```bash
+node scripts/generate-manifest.js <version> <base-url>
+```
+
+**Example:**
+```bash
+node scripts/generate-manifest.js 1.1.0 https://github.com/owner/repo/releases/download/1.1.0
+```
+
+**What It Does:**
+
+1. 📦 **Reads binary archives** from `dist/binaries/*.gz`
+2. 🔓 **Decompresses each file** to compute SHA-256 hash and size
+3. 📝 **Generates manifest JSON** with platform-specific download URLs
+4. ✅ **Outputs to** `dist/tools-manifest.json`
+
+**Manifest Structure:**
+```json
+{
+  "pandoc": {
+    "version": "3.6.4",
+    "platforms": {
+      "darwin-arm64": {
+        "url": "https://github.com/.../pandoc-darwin-arm64.gz",
+        "sha256": "abc123...",
+        "size": 123456789
+      },
+      "darwin-x64": { ... },
+      "linux-x64": { ... },
+      "linux-arm64": { ... },
+      "win32-x64": { ... }
+    }
+  },
+  "typst": { ... }
+}
+```
+
+### 3. `bootstrap-tools.js` - Local Binary Installation
+
+Download and install Pandoc and Typst binaries locally for development.
+
+**Usage:**
+```bash
+npm run bootstrap-tools
+```
+
+## Automated Binary Bundling
+
+The GitHub Actions release workflow automatically:
+
+1. 📥 **Downloads Pandoc and Typst** for all supported platforms (5 platforms each)
+2. 🗜️ **Gzips binaries** for efficient distribution
+3. 🔐 **Generates manifest** with SHA-256 checksums
+4. 📤 **Attaches to release** as downloadable assets
+5. 🔗 **Injects version** into plugin code at build time
+
+**Supported Platforms:**
+- `darwin-arm64` - macOS Apple Silicon
+- `darwin-x64` - macOS Intel
+- `linux-x64` - Linux x86_64
+- `linux-arm64` - Linux ARM64
+- `win32-x64` - Windows 64-bit
+
+**Binary Naming Convention:**
+```
+<tool>-<platform>.gz
+```
+
+Examples:
+- `pandoc-darwin-arm64.gz`
+- `typst-linux-x64.gz`
+- `pandoc-win32-x64.gz`
+
+## Version Injection
+
+The build system injects the current plugin version into the code at compile time:
+
+**In `ToolsManifest.ts`:**
+```typescript
+declare const __LIGHTHOUSE_VERSION__: string
+
+function getManifestUrl() {
+  return `https://github.com/.../${__LIGHTHOUSE_VERSION__}/tools-manifest.json`
+}
+```
+
+**In `esbuild.config.mjs`:**
+```javascript
+const manifest = JSON.parse(readFileSync('./manifest.json', 'utf8'))
+const version = manifest.version
+
+esbuild.context({
+  define: {
+    __LIGHTHOUSE_VERSION__: JSON.stringify(version),
+  },
+  // ...
+})
+```
+
+This ensures the plugin always downloads binaries from its own release, not from upstream sources.
+
+## Release Workflow
+
+The complete release process:
+
+1. **Developer**: Run `npm run release <version>` to bump version
+2. **Developer**: Review and edit `CHANGELOG.md`
+3. **Developer**: Commit changes and push to `main`
+4. **GitHub Actions**: Detect version change in `manifest.json`
+5. **GitHub Actions**: Download Pandoc and Typst binaries for all platforms
+6. **GitHub Actions**: Generate `tools-manifest.json` with current release URLs
+7. **GitHub Actions**: Build plugin with version injection
+8. **GitHub Actions**: Create release with:
+   - `main.js`, `manifest.json`, `styles.css` (plugin files)
+   - 10 `.gz` binary files (5 Pandoc + 5 Typst)
+   - `tools-manifest.json` (download registry)
+9. **Users**: Download plugin, which automatically fetches binaries from the release
+
 ## Changelog Generation
 
-The script intelligently generates CHANGELOG.md entries:
+The release script intelligently generates CHANGELOG.md entries:
 
 ### Conventional Commits (Recommended)
 
