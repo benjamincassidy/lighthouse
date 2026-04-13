@@ -15,12 +15,14 @@
  *   7. Update installed.json
  */
 
-/* eslint-disable import/no-nodejs-modules, no-undef, no-restricted-globals */
-// Desktop-only code: requires Node.js modules and globals for binary management
+/* eslint-disable import/no-nodejs-modules, no-undef -- Desktop-only code: requires Node.js modules for binary management */
+import { Buffer } from 'buffer'
 import { createHash } from 'crypto'
 import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { gunzip } from 'zlib'
+
+import { requestUrl } from 'obsidian'
 
 import type LighthousePlugin from '@/main'
 
@@ -162,11 +164,11 @@ export class BinaryManager {
     if (this.manifestCache) return this.manifestCache
 
     const manifestUrl = getToolsManifestUrl()
-    const resp = await fetch(manifestUrl)
-    if (!resp.ok) {
+    const resp = await requestUrl({ url: manifestUrl })
+    if (resp.status !== 200) {
       throw new Error(`Failed to fetch tools manifest (HTTP ${resp.status}): ${manifestUrl}`)
     }
-    this.manifestCache = (await resp.json()) as ToolsManifest
+    this.manifestCache = resp.json as ToolsManifest
     return this.manifestCache
   }
 
@@ -312,45 +314,23 @@ export class BinaryManager {
     expectedDecompressedSize: number,
     onProgress?: ProgressCallback,
   ): Promise<Buffer> {
-    const resp = await fetch(url)
-    if (!resp.ok) {
+    const resp = await requestUrl({ url })
+    if (resp.status !== 200) {
       throw new Error(`Download failed (HTTP ${resp.status}): ${url}`)
     }
 
-    if (!resp.body) {
-      throw new Error('Response body is null — cannot stream download.')
-    }
-
-    const reader = resp.body.getReader()
-    const chunks: Uint8Array[] = []
-    let received = 0
-
-    // We report progress in terms of decompressed size so the number makes
-    // intuitive sense to the user ("downloading 34 MB").
-    // The compressed download will be smaller but we don't know that size
-    // upfront (Content-Length reflects the compressed transfer size which
-    // doesn't map cleanly). Using the manifest's decompressed size is clearer.
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-      chunks.push(value)
-      received += value.length
-
-      if (onProgress) {
-        onProgress({
-          fraction:
-            expectedDecompressedSize > 0 ? Math.min(received / expectedDecompressedSize, 0.99) : -1,
-          received,
-          total: expectedDecompressedSize,
-        })
-      }
-    }
+    const compressedBuffer = Buffer.from(resp.arrayBuffer)
+    const decompressedBuffer = await gunzipAsync(compressedBuffer)
 
     if (onProgress) {
-      onProgress({ fraction: 1, received, total: expectedDecompressedSize })
+      onProgress({
+        fraction: 1,
+        received: decompressedBuffer.length,
+        total: expectedDecompressedSize,
+      })
     }
 
-    return Buffer.concat(chunks)
+    return decompressedBuffer
   }
 }
 

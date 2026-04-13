@@ -30,9 +30,9 @@ function makeProject(overrides: Partial<Project> = {}): Project {
 }
 
 function makeCompiler(files: Record<string, string>): ProjectCompiler {
-  return new ProjectCompiler(async (path) => {
-    if (path in files) return files[path]
-    throw new Error(`File not found: ${path}`)
+  return new ProjectCompiler((path) => {
+    if (path in files) return Promise.resolve(files[path])
+    return Promise.reject(new Error(`File not found: ${path}`))
   })
 }
 
