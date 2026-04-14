@@ -45,6 +45,65 @@ describe('WordCounter', () => {
       expect(result.words).toBe(3)
     })
 
+    it('should not count heading markers as words', () => {
+      const result = counter.countText('# Heading One\n## Heading Two\n### Heading Three')
+
+      expect(result.words).toBe(6) // "Heading One Heading Two Heading Three"
+    })
+
+    it('should not count list markers as words', () => {
+      const result = counter.countText('- First item\n- Second item\n* Third item\n+ Fourth item')
+
+      expect(result.words).toBe(8) // "First item Second item Third item Fourth item"
+    })
+
+    it('should not count numbered list markers as words', () => {
+      const result = counter.countText('1. First item\n2. Second item\n10. Tenth item')
+
+      expect(result.words).toBe(6) // "First item Second item Tenth item"
+    })
+
+    it('should handle bold and italic markdown', () => {
+      const result = counter.countText('This is **bold** and *italic* text')
+
+      expect(result.words).toBe(6) // "This is bold and italic text"
+    })
+
+    it('should handle strikethrough markdown', () => {
+      const result = counter.countText('This is ~~crossed out~~ text')
+
+      expect(result.words).toBe(5) // "This is crossed out text"
+    })
+
+    it('should handle blockquotes', () => {
+      const result = counter.countText('> This is a quote\n> Second line')
+
+      expect(result.words).toBe(6) // "This is a quote Second line"
+    })
+
+    it('should not count horizontal rules', () => {
+      const result = counter.countText('Text before\n---\nText after')
+
+      expect(result.words).toBe(4) // "Text before Text after"
+    })
+
+    it('should handle complex markdown with multiple syntax elements', () => {
+      const text = `# Main Heading
+
+This is **bold** and *italic* text.
+
+- List item one
+- List item two
+
+> A quote here
+
+More text.`
+
+      const result = counter.countText(text)
+
+      expect(result.words).toBe(19) // All words without markdown syntax
+    })
+
     it('should exclude frontmatter by default', () => {
       const text = `---
 title: Test
