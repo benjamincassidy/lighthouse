@@ -87,6 +87,18 @@ describe('WordCounter', () => {
       expect(result.words).toBe(4) // "Text before Text after"
     })
 
+    it('should treat em-dashes as word separators', () => {
+      const result = counter.countText('This is a test—and another test')
+
+      expect(result.words).toBe(7) // "This is a test and another test"
+    })
+
+    it('should handle en-dashes and other punctuation dashes', () => {
+      const result = counter.countText('Words connected–by en-dash and words—by em-dash')
+
+      expect(result.words).toBe(8) // Dashes treated as separators, hyphens kept in words
+    })
+
     it('should handle complex markdown with multiple syntax elements', () => {
       const text = `# Main Heading
 

@@ -187,6 +187,10 @@ export class WordCounter {
     // Remove remaining standalone markdown characters that might be counted as words
     cleanedText = cleanedText.replace(/^[#*\-_>]+$/gm, '')
 
+    // Normalize punctuation dashes to spaces for word counting
+    // Em-dash (—), en-dash (–), and horizontal bar (―) should separate words
+    cleanedText = cleanedText.replace(/[—–―]/g, ' ')
+
     // Count words: split by whitespace, filter empty strings
     const words = cleanedText.split(/\s+/).filter((word) => word.length > 0).length
 
