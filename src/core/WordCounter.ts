@@ -157,8 +157,38 @@ export class WordCounter {
     const characters = trimmedText.length
     const charactersNoSpaces = trimmedText.replace(/\s/g, '').length
 
+    // Strip markdown syntax before counting words
+    let cleanedText = trimmedText
+
+    // Remove horizontal rules (---, ***, ___)
+    cleanedText = cleanedText.replace(/^[-*_]{3,}\s*$/gm, '')
+
+    // Remove heading markers (# ## ### etc.)
+    cleanedText = cleanedText.replace(/^#{1,6}\s+/gm, '')
+
+    // Remove blockquote markers (>)
+    cleanedText = cleanedText.replace(/^>\s*/gm, '')
+
+    // Remove list markers (-, *, +, 1., 2., etc.)
+    cleanedText = cleanedText.replace(/^[\s]*[-*+]\s+/gm, '')
+    cleanedText = cleanedText.replace(/^[\s]*\d+\.\s+/gm, '')
+
+    // Remove bold/italic markers (**text**, __text__, *text*, _text_)
+    // First handle bold (** or __)
+    cleanedText = cleanedText.replace(/\*\*([^*]+)\*\*/g, '$1')
+    cleanedText = cleanedText.replace(/__([^_]+)__/g, '$1')
+    // Then handle italic (* or _)
+    cleanedText = cleanedText.replace(/\*([^*]+)\*/g, '$1')
+    cleanedText = cleanedText.replace(/_([^_]+)_/g, '$1')
+
+    // Remove strikethrough (~~text~~)
+    cleanedText = cleanedText.replace(/~~([^~]+)~~/g, '$1')
+
+    // Remove remaining standalone markdown characters that might be counted as words
+    cleanedText = cleanedText.replace(/^[#*\-_>]+$/gm, '')
+
     // Count words: split by whitespace, filter empty strings
-    const words = trimmedText.split(/\s+/).filter((word) => word.length > 0).length
+    const words = cleanedText.split(/\s+/).filter((word) => word.length > 0).length
 
     return {
       words,
