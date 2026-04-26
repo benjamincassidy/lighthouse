@@ -129,10 +129,7 @@ describe('FileSplitter', () => {
       await splitter.splitAtCursor(mockEditor, sourceFile)
 
       expect(setValueSpy).toHaveBeenCalledWith('Line 1')
-      expect(createSpy).toHaveBeenCalledWith(
-        'projects/novel/chapters/ch1 2.md',
-        'Line 2\nLine 3',
-      )
+      expect(createSpy).toHaveBeenCalledWith('projects/novel/chapters/ch1 2.md', 'Line 2\nLine 3')
     })
 
     it('inserts the new file immediately after the source in fileOrder', async () => {
@@ -176,10 +173,7 @@ describe('FileSplitter', () => {
 
       await splitter.splitAtCursor(mockEditor, sourceFile)
 
-      expect(createSpy).toHaveBeenCalledWith(
-        'projects/novel/chapters/ch1 3.md',
-        expect.any(String),
-      )
+      expect(createSpy).toHaveBeenCalledWith('projects/novel/chapters/ch1 3.md', expect.any(String))
     })
   })
 
@@ -195,10 +189,7 @@ describe('FileSplitter', () => {
 
       await splitter.mergeInto(sourceFile, targetFile)
 
-      expect(modifySpy).toHaveBeenCalledWith(
-        targetFile,
-        'First chapter\n\n---\n\nSecond chapter',
-      )
+      expect(modifySpy).toHaveBeenCalledWith(targetFile, 'First chapter\n\n---\n\nSecond chapter')
     })
 
     it('deletes the source file from the vault', async () => {
