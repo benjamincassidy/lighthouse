@@ -20,19 +20,23 @@ const makeProject = (overrides: Partial<Project> = {}): Project => ({
   ...overrides,
 })
 
-const makeFile = (path: string, content = 'content'): TFile =>
-  ({
+const makeFile = (path: string, content = 'content'): TFile => {
+  const parent = {
+    path: path.split('/').slice(0, -1).join('/'),
+    children: [],
+    // eslint-disable-next-line obsidianmd/no-tfile-tfolder-cast
+  } as unknown as TFolder
+  return {
     path,
     name: path.split('/').pop()!,
     basename: path.split('/').pop()!.replace(/\.md$/, ''),
     extension: 'md',
-    parent: {
-      path: path.split('/').slice(0, -1).join('/'),
-      children: [],
-    } as unknown as TFolder,
+    parent,
     vault: {} as Vault,
     stat: { ctime: 0, mtime: 0, size: content.length },
-  }) as unknown as TFile
+    // eslint-disable-next-line obsidianmd/no-tfile-tfolder-cast
+  } as unknown as TFile
+}
 
 // ─── Tests ──────────────────────────────────────────────────────────────────
 
@@ -42,6 +46,14 @@ describe('FileSplitter', () => {
   let mockProjectManager: ProjectManager
   let project: Project
 
+  // Named spy references used in expect() calls (avoids unbound-method lint)
+  let createSpy: ReturnType<typeof vi.fn>
+  let modifySpy: ReturnType<typeof vi.fn>
+  let trashFileSpy: ReturnType<typeof vi.fn>
+  let readSpy: ReturnType<typeof vi.fn>
+  let reorderSpy: ReturnType<typeof vi.fn>
+  let getActiveProjectSpy: ReturnType<typeof vi.fn>
+
   const vaultFiles = new Map<string, string>()
 
   beforeEach(() => {
@@ -49,43 +61,54 @@ describe('FileSplitter', () => {
     vaultFiles.clear()
     vaultFiles.set('projects/novel/chapters/ch1.md', 'First half content')
 
+    createSpy = vi.fn(async (path: string, content: string) => {
+      vaultFiles.set(path, content)
+      return makeFile(path, content)
+    })
+    modifySpy = vi.fn(async (file: TFile, content: string) => {
+      vaultFiles.set(file.path, content)
+    })
+    trashFileSpy = vi.fn(async (file: TFile) => {
+      vaultFiles.delete(file.path)
+    })
+    readSpy = vi.fn(async (file: TFile) => vaultFiles.get(file.path) ?? '')
+
     const mockVault = {
       getAbstractFileByPath: (path: string) => {
         if (vaultFiles.has(path)) return makeFile(path, vaultFiles.get(path))
         return null
       },
-      create: vi.fn(async (path: string, content: string) => {
-        vaultFiles.set(path, content)
-        return makeFile(path, content)
-      }),
-      modify: vi.fn(async (file: TFile, content: string) => {
-        vaultFiles.set(file.path, content)
-      }),
-      delete: vi.fn(async (file: TFile) => {
-        vaultFiles.delete(file.path)
-      }),
-      read: vi.fn(async (file: TFile) => vaultFiles.get(file.path) ?? ''),
+      create: createSpy,
+      modify: modifySpy,
+      read: readSpy,
     } as unknown as Vault
 
-    const mockLeaf = {
-      openFile: vi.fn(async () => {}),
-    }
+    const openFileSpy = vi.fn(async () => {})
+    const mockLeaf = { openFile: openFileSpy }
 
     const mockWorkspace = {
       getLeaf: vi.fn(() => mockLeaf),
       getLeavesOfType: vi.fn(() => []),
     } as unknown as Workspace
 
+    const mockFileManager = {
+      trashFile: trashFileSpy,
+    }
+
     mockApp = {
       vault: mockVault,
       workspace: mockWorkspace,
+      fileManager: mockFileManager,
     } as unknown as App
 
+    getActiveProjectSpy = vi.fn(() => project)
+    reorderSpy = vi.fn(async (_id: string, order: string[]) => {
+      project = { ...project, fileOrder: order }
+    })
+
     mockProjectManager = {
-      getActiveProject: vi.fn(() => project),
-      reorderProjectFiles: vi.fn(async (_id: string, order: string[]) => {
-        project = { ...project, fileOrder: order }
-      }),
+      getActiveProject: getActiveProjectSpy,
+      reorderProjectFiles: reorderSpy,
     } as unknown as ProjectManager
 
     splitter = new FileSplitter(mockApp, mockProjectManager)
@@ -96,19 +119,17 @@ describe('FileSplitter', () => {
   describe('splitAtCursor', () => {
     it('splits content at cursor and creates a sibling file', async () => {
       const sourceFile = makeFile('projects/novel/chapters/ch1.md', 'Line 1\nLine 2\nLine 3')
+      const setValueSpy = vi.fn()
       const mockEditor = {
         getCursor: vi.fn(() => ({ line: 1, ch: 0 })),
         getValue: vi.fn(() => 'Line 1\nLine 2\nLine 3'),
-        setValue: vi.fn(),
+        setValue: setValueSpy,
       } as unknown as Editor
 
       await splitter.splitAtCursor(mockEditor, sourceFile)
 
-      // Original file is trimmed to the first part
-      expect(mockEditor.setValue).toHaveBeenCalledWith('Line 1')
-
-      // New file created with content from cursor onward
-      expect(mockApp.vault.create).toHaveBeenCalledWith(
+      expect(setValueSpy).toHaveBeenCalledWith('Line 1')
+      expect(createSpy).toHaveBeenCalledWith(
         'projects/novel/chapters/ch1 2.md',
         'Line 2\nLine 3',
       )
@@ -124,7 +145,7 @@ describe('FileSplitter', () => {
 
       await splitter.splitAtCursor(mockEditor, sourceFile)
 
-      expect(mockProjectManager.reorderProjectFiles).toHaveBeenCalledWith('proj-1', [
+      expect(reorderSpy).toHaveBeenCalledWith('proj-1', [
         'projects/novel/chapters/ch1.md',
         'projects/novel/chapters/ch1 2.md',
       ])
@@ -140,12 +161,10 @@ describe('FileSplitter', () => {
 
       await splitter.splitAtCursor(mockEditor, sourceFile)
 
-      // Nothing after cursor → no file created
-      expect(mockApp.vault.create).not.toHaveBeenCalled()
+      expect(createSpy).not.toHaveBeenCalled()
     })
 
     it('generates a unique name when the default sibling name is taken', async () => {
-      // "ch1 2.md" already exists
       vaultFiles.set('projects/novel/chapters/ch1 2.md', 'existing')
 
       const sourceFile = makeFile('projects/novel/chapters/ch1.md', 'Line 1\nLine 2')
@@ -157,7 +176,7 @@ describe('FileSplitter', () => {
 
       await splitter.splitAtCursor(mockEditor, sourceFile)
 
-      expect(mockApp.vault.create).toHaveBeenCalledWith(
+      expect(createSpy).toHaveBeenCalledWith(
         'projects/novel/chapters/ch1 3.md',
         expect.any(String),
       )
@@ -176,7 +195,7 @@ describe('FileSplitter', () => {
 
       await splitter.mergeInto(sourceFile, targetFile)
 
-      expect(mockApp.vault.modify).toHaveBeenCalledWith(
+      expect(modifySpy).toHaveBeenCalledWith(
         targetFile,
         'First chapter\n\n---\n\nSecond chapter',
       )
@@ -191,17 +210,14 @@ describe('FileSplitter', () => {
 
       await splitter.mergeInto(sourceFile, targetFile)
 
-      expect(mockApp.vault.delete).toHaveBeenCalledWith(sourceFile)
+      expect(trashFileSpy).toHaveBeenCalledWith(sourceFile)
     })
 
     it('removes the source file from fileOrder', async () => {
       project = makeProject({
-        fileOrder: [
-          'projects/novel/chapters/ch1.md',
-          'projects/novel/chapters/ch2.md',
-        ],
+        fileOrder: ['projects/novel/chapters/ch1.md', 'projects/novel/chapters/ch2.md'],
       })
-      vi.mocked(mockProjectManager.getActiveProject).mockReturnValue(project)
+      getActiveProjectSpy.mockReturnValue(project)
 
       const sourceFile = makeFile('projects/novel/chapters/ch2.md', 'Source')
       const targetFile = makeFile('projects/novel/chapters/ch1.md', 'Target')
@@ -211,9 +227,7 @@ describe('FileSplitter', () => {
 
       await splitter.mergeInto(sourceFile, targetFile)
 
-      expect(mockProjectManager.reorderProjectFiles).toHaveBeenCalledWith('proj-1', [
-        'projects/novel/chapters/ch1.md',
-      ])
+      expect(reorderSpy).toHaveBeenCalledWith('proj-1', ['projects/novel/chapters/ch1.md'])
     })
 
     it('refuses to merge a file into itself', async () => {
@@ -222,8 +236,8 @@ describe('FileSplitter', () => {
 
       await splitter.mergeInto(file, file)
 
-      expect(mockApp.vault.modify).not.toHaveBeenCalled()
-      expect(mockApp.vault.delete).not.toHaveBeenCalled()
+      expect(modifySpy).not.toHaveBeenCalled()
+      expect(trashFileSpy).not.toHaveBeenCalled()
     })
   })
 })

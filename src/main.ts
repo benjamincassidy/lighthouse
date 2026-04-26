@@ -130,7 +130,7 @@ export default class LighthousePlugin extends Plugin {
           return
         }
         if (!this.projectManager.getActiveProject()) {
-          new Notice('No active Lighthouse project.')
+          new Notice('No active project — open or create one first.')
           return
         }
         void this.fileSplitter.splitAtCursor(editor, ctx.file)

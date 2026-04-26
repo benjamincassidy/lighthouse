@@ -1,4 +1,4 @@
-import { Notice, type App, type Editor, type TFile } from 'obsidian'
+import { Notice, TFile, type App, type Editor } from 'obsidian'
 
 import type { ProjectManager } from '@/core/ProjectManager'
 
@@ -82,7 +82,7 @@ export class FileSplitter {
     const merged = targetContent.trimEnd() + separator + sourceContent.trim()
 
     await this.app.vault.modify(targetFile, merged)
-    await this.app.vault.delete(sourceFile)
+    await this.app.fileManager.trashFile(sourceFile)
 
     // Remove source from fileOrder
     const project = this.projectManager.getActiveProject()
@@ -128,11 +128,10 @@ export class FileSplitter {
 
   private collectMarkdownFiles(folder: { children: unknown[] }, out: TFile[]): void {
     for (const child of folder.children) {
-      if ('children' in (child as object)) {
+      if (child !== null && typeof child === 'object' && 'children' in child) {
         this.collectMarkdownFiles(child as { children: unknown[] }, out)
-      } else {
-        const file = child as TFile
-        if (file.extension === 'md') out.push(file)
+      } else if (child instanceof TFile && child.extension === 'md') {
+        out.push(child)
       }
     }
   }
