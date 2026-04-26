@@ -7,6 +7,7 @@
   import type { Project } from '@/types/types'
   import TreeNodeComponent from '@/ui/components/TreeNode.svelte'
   import { FileGoalModal } from '@/ui/modals/FileGoalModal'
+  import { MergeModal } from '@/ui/modals/MergeModal'
   import { ProjectSwitcherModal } from '@/ui/modals/ProjectSwitcher'
   import { reorderPaths, sortByFileOrder } from '@/utils/fileOrder'
 
@@ -357,6 +358,19 @@
                 updatedAt: new Date().toISOString(),
               })
               await loadFileWordCounts(currentProject)
+            }).open()
+          })
+      })
+
+      menu.addItem((item) => {
+        item
+          .setTitle('Merge into…')
+          .setIcon('git-merge')
+          .onClick(() => {
+            const sourceFile = file as TFile
+            const projectFiles = plugin.fileSplitter.getProjectFiles()
+            new MergeModal(plugin.app, sourceFile, projectFiles, (target) => {
+              void plugin.fileSplitter.mergeInto(sourceFile, target)
             }).open()
           })
       })
