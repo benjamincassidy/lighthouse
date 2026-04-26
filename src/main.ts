@@ -1,5 +1,6 @@
 import { Notice, Plugin } from 'obsidian'
 
+import { FileSplitter } from '@/core/FileSplitter'
 import { FlowMode } from '@/core/FlowMode'
 import { FolderManager } from '@/core/FolderManager'
 import { HierarchicalCounter } from '@/core/HierarchicalCounter'
@@ -27,6 +28,7 @@ export default class LighthousePlugin extends Plugin {
   workspaceManager!: WorkspaceManager
   sessionTracker!: WritingSessionTracker
   binaryManager!: BinaryManager
+  fileSplitter!: FileSplitter
 
   async onload() {
     // Initialize core services
@@ -44,6 +46,7 @@ export default class LighthousePlugin extends Plugin {
     this.sessionTracker = new WritingSessionTracker(this)
     this.binaryManager = new BinaryManager(this)
     await this.projectManager.initialize()
+    this.fileSplitter = new FileSplitter(this.app, this.projectManager)
     // Settings are owned by ProjectStorage — sync the plugin reference
     this.settings = this.projectManager.getSettings()
 
@@ -114,6 +117,23 @@ export default class LighthousePlugin extends Plugin {
       callback: () => {
         const modal = new ProjectSwitcherModal(this)
         modal.open()
+      },
+    })
+
+    // Split the active note at the cursor position
+    this.addCommand({
+      id: 'split-note-at-cursor',
+      name: 'Split note at cursor',
+      editorCallback: (editor, ctx) => {
+        if (!ctx.file) {
+          new Notice('No active file to split.')
+          return
+        }
+        if (!this.projectManager.getActiveProject()) {
+          new Notice('No active project — open or create one first.')
+          return
+        }
+        void this.fileSplitter.splitAtCursor(editor, ctx.file)
       },
     })
 
