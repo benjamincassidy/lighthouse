@@ -3,6 +3,8 @@
  * These are available in Obsidian's desktop app
  */
 
+import type { App } from 'obsidian'
+
 interface ElectronDialog {
   showOpenDialogSync(options: {
     title: string
@@ -27,15 +29,16 @@ interface WindowWithRequire {
  * Get Electron's dialog API (available in Obsidian desktop)
  * Returns null if not available (e.g., mobile or web)
  */
-export function getElectronDialog(): ElectronDialog | null {
+export function getElectronDialog(app?: App): ElectronDialog | null {
   try {
-    // Access window via globalThis to avoid no-undef
-    const win =
-      typeof globalThis !== 'undefined' ? (globalThis as unknown as WindowWithRequire) : null
+    const appWindow = app
+      ? ((app.workspace as unknown as { activeWindow: WindowWithRequire }).activeWindow ?? null)
+      : null
+    const win = appWindow ?? (document.defaultView as unknown as WindowWithRequire) ?? null
     if (!win) return null
 
     // Dynamic require to avoid bundling issues
-    const electronRequire = win.require
+    const electronRequire = win.require as ((module: string) => unknown) | undefined
     if (!electronRequire) return null
 
     // Try @electron/remote first (newer)

@@ -1,7 +1,7 @@
 import process from 'process'
 import { readFileSync } from 'fs'
+import { builtinModules } from 'module'
 
-import builtins from 'builtin-modules'
 import esbuild from 'esbuild'
 import sveltePlugin from 'esbuild-svelte'
 import sveltePreprocess from 'svelte-preprocess'
@@ -39,7 +39,8 @@ const context = await esbuild.context({
     '@lezer/common',
     '@lezer/highlight',
     '@lezer/lr',
-    ...builtins,
+    ...builtinModules,
+    ...builtinModules.map((m) => `node:${m}`),
   ],
   format: 'cjs',
   target: 'es2020',

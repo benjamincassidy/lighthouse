@@ -15,7 +15,9 @@
  * Each binary is a gzipped executable hosted as a GitHub release asset.
  */
 
-/* eslint-disable no-undef -- Desktop-only code: requires process global */
+import { Platform } from 'obsidian'
+
+import { getDesktopProcess } from '@/utils/desktopNode'
 
 // ---------------------------------------------------------------------------
 // Manifest URL configuration
@@ -131,8 +133,12 @@ export interface ToolsManifest {
 
 /** Returns the platform key for the current machine, or null if unsupported */
 export function currentPlatformKey(): string | null {
-  const p = process.platform // 'darwin' | 'linux' | 'win32'
-  const a = process.arch // 'x64' | 'arm64' | 'ia32'
+  if (!Platform.isDesktop) return null
+
+  const p = Platform.isMacOS ? 'darwin' : Platform.isLinux ? 'linux' : Platform.isWin ? 'win32' : ''
+  if (!p) return null
+
+  const a = getDesktopProcess().arch // 'x64' | 'arm64' | 'ia32'
 
   // Normalise: only the combinations we actually publish
   if (p === 'darwin' && (a === 'x64' || a === 'arm64')) return `${p}-${a}`
@@ -144,5 +150,5 @@ export function currentPlatformKey(): string | null {
 
 /** Returns the executable filename for a tool on the current platform */
 export function binaryFilename(tool: ToolName): string {
-  return process.platform === 'win32' ? `${tool}.exe` : tool
+  return Platform.isWin ? `${tool}.exe` : tool
 }

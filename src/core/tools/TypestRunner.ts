@@ -27,12 +27,9 @@
  *   <!--raw-typst #bibliography("refs.bib") -->
  */
 
-/* eslint-disable import/no-nodejs-modules, no-undef -- Desktop-only code: requires Node.js modules for process execution */
+import { Platform } from 'obsidian'
 
-import { spawn } from 'child_process'
-import { existsSync, mkdirSync, unlinkSync, writeFileSync } from 'fs'
-import { tmpdir } from 'os'
-import { join } from 'path'
+import { getDesktopProcess, requireDesktopModule } from '@/utils/desktopNode'
 
 export const CMARKER_VERSION = '0.1.8'
 
@@ -82,20 +79,24 @@ export class TypstRunner {
   constructor(private typstPath: string) {}
 
   async toPdf(markdownContent: string, opts: TypestPdfOptions): Promise<void> {
+    const os = requireDesktopModule<typeof import('os')>('os')
+    const fs = requireDesktopModule<typeof import('fs')>('fs')
+    const path = requireDesktopModule<typeof import('path')>('path')
+
     const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`
-    const tmpDir = tmpdir()
+    const tmpDir = os.tmpdir()
 
     // Write markdown to a temp file — typst reads it via sys.inputs.content
-    const contentPath = join(tmpDir, `lh-content-${id}.md`)
-    writeFileSync(contentPath, markdownContent, 'utf8')
+    const contentPath = path.join(tmpDir, `lh-content-${id}.md`)
+    fs.writeFileSync(contentPath, markdownContent, 'utf8')
 
     // Use caller template or generate a minimal shim
     let shimPath: string | null = null
     const entryPath =
       opts.template ??
       (() => {
-        shimPath = join(tmpDir, `lh-shim-${id}.typ`)
-        writeFileSync(
+        shimPath = path.join(tmpDir, `lh-shim-${id}.typ`)
+        fs.writeFileSync(
           shimPath,
           buildShim(
             opts.paperSize ?? 'us-letter',
@@ -134,6 +135,15 @@ export class TypstRunner {
     bibliographyPath?: string,
   ): Promise<void> {
     return new Promise((resolve, reject) => {
+      if (!Platform.isDesktop) {
+        reject(new Error('PDF export is only available on desktop.'))
+        return
+      }
+
+      const childProcess = requireDesktopModule<typeof import('child_process')>('child_process')
+      const fs = requireDesktopModule<typeof import('fs')>('fs')
+      const processRef = getDesktopProcess()
+
       const args = [
         'compile',
         entryPath,
@@ -148,23 +158,23 @@ export class TypstRunner {
         args.push('--input', `bibliography=${bibliographyPath}`)
       }
 
-      const env: NodeJS.ProcessEnv = { ...process.env }
+      const env: Record<string, string | undefined> = { ...processRef.env }
 
       if (packageCacheDir) {
         // Redirect the package cache into the plugin's own bin directory.
         // Typst fetches cmarker from packages.typst.org on first use and
         // caches it here; subsequent compiles are fully offline.
-        if (!existsSync(packageCacheDir)) mkdirSync(packageCacheDir, { recursive: true })
+        if (!fs.existsSync(packageCacheDir)) fs.mkdirSync(packageCacheDir, { recursive: true })
         env.TYPST_PACKAGE_CACHE_PATH = packageCacheDir
       }
 
-      const child = spawn(this.typstPath, args, { env })
-      const stderrChunks: Buffer[] = []
+      const child = childProcess.spawn(this.typstPath, args, { env })
+      const stderrChunks: Uint8Array[] = []
 
-      child.stderr.on('data', (chunk: Buffer) => stderrChunks.push(chunk))
+      child.stderr.on('data', (chunk: Uint8Array) => stderrChunks.push(chunk))
 
       child.once('close', (code) => {
-        const stderrStr = Buffer.concat(stderrChunks).toString('utf8')
+        const stderrStr = decodeUtf8(concatChunks(stderrChunks))
         if (stderrStr) console.debug('[Lighthouse] typst stderr:', stderrStr)
         if (code !== 0) {
           reject(new Error(`Typst compilation failed (exit ${code}): ${stderrStr}`))
@@ -231,9 +241,25 @@ function buildShim(
 // ---------------------------------------------------------------------------
 
 function tryUnlink(path: string): void {
+  const fs = requireDesktopModule<typeof import('fs')>('fs')
   try {
-    unlinkSync(path)
+    fs.unlinkSync(path)
   } catch {
     // Best-effort cleanup
   }
+}
+
+function concatChunks(chunks: Uint8Array[]): Uint8Array {
+  const total = chunks.reduce((sum, c) => sum + c.length, 0)
+  const out = new Uint8Array(total)
+  let offset = 0
+  for (const chunk of chunks) {
+    out.set(chunk, offset)
+    offset += chunk.length
+  }
+  return out
+}
+
+function decodeUtf8(bytes: Uint8Array): string {
+  return new TextDecoder().decode(bytes)
 }

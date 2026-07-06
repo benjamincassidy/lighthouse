@@ -1,4 +1,4 @@
-import type { TFile } from 'obsidian'
+import type { App, TFile } from 'obsidian'
 
 export interface WordCountResult {
   words: number
@@ -34,8 +34,10 @@ const DEFAULT_OPTIONS: Required<WordCountOptions> = {
 export class WordCounter {
   private debounceTimers: Map<string, ReturnType<typeof setTimeout>>
   private readonly debounceMs: number
+  private readonly app?: App
 
-  constructor(debounceMs = 300) {
+  constructor(app?: App, debounceMs = 300) {
+    this.app = app
     this.debounceTimers = new Map()
     this.debounceMs = debounceMs
   }
@@ -90,12 +92,20 @@ export class WordCounter {
 
     // Clear existing timer
     const existingTimer = this.debounceTimers.get(cacheKey)
+    const workspaceWithWindow = this.app?.workspace as unknown as
+      | { activeWindow?: { setTimeout: typeof setTimeout; clearTimeout: typeof clearTimeout } }
+      | undefined
+    const activeWindow = workspaceWithWindow?.activeWindow
     if (existingTimer) {
-      clearTimeout(existingTimer)
+      if (activeWindow) {
+        activeWindow.clearTimeout(existingTimer)
+      } else {
+        clearTimeout(existingTimer)
+      }
     }
 
     // Set new timer
-    const timer = setTimeout(() => {
+    const timer = (activeWindow ? activeWindow.setTimeout : setTimeout)(() => {
       const result = this.countFile(file, content, options)
       callback(result)
       this.debounceTimers.delete(cacheKey)
