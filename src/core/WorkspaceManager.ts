@@ -26,6 +26,14 @@ export class WorkspaceManager {
     this.plugin = plugin
   }
 
+  private getActiveDocument(): Document {
+    const workspace = this.plugin.app.workspace as unknown as {
+      activeDocument?: Document
+      containerEl?: HTMLElement
+    }
+    return workspace.activeDocument ?? workspace.containerEl?.ownerDocument ?? document
+  }
+
   isWritingWorkspaceActive(): boolean {
     return this._isActive
   }
@@ -49,7 +57,7 @@ export class WorkspaceManager {
     this.plugin.activateProjectExplorer()
     this.plugin.activateStatsPanel()
 
-    document.body.setAttribute('data-lighthouse-workspace', 'true')
+    this.getActiveDocument().body.setAttribute('data-lighthouse-workspace', 'true')
     this._isActive = true
     workspaceActive.set(true)
 
@@ -68,7 +76,7 @@ export class WorkspaceManager {
     workspace.getLeavesOfType(PROJECT_EXPLORER_VIEW_TYPE).forEach((l) => l.detach())
     workspace.getLeavesOfType(STATS_PANEL_VIEW_TYPE).forEach((l) => l.detach())
 
-    document.body.removeAttribute('data-lighthouse-workspace')
+    this.getActiveDocument().body.removeAttribute('data-lighthouse-workspace')
     this._isActive = false
     workspaceActive.set(false)
 
@@ -86,7 +94,7 @@ export class WorkspaceManager {
     if (state?.isActive) {
       this.plugin.activateProjectExplorer()
       this.plugin.activateStatsPanel()
-      document.body.setAttribute('data-lighthouse-workspace', 'true')
+      this.getActiveDocument().body.setAttribute('data-lighthouse-workspace', 'true')
       this._isActive = true
       workspaceActive.set(true)
     }

@@ -4,7 +4,7 @@ import { FileSplitter } from '@/core/FileSplitter'
 import type { ProjectManager } from '@/core/ProjectManager'
 import type { Project } from '@/types/types'
 
-import type { App, Editor, TFile, TFolder, Vault, Workspace } from 'obsidian'
+import type { App, Editor, TFile, Vault, Workspace } from 'obsidian'
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -23,9 +23,13 @@ const makeProject = (overrides: Partial<Project> = {}): Project => ({
 const makeFile = (path: string, content = 'content'): TFile => {
   const parent = {
     path: path.split('/').slice(0, -1).join('/'),
+    name: path.split('/').slice(0, -1).pop() ?? '',
+    vault: {} as Vault,
+    parent: null,
     children: [],
-    // eslint-disable-next-line obsidianmd/no-tfile-tfolder-cast
-  } as unknown as TFolder
+    isRoot: () => false,
+  }
+
   return {
     path,
     name: path.split('/').pop()!,
@@ -34,8 +38,7 @@ const makeFile = (path: string, content = 'content'): TFile => {
     parent,
     vault: {} as Vault,
     stat: { ctime: 0, mtime: 0, size: content.length },
-    // eslint-disable-next-line obsidianmd/no-tfile-tfolder-cast
-  } as unknown as TFile
+  }
 }
 
 // ─── Tests ──────────────────────────────────────────────────────────────────

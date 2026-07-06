@@ -30,10 +30,18 @@ export default class LighthousePlugin extends Plugin {
   binaryManager!: BinaryManager
   fileSplitter!: FileSplitter
 
+  private getActiveDocument(): Document {
+    const workspace = this.app.workspace as unknown as {
+      activeDocument?: Document
+      containerEl?: HTMLElement
+    }
+    return workspace.activeDocument ?? workspace.containerEl?.ownerDocument ?? document
+  }
+
   async onload() {
     // Initialize core services
     this.folderManager = new FolderManager(this.app.vault)
-    this.wordCounter = new WordCounter()
+    this.wordCounter = new WordCounter(this.app)
     this.hierarchicalCounter = new HierarchicalCounter(
       this.app.vault,
       this.wordCounter,
@@ -209,7 +217,7 @@ export default class LighthousePlugin extends Plugin {
     }
     // Clear workspace body attribute on unload
     if (this.workspaceManager?.isWritingWorkspaceActive()) {
-      document.body.removeAttribute('data-lighthouse-workspace')
+      this.getActiveDocument().body.removeAttribute('data-lighthouse-workspace')
     }
   }
 
@@ -227,7 +235,7 @@ export default class LighthousePlugin extends Plugin {
       })
     }
 
-    void workspace.revealLeaf(leaf)
+    workspace.setActiveLeaf(leaf, { focus: true })
   }
 
   activateProjectExplorer(): void {
@@ -248,7 +256,7 @@ export default class LighthousePlugin extends Plugin {
       })
     }
 
-    void workspace.revealLeaf(leaf)
+    workspace.setActiveLeaf(leaf, { focus: true })
   }
 
   activateStatsPanel(): void {
@@ -269,7 +277,7 @@ export default class LighthousePlugin extends Plugin {
       })
     }
 
-    void workspace.revealLeaf(leaf)
+    workspace.setActiveLeaf(leaf, { focus: true })
   }
 
   toggleProjectExplorer(): void {

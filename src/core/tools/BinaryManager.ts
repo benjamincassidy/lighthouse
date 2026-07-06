@@ -15,16 +15,10 @@
  *   7. Update installed.json
  */
 
-/* eslint-disable import/no-nodejs-modules, no-undef -- Desktop-only code: requires Node.js modules for binary management */
-import { Buffer } from 'buffer'
-import { createHash } from 'crypto'
-import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
-import { join } from 'path'
-import { gunzip } from 'zlib'
-
-import { requestUrl } from 'obsidian'
+import { Platform, requestUrl } from 'obsidian'
 
 import type LighthousePlugin from '@/main'
+import { getDesktopProcess, requireDesktopModule } from '@/utils/desktopNode'
 
 import {
   binaryFilename,
@@ -62,28 +56,32 @@ export type ProgressCallback = (p: DownloadProgress) => void
 // ---------------------------------------------------------------------------
 
 function getPluginBaseDir(plugin: LighthousePlugin): string {
+  const path = requireDesktopModule<typeof import('path')>('path')
   const adapter = plugin.app.vault.adapter as unknown as { basePath: string }
   // plugin.manifest.dir is the vault-relative path Obsidian sets to the actual
   // plugin folder — e.g. ".obsidian/plugins/obsidian-lighthouse". It is more
   // reliable than building the path from manifest.id because the folder name
   // on disk may differ from the id (common during local dev with symlinks).
   if (plugin.manifest.dir) {
-    return join(adapter.basePath, plugin.manifest.dir)
+    return path.join(adapter.basePath, plugin.manifest.dir)
   }
   // Fallback for environments where dir is not populated (e.g. unit tests)
-  return join(adapter.basePath, plugin.app.vault.configDir, 'plugins', plugin.manifest.id)
+  return path.join(adapter.basePath, plugin.app.vault.configDir, 'plugins', plugin.manifest.id)
 }
 
 export function getBinDir(plugin: LighthousePlugin): string {
-  return join(getPluginBaseDir(plugin), 'bin')
+  const path = requireDesktopModule<typeof import('path')>('path')
+  return path.join(getPluginBaseDir(plugin), 'bin')
 }
 
 export function getBinPath(tool: ToolName, plugin: LighthousePlugin): string {
-  return join(getBinDir(plugin), binaryFilename(tool))
+  const path = requireDesktopModule<typeof import('path')>('path')
+  return path.join(getBinDir(plugin), binaryFilename(tool))
 }
 
 export function getStylesDir(plugin: LighthousePlugin): string {
-  return join(getPluginBaseDir(plugin), 'styles')
+  const path = requireDesktopModule<typeof import('path')>('path')
+  return path.join(getPluginBaseDir(plugin), 'styles')
 }
 
 /**
@@ -92,7 +90,8 @@ export function getStylesDir(plugin: LighthousePlugin): string {
  * are fully offline.
  */
 export function getPackagesCacheDir(plugin: LighthousePlugin): string {
-  return join(getBinDir(plugin), 'packages')
+  const path = requireDesktopModule<typeof import('path')>('path')
+  return path.join(getBinDir(plugin), 'packages')
 }
 
 /**
@@ -104,12 +103,14 @@ export function getStylePath(
   format: 'docx' | 'typst',
   plugin: LighthousePlugin,
 ): string {
+  const path = requireDesktopModule<typeof import('path')>('path')
   const ext = format === 'docx' ? '.docx' : '.typ'
-  return join(getStylesDir(plugin), `${styleId}${ext}`)
+  return path.join(getStylesDir(plugin), `${styleId}${ext}`)
 }
 
 function getInstalledPath(plugin: LighthousePlugin): string {
-  return join(getBinDir(plugin), 'installed.json')
+  const path = requireDesktopModule<typeof import('path')>('path')
+  return path.join(getBinDir(plugin), 'installed.json')
 }
 
 // ---------------------------------------------------------------------------
@@ -117,8 +118,9 @@ function getInstalledPath(plugin: LighthousePlugin): string {
 // ---------------------------------------------------------------------------
 
 function readInstalled(plugin: LighthousePlugin): InstalledTools {
+  const fs = requireDesktopModule<typeof import('fs')>('fs')
   try {
-    const raw = readFileSync(getInstalledPath(plugin), 'utf8')
+    const raw = fs.readFileSync(getInstalledPath(plugin), 'utf8')
     return JSON.parse(raw) as InstalledTools
   } catch {
     return {}
@@ -126,9 +128,10 @@ function readInstalled(plugin: LighthousePlugin): InstalledTools {
 }
 
 function writeInstalled(plugin: LighthousePlugin, data: InstalledTools): void {
+  const fs = requireDesktopModule<typeof import('fs')>('fs')
   const binDir = getBinDir(plugin)
-  if (!existsSync(binDir)) mkdirSync(binDir, { recursive: true })
-  writeFileSync(getInstalledPath(plugin), JSON.stringify(data, null, 2), 'utf8')
+  if (!fs.existsSync(binDir)) fs.mkdirSync(binDir, { recursive: true })
+  fs.writeFileSync(getInstalledPath(plugin), JSON.stringify(data, null, 2), 'utf8')
 }
 
 // ---------------------------------------------------------------------------
@@ -151,7 +154,8 @@ export class BinaryManager {
 
   /** True if the binary file exists on disk */
   isBinaryPresent(tool: ToolName): boolean {
-    return existsSync(getBinPath(tool, this.plugin))
+    const fs = requireDesktopModule<typeof import('fs')>('fs')
+    return fs.existsSync(getBinPath(tool, this.plugin))
   }
 
   /** True if the tool is installed and the binary is present */
@@ -178,10 +182,18 @@ export class BinaryManager {
    * Throws if the platform is unsupported or the checksum fails.
    */
   async install(tool: ToolName, onProgress?: ProgressCallback): Promise<void> {
+    if (!Platform.isDesktop) {
+      throw new Error('Binary installation is only available on desktop.')
+    }
+
+    const fs = requireDesktopModule<typeof import('fs')>('fs')
+    const crypto = requireDesktopModule<typeof import('crypto')>('crypto')
+    const processRef = getDesktopProcess()
+
     const platformKey = currentPlatformKey()
     if (!platformKey) {
       throw new Error(
-        `Unsupported platform: ${process.platform}-${process.arch}. ` +
+        `Unsupported platform: ${processRef.platform}-${processRef.arch}. ` +
           'Lighthouse export tools are available for macOS (x64/arm64), ' +
           'Linux (x64/arm64), and Windows (x64).',
       )
@@ -197,7 +209,7 @@ export class BinaryManager {
 
     // Ensure bin dir exists
     const binDir = getBinDir(this.plugin)
-    if (!existsSync(binDir)) mkdirSync(binDir, { recursive: true })
+    if (!fs.existsSync(binDir)) fs.mkdirSync(binDir, { recursive: true })
 
     // Stream-download the gzipped binary
     const compressedBytes = await this.downloadWithProgress(
@@ -210,7 +222,7 @@ export class BinaryManager {
     const rawBytes = await gunzipAsync(compressedBytes)
 
     // Verify SHA-256
-    const actual = createHash('sha256').update(rawBytes).digest('hex')
+    const actual = crypto.createHash('sha256').update(rawBytes).digest('hex')
     if (actual.toLowerCase() !== platformEntry.sha256.toLowerCase()) {
       throw new Error(
         `SHA-256 mismatch for ${tool}!\n` +
@@ -222,11 +234,11 @@ export class BinaryManager {
 
     // Write binary to disk
     const binPath = getBinPath(tool, this.plugin)
-    writeFileSync(binPath, rawBytes)
+    fs.writeFileSync(binPath, rawBytes)
 
     // Make executable on macOS / Linux
-    if (process.platform !== 'win32') {
-      chmodSync(binPath, 0o755)
+    if (processRef.platform !== 'win32') {
+      fs.chmodSync(binPath, 0o755)
     }
 
     // Record the installed version
@@ -241,8 +253,9 @@ export class BinaryManager {
 
   /** True if a style asset file is present on disk and recorded as installed */
   isStyleReady(styleId: StyleName, format: 'docx' | 'typst'): boolean {
+    const fs = requireDesktopModule<typeof import('fs')>('fs')
     const path = getStylePath(styleId, format, this.plugin)
-    if (!existsSync(path)) return false
+    if (!fs.existsSync(path)) return false
     const installed = readInstalled(this.plugin)
     return installed.styles?.[styleId]?.[format] != null
   }
@@ -256,6 +269,9 @@ export class BinaryManager {
     format: 'docx' | 'typst',
     onProgress?: ProgressCallback,
   ): Promise<void> {
+    const fs = requireDesktopModule<typeof import('fs')>('fs')
+    const crypto = requireDesktopModule<typeof import('crypto')>('crypto')
+
     const manifest = await this.fetchManifest()
     const styleEntry = manifest.styles?.[styleId]
     if (!styleEntry) throw new Error(`Style '${styleId}' is not in the tools manifest.`)
@@ -264,12 +280,12 @@ export class BinaryManager {
     if (!assetEntry) throw new Error(`No ${format} template available for style '${styleId}'.`)
 
     const stylesDir = getStylesDir(this.plugin)
-    if (!existsSync(stylesDir)) mkdirSync(stylesDir, { recursive: true })
+    if (!fs.existsSync(stylesDir)) fs.mkdirSync(stylesDir, { recursive: true })
 
     const compressed = await this.downloadWithProgress(assetEntry.url, assetEntry.size, onProgress)
     const raw = await gunzipAsync(compressed)
 
-    const actual = createHash('sha256').update(raw).digest('hex')
+    const actual = crypto.createHash('sha256').update(raw).digest('hex')
     if (actual.toLowerCase() !== assetEntry.sha256.toLowerCase()) {
       throw new Error(
         `SHA-256 mismatch for ${styleId} ${format} template!\n` +
@@ -278,7 +294,7 @@ export class BinaryManager {
       )
     }
 
-    writeFileSync(getStylePath(styleId, format, this.plugin), raw)
+    fs.writeFileSync(getStylePath(styleId, format, this.plugin), raw)
 
     // Record the manifest version so we know when to re-download
     const installed = readInstalled(this.plugin)
@@ -293,11 +309,9 @@ export class BinaryManager {
    * Safe to call even if the tool is not installed.
    */
   uninstall(tool: ToolName): void {
+    const fs = requireDesktopModule<typeof import('fs')>('fs')
     const binPath = getBinPath(tool, this.plugin)
-    if (existsSync(binPath)) {
-      // Use fs.unlinkSync — Node.js is available in Electron
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const fs = require('fs') as typeof import('fs')
+    if (fs.existsSync(binPath)) {
       fs.unlinkSync(binPath)
     }
     const installed = readInstalled(this.plugin)
@@ -313,13 +327,13 @@ export class BinaryManager {
     url: string,
     expectedDecompressedSize: number,
     onProgress?: ProgressCallback,
-  ): Promise<Buffer> {
+  ): Promise<Uint8Array> {
     const resp = await requestUrl({ url })
     if (resp.status !== 200) {
       throw new Error(`Download failed (HTTP ${resp.status}): ${url}`)
     }
 
-    const compressedBuffer = Buffer.from(resp.arrayBuffer)
+    const compressedBuffer = new Uint8Array(resp.arrayBuffer)
     const decompressedBuffer = await gunzipAsync(compressedBuffer)
 
     if (onProgress) {
@@ -338,11 +352,12 @@ export class BinaryManager {
 // Promisified gunzip
 // ---------------------------------------------------------------------------
 
-function gunzipAsync(input: Buffer): Promise<Buffer> {
+function gunzipAsync(input: Uint8Array): Promise<Uint8Array> {
+  const zlib = requireDesktopModule<typeof import('zlib')>('zlib')
   return new Promise((resolve, reject) => {
-    gunzip(input, (err, result) => {
+    zlib.gunzip(input, (err, result) => {
       if (err) reject(err)
-      else resolve(result)
+      else resolve(new Uint8Array(result))
     })
   })
 }

@@ -95,7 +95,7 @@ export class CslStyleDownloadModal extends Modal {
     for (const style of this.searchResults) {
       const item = list.createDiv({ cls: 'lighthouse-style-item' })
 
-      item.createEl('span', { text: style.name, cls: 'lighthouse-style-name' })
+      item.createSpan({ text: style.name, cls: 'lighthouse-style-name' })
 
       const downloadBtn = item.createEl('button', {
         text: 'Download',

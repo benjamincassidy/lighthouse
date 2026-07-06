@@ -16,6 +16,19 @@ export class LighthouseSettingTab extends PluginSettingTab {
     this.plugin = plugin
   }
 
+  private getActiveWindow(): Window {
+    const workspace = this.app.workspace as unknown as {
+      activeWindow?: Window
+      containerEl?: HTMLElement
+    }
+    if (workspace.activeWindow) return workspace.activeWindow
+    const fallbackWindow = workspace.containerEl?.ownerDocument.defaultView
+    if (!fallbackWindow) {
+      throw new Error('No active window is available.')
+    }
+    return fallbackWindow
+  }
+
   display(): void {
     const { containerEl } = this
 
@@ -87,7 +100,7 @@ export class LighthouseSettingTab extends PluginSettingTab {
                 cls: 'mod-muted',
               })
 
-              const btnRow = modal.contentEl.createEl('div', {
+              const btnRow = modal.contentEl.createDiv({
                 cls: 'lighthouse-modal-buttons',
               })
               new ButtonComponent(btnRow).setButtonText('Cancel').onClick(() => modal.close())
@@ -271,7 +284,7 @@ export class LighthouseSettingTab extends PluginSettingTab {
       .setDesc('Guides, reference, and getting started.')
       .addButton((button) =>
         button.setButtonText('Open docs').onClick(() => {
-          globalThis.open('https://benjamincassidy.github.io/lighthouse/', '_blank')
+          this.getActiveWindow().open('https://benjamincassidy.github.io/lighthouse/', '_blank')
         }),
       )
 
@@ -280,7 +293,10 @@ export class LighthouseSettingTab extends PluginSettingTab {
       .setDesc('Found a bug? Open a GitHub issue.')
       .addButton((button) =>
         button.setButtonText('Open GitHub').onClick(() => {
-          globalThis.open('https://github.com/benjamincassidy/lighthouse/issues', '_blank')
+          this.getActiveWindow().open(
+            'https://github.com/benjamincassidy/lighthouse/issues',
+            '_blank',
+          )
         }),
       )
   }

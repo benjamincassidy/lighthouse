@@ -5,7 +5,8 @@ import type { App, Editor, EventRef } from 'obsidian'
 /**
  * Returns CSS custom property key→value pairs for flow typography overrides.
  * Only includes properties that have non-default values.
- * These are applied to `document.body` so scoped CSS in styles.css can use them.
+ * These are applied to the active document body so scoped CSS in styles.css
+ * can also work in popout windows.
  */
 export function buildTypographyVars(settings: LighthouseSettings): Record<string, string> {
   const vars: Record<string, string> = {}
@@ -44,6 +45,14 @@ export class FlowMode {
         ribbonVisible: true,
       },
     }
+  }
+
+  private getActiveDocument(): Document {
+    const workspace = this.app.workspace as unknown as {
+      activeDocument?: Document
+      containerEl?: HTMLElement
+    }
+    return workspace.activeDocument ?? workspace.containerEl?.ownerDocument ?? document
   }
 
   isFlowModeActive(): boolean {
@@ -160,60 +169,64 @@ export class FlowMode {
   }
 
   private isStatusBarVisible(): boolean {
-    const statusBar = document.querySelector('.status-bar')
+    const statusBar = this.getActiveDocument().querySelector('.status-bar')
     return statusBar ? statusBar.checkVisibility() : true
   }
 
   private isRibbonVisible(): boolean {
-    const ribbon = document.querySelector('.workspace-ribbon')
+    const ribbon = this.getActiveDocument().querySelector('.workspace-ribbon')
     return ribbon ? !ribbon.hasClass('lighthouse-hidden') : true
   }
 
   private hideStatusBar(): void {
-    const statusBar = document.querySelector('.status-bar') as HTMLElement
+    const statusBar = this.getActiveDocument().querySelector('.status-bar') as HTMLElement
     if (statusBar) {
       statusBar.addClass('lighthouse-hidden')
     }
   }
 
   private showStatusBar(): void {
-    const statusBar = document.querySelector('.status-bar') as HTMLElement
+    const statusBar = this.getActiveDocument().querySelector('.status-bar') as HTMLElement
     if (statusBar) {
       statusBar.removeClass('lighthouse-hidden')
     }
   }
 
   private hideRibbon(): void {
-    const ribbon = document.querySelector('.workspace-ribbon') as HTMLElement
+    const ribbon = this.getActiveDocument().querySelector('.workspace-ribbon') as HTMLElement
     if (ribbon) {
       ribbon.addClass('lighthouse-hidden')
     }
   }
 
   private showRibbon(): void {
-    const ribbon = document.querySelector('.workspace-ribbon') as HTMLElement
+    const ribbon = this.getActiveDocument().querySelector('.workspace-ribbon') as HTMLElement
     if (ribbon) {
       ribbon.removeClass('lighthouse-hidden')
     }
   }
 
   private hideTabs(): void {
-    const tabs = document.querySelector('.workspace-tabs') as HTMLElement
+    const tabs = this.getActiveDocument().querySelector('.workspace-tabs') as HTMLElement
     if (tabs) {
       tabs.addClass('lighthouse-zen-dim')
     }
   }
 
   private showTabs(): void {
-    const tabs = document.querySelector('.workspace-tabs') as HTMLElement
+    const tabs = this.getActiveDocument().querySelector('.workspace-tabs') as HTMLElement
     if (tabs) {
       tabs.removeClass('lighthouse-zen-dim')
     }
   }
 
   private hideSidebarToggles(): void {
-    const leftToggle = document.querySelector('.sidebar-toggle-button.mod-left') as HTMLElement
-    const rightToggle = document.querySelector('.sidebar-toggle-button.mod-right') as HTMLElement
+    const leftToggle = this.getActiveDocument().querySelector(
+      '.sidebar-toggle-button.mod-left',
+    ) as HTMLElement
+    const rightToggle = this.getActiveDocument().querySelector(
+      '.sidebar-toggle-button.mod-right',
+    ) as HTMLElement
     if (leftToggle) {
       leftToggle.addClass('lighthouse-hidden')
     }
@@ -223,8 +236,12 @@ export class FlowMode {
   }
 
   private showSidebarToggles(): void {
-    const leftToggle = document.querySelector('.sidebar-toggle-button.mod-left') as HTMLElement
-    const rightToggle = document.querySelector('.sidebar-toggle-button.mod-right') as HTMLElement
+    const leftToggle = this.getActiveDocument().querySelector(
+      '.sidebar-toggle-button.mod-left',
+    ) as HTMLElement
+    const rightToggle = this.getActiveDocument().querySelector(
+      '.sidebar-toggle-button.mod-right',
+    ) as HTMLElement
     if (leftToggle) {
       leftToggle.removeClass('lighthouse-hidden')
     }
@@ -234,14 +251,14 @@ export class FlowMode {
   }
 
   private hideNavigation(): void {
-    const viewHeader = document.querySelector('.view-header') as HTMLElement
+    const viewHeader = this.getActiveDocument().querySelector('.view-header') as HTMLElement
     if (viewHeader) {
       viewHeader.addClass('lighthouse-hidden')
     }
   }
 
   private showNavigation(): void {
-    const viewHeader = document.querySelector('.view-header') as HTMLElement
+    const viewHeader = this.getActiveDocument().querySelector('.view-header') as HTMLElement
     if (viewHeader) {
       viewHeader.removeClass('lighthouse-hidden')
     }
@@ -272,16 +289,18 @@ export class FlowMode {
 
   applyTypographyOverrides(): void {
     const vars = buildTypographyVars(this.getSettings())
+    const body = this.getActiveDocument().body
     for (const [prop, value] of Object.entries(vars)) {
-      document.body.style.setProperty(prop, value)
+      body.style.setProperty(prop, value)
     }
-    document.body.classList.add('lh-flow-active')
+    body.classList.add('lh-flow-active')
   }
 
   removeTypographyOverrides(): void {
-    document.body.style.removeProperty('--lh-flow-font')
-    document.body.style.removeProperty('--lh-flow-line-height')
-    document.body.style.removeProperty('--lh-flow-line-width')
-    document.body.classList.remove('lh-flow-active')
+    const body = this.getActiveDocument().body
+    body.style.removeProperty('--lh-flow-font')
+    body.style.removeProperty('--lh-flow-line-height')
+    body.style.removeProperty('--lh-flow-line-width')
+    body.classList.remove('lh-flow-active')
   }
 }

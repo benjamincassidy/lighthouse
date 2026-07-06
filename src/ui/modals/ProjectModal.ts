@@ -84,16 +84,16 @@ class MultiFolderSelector {
 
     // Selected folders list
     if (this.selectedFolders.length > 0) {
-      const list = this.containerEl.createEl('div', {
+      const list = this.containerEl.createDiv({
         cls: 'lighthouse-folder-list',
       })
 
       for (const folder of this.selectedFolders) {
-        const item = list.createEl('div', {
+        const item = list.createDiv({
           cls: 'lighthouse-folder-item',
         })
 
-        item.createEl('span', {
+        item.createSpan({
           text: folder,
           cls: 'lighthouse-folder-path',
         })
@@ -283,7 +283,7 @@ export class ProjectModal extends Modal {
           .setButtonText('Browse')
           .setTooltip('Choose bibliography file')
           .onClick(() => {
-            const dialog = getElectronDialog()
+            const dialog = getElectronDialog(this.app)
             if (!dialog) {
               new Notice('File picker not available')
               return
@@ -335,7 +335,7 @@ export class ProjectModal extends Modal {
       dropdown.onChange((value) => {
         this.citationStyle = value
         if (value === 'custom') {
-          const dialog = getElectronDialog()
+          const dialog = getElectronDialog(this.app)
           if (!dialog) {
             new Notice('File picker not available')
             this.citationStyle = ''

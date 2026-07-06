@@ -3,16 +3,12 @@
  * DOCX and ePub3. PDF is handled separately by TypstRunner.
  *
  * Pandoc reads markdown from stdin; binary outputs (DOCX, ePub) are written
- * to a temp file then read back and returned as a Buffer.
+ * to a temp file then read back and returned as raw bytes.
  */
 
-/* eslint-disable import/no-nodejs-modules, no-undef -- Desktop-only code: requires Node.js modules for process execution */
+import { Platform } from 'obsidian'
 
-import { Buffer } from 'buffer'
-import { spawn } from 'child_process'
-import { existsSync, mkdirSync, unlinkSync } from 'fs'
-import { tmpdir } from 'os'
-import { join } from 'path'
+import { getDesktopProcess, requireDesktopModule } from '@/utils/desktopNode'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -57,7 +53,7 @@ export class PandocRunner {
   // ---------------------------------------------------------------------------
 
   /** Convert markdown → .docx; returns the output file bytes */
-  async toDocx(markdown: string, opts: PandocDocxOptions = {}): Promise<Buffer> {
+  async toDocx(markdown: string, opts: PandocDocxOptions = {}): Promise<Uint8Array> {
     const outputPath = tmpPath('lighthouse-export', '.docx')
     const args: string[] = [
       '--from',
@@ -98,7 +94,7 @@ export class PandocRunner {
   }
 
   /** Convert markdown → .epub3; returns the output file bytes */
-  async toEpub(markdown: string, opts: PandocEpubOptions = {}): Promise<Buffer> {
+  async toEpub(markdown: string, opts: PandocEpubOptions = {}): Promise<Uint8Array> {
     const outputPath = tmpPath('lighthouse-export', '.epub')
     const args: string[] = [
       '--from',
@@ -141,26 +137,38 @@ export class PandocRunner {
   // Core execution
   // ---------------------------------------------------------------------------
 
-  private run(args: string[], stdinContent: string, env?: NodeJS.ProcessEnv): Promise<string> {
+  private run(
+    args: string[],
+    stdinContent: string,
+    env?: Record<string, string | undefined>,
+  ): Promise<string> {
     return new Promise((resolve, reject) => {
-      const child = spawn(this.pandocPath, args, {
-        env: env ?? process.env,
+      if (!Platform.isDesktop) {
+        reject(new Error('Pandoc export is only available on desktop.'))
+        return
+      }
+
+      const childProcess = requireDesktopModule<typeof import('child_process')>('child_process')
+      const processRef = getDesktopProcess()
+
+      const child = childProcess.spawn(this.pandocPath, args, {
+        env: env ?? processRef.env,
       })
 
-      const stdoutChunks: Buffer[] = []
-      const stderrChunks: Buffer[] = []
+      const stdoutChunks: Uint8Array[] = []
+      const stderrChunks: Uint8Array[] = []
 
-      child.stdout.on('data', (chunk: Buffer) => stdoutChunks.push(chunk))
-      child.stderr.on('data', (chunk: Buffer) => stderrChunks.push(chunk))
+      child.stdout.on('data', (chunk: Uint8Array) => stdoutChunks.push(chunk))
+      child.stderr.on('data', (chunk: Uint8Array) => stderrChunks.push(chunk))
 
       child.once('close', (code) => {
-        const stderrStr = Buffer.concat(stderrChunks).toString('utf8')
+        const stderrStr = decodeUtf8(concatChunks(stderrChunks))
         if (stderrStr) console.debug('[Lighthouse] pandoc stderr:', stderrStr)
 
         if (code !== 0) {
           reject(new Error(`Pandoc conversion failed (exit ${code}): ${stderrStr}`))
         } else {
-          resolve(Buffer.concat(stdoutChunks).toString('utf8'))
+          resolve(decodeUtf8(concatChunks(stdoutChunks)))
         }
       })
 
@@ -181,21 +189,40 @@ export class PandocRunner {
 let _tmpCounter = 0
 
 function tmpPath(prefix: string, ext: string): string {
-  const dir = tmpdir()
-  if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
-  return join(dir, `${prefix}-${Date.now()}-${_tmpCounter++}${ext}`)
+  const os = requireDesktopModule<typeof import('os')>('os')
+  const fs = requireDesktopModule<typeof import('fs')>('fs')
+  const path = requireDesktopModule<typeof import('path')>('path')
+
+  const dir = os.tmpdir()
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+  return path.join(dir, `${prefix}-${Date.now()}-${_tmpCounter++}${ext}`)
 }
 
-function readFileSyncBuffer(path: string): Buffer {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const fs = require('fs') as typeof import('fs')
-  return fs.readFileSync(path)
+function readFileSyncBuffer(path: string): Uint8Array {
+  const fs = requireDesktopModule<typeof import('fs')>('fs')
+  return new Uint8Array(fs.readFileSync(path))
 }
 
 function tryUnlink(path: string): void {
+  const fs = requireDesktopModule<typeof import('fs')>('fs')
   try {
-    unlinkSync(path)
+    fs.unlinkSync(path)
   } catch {
     // Best-effort cleanup
   }
+}
+
+function concatChunks(chunks: Uint8Array[]): Uint8Array {
+  const total = chunks.reduce((sum, c) => sum + c.length, 0)
+  const out = new Uint8Array(total)
+  let offset = 0
+  for (const chunk of chunks) {
+    out.set(chunk, offset)
+    offset += chunk.length
+  }
+  return out
+}
+
+function decodeUtf8(bytes: Uint8Array): string {
+  return new TextDecoder().decode(bytes)
 }
