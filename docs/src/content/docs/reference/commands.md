@@ -7,34 +7,39 @@ description: All Lighthouse commands available in the Command Palette
 
 All Lighthouse commands are accessible from the Command Palette (Cmd/Ctrl+P). Type "Lighthouse" to filter them.
 
-## Views
+## Writing Workspace
 
-### Lighthouse: Open project dashboard
-Opens the Project Dashboard in the main editor area, showing the goal ring, 13-week writing heatmap, streak stats, and project management controls.
+### Lighthouse: Open writing workspace
+Detaches Obsidian's native file explorer and opens the Library (left sidebar) and Inspector (right sidebar), Lighthouse's dedicated layout for long-form writing. The main editor area is untouched.
 
-### Lighthouse: Open project explorer
-Opens the Project Explorer in the left sidebar, showing a filtered file tree of the active project. Files and folders outside the project are hidden.
+### Lighthouse: Exit writing workspace
+Closes the Library and Inspector and restores the native file explorer.
 
-### Lighthouse: Open writing stats
-Opens the Writing Stats Panel in the right sidebar, showing file/folder/project word counts, session and today totals, pacing info, and the streak tracker.
+### Lighthouse: Toggle library
+Opens or closes just the Library panel, without affecting the rest of the Writing Workspace. Useful for bringing the panel back if you closed its tab manually.
+
+### Lighthouse: Toggle inspector
+Opens or closes just the Inspector panel, without affecting the rest of the Writing Workspace.
+
+The ribbon's compass icon toggles the whole Writing Workspace on and off in one click.
 
 ## Projects
 
 ### Lighthouse: Create new project
-Opens the project creation modal. Walks you through setting a name, root folder, content and source folders, word count goal, deadline, and more.
+Opens the project creation modal. Walks you through setting a name, root folder, goals, deadline, citations, and more.
 
 ### Lighthouse: Switch project
-Opens a fuzzy-search picker listing all your projects. Start typing to filter by name. Selecting a project makes it active immediately across all Lighthouse views.
+Opens a fuzzy-search picker listing all your projects. Start typing to filter by name. Selecting a project makes it active immediately across the Library, Inspector, and status bar.
 
-## Writing Workspace
+### Lighthouse: Export project
+Opens the export dialog for the active project — compile it to PDF, DOCX, EPUB, or Markdown. See [Exporting & Compiling](/features/exporting/).
 
-### Lighthouse: Open writing workspace
-Enters the writing workspace: saves your current Obsidian layout, then opens a clean two-pane layout (Project Explorer on the left, your active file in the centre). Intended for distraction-free project writing.
+## Editing
 
-### Lighthouse: Exit writing workspace
-Restores the Obsidian layout that was saved before you entered the writing workspace.
+### Lighthouse: Split note at cursor
+Splits the active file at the cursor position: everything before stays, everything after moves into a new sibling note. See [Splitting & Merging Notes](/features/splitting-and-merging/).
 
 ## Flow Mode
 
 ### Lighthouse: Toggle flow mode
-Toggles Flow Mode on or off. When active, Flow Mode hides the status bar and ribbon (configurable) and can optionally enable typewriter scrolling, a custom reading font, adjusted line height, and a narrower line width — all aimed at minimising distraction during a writing session.
+Toggles Flow Mode on or off. When active, Flow Mode hides sidebars, tabs, breadcrumbs, and (configurably) the status bar and ribbon, and can optionally enable typewriter scrolling, a custom reading font, adjusted line height, and a narrower line width. See [Flow Mode](/features/flow-mode/).

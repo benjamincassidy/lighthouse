@@ -278,7 +278,9 @@ export class ProjectModal extends Modal {
     // Goal direction
     new Setting(contentEl)
       .setName('Goal direction')
-      .setDesc('Choose whether the goal is a minimum ("at least") or a maximum ("at most", turns red when exceeded).')
+      .setDesc(
+        'Choose whether the goal is a minimum ("at least") or a maximum ("at most", turns red when exceeded).',
+      )
       .addDropdown((dropdown) => {
         dropdown
           .addOption('at-least', 'At least (minimum)')
@@ -366,7 +368,8 @@ export class ProjectModal extends Modal {
     if (!(root instanceof TFolder)) return []
 
     return root.children.filter(
-      (child): child is TFolder => child instanceof TFolder && child.name !== DEFAULT_EXTRAS_FOLDER_NAME,
+      (child): child is TFolder =>
+        child instanceof TFolder && child.name !== DEFAULT_EXTRAS_FOLDER_NAME,
     )
   }
 

@@ -5,11 +5,11 @@ description: How to install Lighthouse in your Obsidian vault
 
 # Installing Lighthouse
 
-Lighthouse is currently in **alpha** and not yet available in the Obsidian Community Plugins directory. You can install it manually for testing.
+Lighthouse isn't yet listed in the Obsidian Community Plugins directory, so for now you'll install it manually.
 
 ## Prerequisites
 
-- Obsidian v1.0.0 or later
+- Obsidian v1.4.0 or later
 - Basic familiarity with Obsidian's interface
 
 ## Manual Installation
@@ -35,7 +35,7 @@ If you want the latest development version:
 1. Clone the repository:
    ```bash
    git clone https://github.com/benjamincassidy/lighthouse.git
-   cd obsidian-lighthouse
+   cd lighthouse
    ```
 
 2. Install dependencies:
@@ -76,7 +76,7 @@ Once installed and enabled, you should see:
 ### Plugin won't enable
 
 1. Check the Obsidian console (Cmd/Ctrl+Shift+I) for error messages
-2. Ensure you're running Obsidian v1.0.0 or later
+2. Ensure you're running Obsidian v1.4.0 or later
 3. Try reinstalling the plugin files
 4. Report persistent issues on [GitHub Issues](https://github.com/benjamincassidy/lighthouse/issues)
 

@@ -1,13 +1,11 @@
 {
   "id": "lighthouse",
   "name": "Lighthouse",
-  "version": "1.1.0",
-  "minAppVersion": "1.4.0",
+  "version": "1.2.0",
+  "minAppVersion": "1.12.0",
   "description": "Project-based writing. Manage multiple writing projects with word counts, filtered views, and distraction-free writing.",
   "author": "benjamin cassidy",
   "authorUrl": "https://github.com/benjamincassidy",
   "fundingUrl": "https://github.com/sponsors/benjamincassidy",
   "isDesktopOnly": false
 }
-  
-

@@ -21,28 +21,26 @@ Word counts update automatically as you type:
 Lighthouse tracks words at three levels:
 
 1. **File level** — Words in the current document
-2. **Folder level** — Total words in the current folder (including subfolders)
-3. **Project level** — Complete project word count (content folders only)
+2. **Group level** — Total words in the current group (including nested groups)
+3. **Project level** — Complete project word count (everything under the root, except Extras)
 
-### Content-Only Counting
+### Extras-Excluded Counting
 
-Project totals include **only content folders**, not source folders. This ensures your progress toward a goal reflects actual writing, not research notes.
+Project totals include everything under the project root **except the Extras group**. This ensures your progress toward a goal reflects actual writing, not research notes. See [Groups & Extras](/core-concepts/groups/) for how Extras works.
 
 ## What Gets Counted
 
 ### Included by default
 - Regular prose text
-- Words in links and wiki-links (link text, not the path)
-- Bold, italic, and other inline formatting
-- List items and blockquotes
+- The display text of links and wiki-links (not the path/target)
+- Headings, list items, and blockquotes (the markdown markers themselves are stripped, not the text)
 - Table content
-- Headings
 
 ### Excluded by default
 - **YAML frontmatter** — The `---` block at the top of a file (configurable)
 - **Code blocks** — Fenced ` ``` ` blocks (configurable)
-- HTML comments
-- Markdown syntax characters (`#`, `*`, `-`, etc.)
+- Markdown syntax characters — heading markers, list markers, bold/italic/strikethrough markers, horizontal rules
+- Em-dashes, en-dashes, and horizontal bars (treated as word separators, not part of a word)
 
 You can toggle code block and frontmatter exclusion in **Settings → Lighthouse**.
 
@@ -51,9 +49,10 @@ You can toggle code block and frontmatter exclusion in **Settings → Lighthouse
 Lighthouse uses a simple, consistent algorithm:
 1. Optionally strip YAML frontmatter
 2. Optionally strip fenced code blocks
-3. Strip HTML comments
-4. Split on whitespace
-5. Count non-empty tokens
+3. Strip markdown syntax (headings, lists, emphasis, horizontal rules) down to their plain text
+4. Resolve `[[wikilinks]]` and `[markdown links](url)` to their display text
+5. Treat dashes as word separators
+6. Split on whitespace and count non-empty tokens
 
 This gives counts consistent with most modern writing tools.
 
@@ -71,12 +70,12 @@ Words written today (since midnight, local time).
 - Resets automatically at midnight in **your local timezone**
 - Stored per-project, so different projects have independent today counts
 
-## Per-File and Per-Folder Goals
+## Per-File and Per-Group Goals
 
-Beyond the project-wide goal, you can set targets on individual files and folders:
+Beyond the project-wide goal, you can set targets on individual files and groups:
 
-- **Per-file goals** — Set in the project editor under File Goals. A progress bar appears in the Stats Panel when the file is active.
-- **Per-folder (chapter) goals** — Set in the project editor under Chapter Goals. A small amber progress ring appears next to the folder in the Project Explorer. Hover for the exact word count vs target.
+- **Per-file goals** — Set on a file's context menu, or in the project editor. A progress bar appears in the Inspector's Stats tab when the file is active.
+- **Per-group goals** — Set in the project editor under **Group goals**. A small progress ring appears next to the group in the Library. Hover for the exact word count vs target.
 
 ## Performance
 
@@ -103,6 +102,6 @@ File counts update 200 ms after you stop typing. Project-level counts update imm
 
 ## Next Steps
 
-- Learn about the [Writing Stats Panel](/features/stats-panel/)
-- Explore the [Project Dashboard](/features/dashboard/)
+- Learn about the [Inspector](/features/inspector/)
+- Explore the [Library](/features/library/)
 - Read about [Tracking Progress](/guides/tracking-progress/)

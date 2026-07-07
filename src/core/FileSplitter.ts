@@ -115,7 +115,10 @@ export class FileSplitter {
     const files: TFile[] = []
     const rootFolder = this.app.vault.getAbstractFileByPath(project.rootPath)
     if (rootFolder && 'children' in rootFolder) {
-      this.collectMarkdownFiles(rootFolder as Parameters<typeof this.collectMarkdownFiles>[0], files)
+      this.collectMarkdownFiles(
+        rootFolder as Parameters<typeof this.collectMarkdownFiles>[0],
+        files,
+      )
     }
     return files
   }

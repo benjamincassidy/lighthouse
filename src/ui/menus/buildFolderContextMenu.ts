@@ -94,11 +94,15 @@ export function buildFolderContextMenu({
       .setTitle('New folder')
       .setIcon('folder')
       .onClick(() => {
-        new GroupModal(plugin, { mode: 'create', parentPath: folder.path }, async (newPath, iconId) => {
-          if (!currentProject) return
-          await saveGroupIcon(plugin, currentProject.id, newPath, newPath, iconId)
-          await onGroupChanged()
-        }).open()
+        new GroupModal(
+          plugin,
+          { mode: 'create', parentPath: folder.path },
+          async (newPath, iconId) => {
+            if (!currentProject) return
+            await saveGroupIcon(plugin, currentProject.id, newPath, newPath, iconId)
+            await onGroupChanged()
+          },
+        ).open()
       })
   })
 

@@ -383,7 +383,6 @@
     letter-spacing: 0.08em;
   }
 
-
   /* Circular goal ring */
   .lighthouse-goal-ring-section {
     display: flex;

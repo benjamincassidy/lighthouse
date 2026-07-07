@@ -7,49 +7,69 @@ description: Complete reference for all Lighthouse settings
 
 Access Lighthouse settings from **Settings → Lighthouse**.
 
-## Global Settings
+## Projects
 
-### Word Count
+| Setting | Description |
+|---|---|
+| Active project | The project shown throughout the plugin. Select one here to edit or delete it below. |
+| New project | Opens the project creation modal. |
 
-| Setting | Default | Description |
-|---|---|---|
-| Show word count in status bar | On | Displays the active project's word count in the Obsidian status bar. |
-| Exclude code blocks | On | Fenced ` ``` ` blocks are stripped before counting. |
-| Exclude frontmatter | On | YAML frontmatter (`---` blocks) is stripped before counting. |
+## Flow Mode
 
-### Flow Mode
-
-Flow Mode is toggled with the **Lighthouse: Toggle flow mode** command (or the toolbar button). The following settings control what it does:
+Flow Mode is toggled with the **Lighthouse: Toggle flow mode** command (or the ribbon-adjacent hotkey you assign). The following settings control what it does:
 
 | Setting | Default | Description |
 |---|---|---|
 | Hide status bar | On | Hides the Obsidian status bar when Flow Mode is active. |
 | Hide ribbon | On | Hides the left ribbon (icon bar) when Flow Mode is active. |
-| Typewriter scrolling | On | Keeps the active line vertically centred as you type. |
-| Custom font | *(none)* | Font family name to use in Flow Mode (e.g. `"iA Writer Quattro V"`). Leave blank to use the vault default. |
-| Line height | *(0 = default)* | Custom line height multiplier in Flow Mode. Set to `0` to leave unchanged. |
-| Line width | *(0 = default)* | Custom reading line width (in characters) in Flow Mode. Set to `0` to leave unchanged. |
+| Typewriter scroll | On | Keeps the active line vertically centred as you type. |
 
-### Developer
+### Typography
 
 | Setting | Default | Description |
 |---|---|---|
-| Debug mode | Off | Logs verbose output to the developer console. Useful when reporting bugs. |
+| Font family | *(none)* | Font to use in Flow Mode (e.g. `Georgia, serif`). Leave blank to inherit. |
+| Line height | *(0 = inherit)* | Custom line-height multiplier in Flow Mode. Set to `0` to inherit. |
+| Max line width | *(0 = inherit)* | Constrains the editor width, in pixels, for comfortable reading. Set to `0` to inherit. |
+| Hotkey | — | Opens Obsidian's Hotkeys settings, filtered to Flow Mode, so you can assign a keyboard shortcut. |
+
+## Word Counting
+
+| Setting | Default | Description |
+|---|---|---|
+| Show word count in status bar | On | Displays the active file's word count in the Obsidian status bar. |
+| Exclude code blocks | On | Fenced ` ``` ` blocks are stripped before counting. |
+| Exclude frontmatter | On | YAML frontmatter (`---` blocks) is stripped before counting. |
+
+## Debug Mode
+
+| Setting | Default | Description |
+|---|---|---|
+| Debug mode | Off | Writes verbose logs to the developer console. Useful when reporting bugs. |
+
+## About
+
+Shows the installed version, a link to this documentation site, and a link to report an issue on GitHub.
 
 ---
 
 ## Per-Project Settings
 
-Per-project settings are edited through the project editor (Command Palette → *Lighthouse: Create new project*, or the pencil icon on the Dashboard).
+Per-project settings are edited through the project editor — open the project's "⋯" menu in the Library header and choose **Edit project…**, or use **Lighthouse: Create new project** / the Settings tab's **Edit** button.
 
-### Core
+### Details
 
 | Setting | Description |
 |---|---|
-| Name | Human-readable project identifier. |
-| Root path | Vault-relative path to the project's root folder. |
-| Content folders | Subfolders (relative to root) whose words count toward the word count goal. |
-| Source folders | Subfolders (relative to root) that are part of the project but excluded from the word count (research, notes, references). |
+| Project name | Human-readable project identifier. |
+| Root folder | Vault-relative path to the project's root folder. Everything under it belongs to the project, except the Extras group — see [Groups & Extras](/core-concepts/groups/). |
+
+### Citations
+
+| Setting | Description |
+|---|---|
+| Bibliography file | Optional citation database (`.bib`, `.yaml`, `.json`) used when exporting with citations. |
+| Citation style | CSL citation style used when formatting citations and the bibliography. Choose a bundled style, download more, or supply a custom `.csl` file. |
 
 ### Goals
 
@@ -57,16 +77,14 @@ Per-project settings are edited through the project editor (Command Palette → 
 |---|---|
 | Word count goal | Total target word count for the project. |
 | Goal direction | **At least** (default) — progress bar fills as you approach the goal. **At most** — bar turns red when you exceed it (useful for word-limit projects like academic papers). |
-| Chapter goals | Per-folder word count targets. Shown as amber progress rings in the Project Explorer. |
-| File goals | Per-file word count targets. Shown as a progress bar in the Stats Panel when that file is active. |
+| Deadline | Target finish date (`YYYY-MM-DD`). Used to calculate the required daily word count. |
+| Daily writing goal | Explicit daily target used to colour heatmap cells. If blank, Lighthouse derives it from the total goal and deadline. |
+| Group goals | Per-group (top-level folder) word count targets. Shown as progress rings in the Library. |
 
-### Deadline & Pacing
+### File Goals
 
-| Setting | Description |
-|---|---|
-| Target finish date | The deadline (`YYYY-MM-DD`). Used to calculate the required daily word count. |
-| Daily word goal | Explicit daily target used to colour heatmap cells. If blank, Lighthouse derives it from the total goal and deadline. |
+Not set in the project editor — right-click any file in the Library's Sheet List and choose **Set file word count goal**. Shown as a progress bar in the Inspector's Stats tab when that file is active.
 
 ### Streak & Rest Days
 
-Rest days are managed from the **Stats Panel** by tapping *Mark rest day*. They are stored internally as a list of `YYYY-MM-DD` dates on the project. Rest days count toward the writing streak without requiring any words.
+Rest days are managed from the Inspector's **Stats** tab by tapping *Mark rest day*. They are stored internally as a list of `YYYY-MM-DD` dates on the project. Rest days count toward the writing streak without requiring any words.

@@ -29,7 +29,9 @@
     iconColor?: string
     ontoggle?: (_event: CustomEvent<{ path: string }>) => void
     onselect?: (_event: CustomEvent<{ path: string }>) => void
-    onfoldermenu?: (_event: CustomEvent<{ path: string; mouseEvent: globalThis.MouseEvent }>) => void
+    onfoldermenu?: (
+      _event: CustomEvent<{ path: string; mouseEvent: globalThis.MouseEvent }>,
+    ) => void
     onreorder?: (_event: CustomEvent<ReorderDetail>) => void
   }
 

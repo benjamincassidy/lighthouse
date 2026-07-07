@@ -17,7 +17,6 @@
   import { reorderPaths, sortByFileOrder } from '@/utils/fileOrder'
   import { deriveSheetTitle } from '@/utils/sheetTitle'
 
-
   interface TreeNode {
     name: string
     path: string
@@ -427,10 +426,14 @@
   function createRootFolder() {
     if (!currentProject) return
     const project = currentProject
-    new GroupModal(plugin, { mode: 'create', parentPath: project.rootPath }, async (newPath, iconId) => {
-      await saveGroupIcon(plugin, project.id, newPath, newPath, iconId)
-      await buildProjectTree(project)
-    }).open()
+    new GroupModal(
+      plugin,
+      { mode: 'create', parentPath: project.rootPath },
+      async (newPath, iconId) => {
+        await saveGroupIcon(plugin, project.id, newPath, newPath, iconId)
+        await buildProjectTree(project)
+      },
+    ).open()
   }
 
   function createExtrasGroup() {
@@ -752,8 +755,7 @@
                 stroke-linecap="round"
                 stroke-linejoin="round"
                 class="lh-chevron-icon"
-                class:is-collapsed={extrasCollapsed}
-                ><path d="M3 8L12 17L21 8" /></svg
+                class:is-collapsed={extrasCollapsed}><path d="M3 8L12 17L21 8" /></svg
               >
             </button>
           </div>

@@ -4,7 +4,6 @@
 
   import type LighthousePlugin from '@/main'
 
-
   interface Props {
     plugin: LighthousePlugin
   }

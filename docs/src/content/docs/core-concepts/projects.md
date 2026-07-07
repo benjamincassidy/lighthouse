@@ -11,12 +11,12 @@ Projects are the foundation of Lighthouse. A project represents a distinct writi
 
 A Lighthouse project is:
 
-- **A collection of folders** in your vault that belong together
-- **A configuration** specifying which folders are content vs source
+- **A single root folder** in your vault, plus everything nested inside it
+- **A configuration** — goals, deadline, citation settings, and more
 - **A goal** (optional) to track your progress
 - **A context** that persists across Obsidian sessions
 
-Projects are **not** physical folders—they're metadata stored by Lighthouse. Your actual files and folders remain untouched.
+Projects are **not** physical folders in the sense of requiring a special structure — a project is just metadata pointing at a folder you already have. Your actual files and folders remain untouched.
 
 ## Why Use Projects?
 
@@ -24,21 +24,20 @@ Projects are **not** physical folders—they're metadata stored by Lighthouse. Y
 Each project is independent. You can:
 - Track separate word counts for different manuscripts
 - Switch focus without mixing up progress
-- Archive completed projects without losing history
+- Remove completed projects without losing your files
 
 ### Flexibility
 Projects adapt to your workflow:
-- No required folder structure
-- Folders can be anywhere in your vault
-- Move and reorganize files freely
+- No required folder structure below the root
+- The root folder can be anywhere in your vault
+- Move and reorganize files freely — Lighthouse follows renames
 - Mix multiple projects in one vault
 
 ### Focus
 The active project provides context:
 - Word counts reflect only project files
-- Stats panel shows project progress
-- Dashboard filters to relevant data
-- (Future) File explorer can filter to project files
+- The Library shows only this project's Groups and Sheets
+- The Inspector's stats, heatmap, and streak are scoped to it
 
 ## Project Anatomy
 
@@ -47,48 +46,48 @@ Every project has:
 | Property | Description | Required |
 |----------|-------------|----------|
 | **Name** | Human-readable identifier | Yes |
-| **Root Path** | Base folder in your vault | Yes |
-| **Content Folders** | Folders that count toward goals | No (but recommended) |
-| **Source Folders** | Research/reference folders | No |
-| **Word Count Goal** | Target word count | No |
+| **Root folder** | Base folder in your vault | Yes |
+| **Extras** | A single subfolder (auto-created) excluded from word counts | Automatic |
+| **Word count goal** | Target word count | No |
+| **Deadline & daily goal** | Used for pacing and the writing heatmap | No |
+| **Bibliography & citation style** | Used when exporting with citations | No |
 
-### Root Path
+### Root Folder
 
-The root path is your project's home folder. All other folders in the project are relative to this path.
+The root folder is your project's home. Everything inside it — at any depth — belongs to the project and counts toward its word total, **except** the Extras group.
 
 **Example:**
 ```
-Root Path: Projects/My Novel/
-Content Folders: chapters/, drafts/
-Source Folders: research/, notes/
+Root: Projects/My Novel/
+├── Chapters/       (counts toward your goal)
+├── Notes/          (counts toward your goal — it's just another group)
+└── Extras/         (excluded — research, character sheets, outlines)
 ```
 
-### Content vs Source Folders
+### Groups & Extras
 
-See [Content vs Source Folders](/core-concepts/folders/) for detailed explanation.
+See [Groups & Extras](/core-concepts/groups/) for how the root folder's subfolders become Groups in the Library, and why every project has a built-in Extras group.
 
 ## Creating Projects
 
-### From Command Palette
+### From the Command Palette
 
 1. Open Command Palette (Cmd/Ctrl+P)
-2. Run **Lighthouse: Create Project**
+2. Run **Lighthouse: Create new project**
 3. Fill in the modal:
-   - **Name:** Your project's name
-   - **Root Path:** Choose or create a folder
-   - **Content/Source Folders:** Designate now or later
-   - **Word Count Goal:** Optional target
+   - **Project name**
+   - **Root folder** — choose or create a folder
+   - **Citations, goals, deadline** — configure now or later
+4. Click **Create project**
 
-### From Dashboard
+### From the Library
 
-1. Open **Lighthouse: Open Dashboard**
-2. Click **+ New** button
-3. Fill in the project modal
+Once you're in the Writing Workspace, open the active project's "⋯" menu in the Library header and choose **Edit project…** to change settings, or use **Lighthouse: Create new project** from the Command Palette to start a new one.
 
 ### From Settings
 
 1. Go to **Settings → Lighthouse**
-2. Click **Create New Project**
+2. Click **Create project**
 3. Configure your project
 
 ## Managing Projects
@@ -97,35 +96,28 @@ See [Content vs Source Folders](/core-concepts/folders/) for detailed explanatio
 
 The **active project** is the project you're currently working on. To switch:
 
-1. Open the Dashboard
-2. Select a different project from the dropdown
+- Run **Lighthouse: Switch project** from the Command Palette and fuzzy-search by name, or
+- Go to **Settings → Lighthouse** and pick a project from the **Active project** dropdown
 
-Or use the command: **Lighthouse: Switch Project**
-
-Your active project persists across sessions—Lighthouse remembers where you left off.
+Your active project persists across sessions — Lighthouse remembers where you left off, including the last group you had selected in the Library.
 
 ### Editing Projects
 
 To change project settings:
 
-1. Go to **Settings → Lighthouse**, or
-2. Open the Dashboard and click **Edit**
+- Open the project's "⋯" menu in the Library header and choose **Edit project…**, or
+- Go to **Settings → Lighthouse**, select the project, and click **Edit**
 
-You can modify:
-- Project name
-- Root path (careful—can break folder references!)
-- Content/source folder designations
-- Word count goal
+You can modify the name, root folder, goals, deadline, daily goal, bibliography, and citation style.
 
 ### Deleting Projects
 
-To delete a project:
+To remove a project:
 
-1. Open Settings or Dashboard
-2. Click **Delete** next to the project
-3. Confirm the deletion
+- Open the project's "⋯" menu in the Library header and choose **Delete project**, or
+- Go to **Settings → Lighthouse** and click **Delete** next to the project
 
-**Important:** Deleting a project only removes Lighthouse's configuration. Your actual files and folders are **not deleted**.
+Either way you'll be asked to confirm. **Important:** only the project configuration is removed. Your actual files and folders are **not deleted**.
 
 ## Multiple Projects
 
@@ -158,8 +150,8 @@ You can run multiple projects simultaneously in the same vault:
 
 1. **One active project at a time:** Focus on what you're currently writing
 2. **Clear naming:** Use descriptive names that indicate content
-3. **Separate root paths:** Avoid overlapping project folders when possible
-4. **Archive when done:** Delete completed project configs to reduce clutter
+3. **Separate root folders:** Avoid overlapping project roots when possible
+4. **Delete when done:** Remove completed project configs to reduce clutter — your files are safe either way
 
 ## Project Data Storage
 
@@ -179,10 +171,10 @@ This file contains:
 ## FAQ
 
 **Q: Can files belong to multiple projects?**
-A: Technically yes, if you set up overlapping root paths. However, this isn't recommended as it can lead to confusing word counts.
+A: Technically yes, if you set up overlapping root folders. However, this isn't recommended as it can lead to confusing word counts.
 
-**Q: What happens if I move a folder?**
-A: You'll need to update the folder path in project settings. Lighthouse uses paths relative to the root, so moving the entire root folder is safe, but moving individual folders requires updates.
+**Q: What happens if I move or rename a folder inside the project?**
+A: Lighthouse listens for vault rename events and updates group goals, icons, and the Library automatically. Moving the root folder itself requires updating the project's root in **Edit project…**.
 
 **Q: Can I export/import project configs?**
 A: Not yet, but this is planned for a future release.
@@ -192,6 +184,6 @@ A: If you sync `.obsidian/plugins/lighthouse/data.json` (via Obsidian Sync, iClo
 
 ## Next Steps
 
-- Learn about [Content vs Source Folders](/core-concepts/folders/)
-- Understand [Word Counting](/core-concepts/word-counting/)
-- Explore the [Project Dashboard](/features/dashboard/)
+- Understand [Groups & Extras](/core-concepts/groups/)
+- Learn about [Word Counting](/core-concepts/word-counting/)
+- Explore the [Library](/features/library/)

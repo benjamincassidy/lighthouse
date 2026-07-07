@@ -47,7 +47,9 @@ export class LighthouseSettingTab extends PluginSettingTab {
     // Active project switcher
     new Setting(containerEl)
       .setName('Active project')
-      .setDesc('The project shown throughout the plugin — select one here to edit or delete it below.')
+      .setDesc(
+        'The project shown throughout the plugin — select one here to edit or delete it below.',
+      )
       .addDropdown((dropdown) => {
         const projects = this.plugin.projectManager.getAllProjects()
         const activeProject = this.plugin.projectManager.getActiveProject()

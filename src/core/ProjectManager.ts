@@ -136,7 +136,11 @@ export class ProjectManager {
    * vault rename — moves the value from `oldPath` to `newPath` when present.
    * No-ops for records that don't have an entry at `oldPath`.
    */
-  async updateFolderKeyedRecords(projectId: string, oldPath: string, newPath: string): Promise<void> {
+  async updateFolderKeyedRecords(
+    projectId: string,
+    oldPath: string,
+    newPath: string,
+  ): Promise<void> {
     const project = this.getProject(projectId)
     if (!project) return
 

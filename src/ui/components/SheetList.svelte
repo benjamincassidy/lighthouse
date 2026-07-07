@@ -1,5 +1,4 @@
 <script lang="ts">
-
   import type LighthousePlugin from '@/main'
   import type { Project } from '@/types/types'
   import SheetCard from '@/ui/components/SheetCard.svelte'
@@ -104,7 +103,12 @@
 <div class="lh-sheet-list">
   {#if selectedNode}
     <div class="lh-sheet-list-header">
-      <button class="lh-back-btn" onclick={onback} aria-label="Back to groups" title="Back to groups">
+      <button
+        class="lh-back-btn"
+        onclick={onback}
+        aria-label="Back to groups"
+        title="Back to groups"
+      >
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="14"
@@ -114,8 +118,7 @@
           stroke="currentColor"
           stroke-width="2.5"
           stroke-linecap="round"
-          stroke-linejoin="round"
-          ><path d="M15 18L9 12L15 6" /></svg
+          stroke-linejoin="round"><path d="M15 18L9 12L15 6" /></svg
         >
       </button>
       <span class="lh-sheet-list-title">{selectedNode.name}</span>
