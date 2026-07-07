@@ -8,13 +8,16 @@ export interface Project {
   id: string
   name: string
   rootPath: string // Vault-relative path
-  contentFolders: string[] // Paths relative to rootPath
-  sourceFolders: string[] // Paths relative to rootPath
+  // Single subfolder (relative to rootPath) excluded from word counts —
+  // research, notes, character sheets, etc. Everything else under rootPath counts.
+  extrasFolder?: string
   wordCountGoal?: number
   // 'at-least' = minimum (default); 'at-most' = word limit (turns red when exceeded)
   goalDirection?: GoalDirection
   // Per-folder word count goals keyed by full vault-relative path
   folderGoals?: Record<string, number>
+  // Per-folder custom icon IDs (see src/ui/icons/groupIcons.ts), keyed by full vault-relative path
+  folderIcons?: Record<string, string>
   // Per-file word count goals: keyed by vault-relative file path
   fileGoals?: Record<string, number>
   createdAt: string

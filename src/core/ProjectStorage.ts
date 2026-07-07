@@ -128,8 +128,9 @@ export class ProjectStorage {
 
     // Normalize paths
     project.rootPath = normalizeVaultPath(project.rootPath)
-    project.contentFolders = project.contentFolders.map(normalizeVaultPath)
-    project.sourceFolders = project.sourceFolders.map(normalizeVaultPath)
+    if (project.extrasFolder) {
+      project.extrasFolder = normalizeVaultPath(project.extrasFolder)
+    }
 
     const index = this.settings.projects.findIndex((p) => p.id === project.id)
     if (index >= 0) {
@@ -151,8 +152,6 @@ export class ProjectStorage {
       id: generateUUID(),
       name,
       rootPath: normalizeVaultPath(rootPath),
-      contentFolders: [],
-      sourceFolders: [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     }

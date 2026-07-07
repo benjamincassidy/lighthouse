@@ -22,8 +22,6 @@ describe('FolderManager', () => {
     id: 'test-id',
     name: 'Test Project',
     rootPath: 'projects/novel',
-    contentFolders: [],
-    sourceFolders: [],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   })
@@ -99,169 +97,40 @@ describe('FolderManager', () => {
     })
   })
 
-  describe('validateProjectFolders', () => {
-    it('should validate all project folders', () => {
+  describe('isExtras', () => {
+    it('should fall back to the default "Extras" folder name when unset', () => {
       const project = createTestProject()
-      project.contentFolders = ['chapters', 'scenes']
-      project.sourceFolders = ['research']
 
-      const result = manager.validateProjectFolders(project)
-
-      expect(result.contentFolders.size).toBe(2)
-      expect(result.sourceFolders.size).toBe(1)
-      expect(result.contentFolders.get('chapters')?.valid).toBe(true)
-      expect(result.sourceFolders.get('research')?.valid).toBe(true)
+      expect(manager.isExtras(project, 'projects/novel/Extras')).toBe(true)
+      expect(manager.isExtras(project, 'projects/novel/research')).toBe(false)
     })
 
-    it('should report invalid folders', () => {
+    it('should identify the Extras folder itself', () => {
       const project = createTestProject()
-      project.contentFolders = ['nonexistent']
+      project.extrasFolder = 'research'
 
-      const result = manager.validateProjectFolders(project)
-
-      expect(result.contentFolders.get('nonexistent')?.valid).toBe(false)
-      expect(result.contentFolders.get('nonexistent')?.error).toContain('not found')
-    })
-  })
-
-  describe('addContentFolder', () => {
-    it('should add content folder', () => {
-      const project = createTestProject()
-
-      const result = manager.addContentFolder(project, 'projects/novel/chapters')
-
-      expect(result.success).toBe(true)
-      expect(project.contentFolders).toContain('chapters')
+      expect(manager.isExtras(project, 'projects/novel/research')).toBe(true)
     })
 
-    it('should prevent duplicate content folders', () => {
+    it('should identify paths inside the Extras folder', () => {
       const project = createTestProject()
-      project.contentFolders = ['chapters']
+      project.extrasFolder = 'research'
 
-      const result = manager.addContentFolder(project, 'projects/novel/chapters')
-
-      expect(result.success).toBe(false)
-      expect(result.error).toContain('already designated')
+      expect(manager.isExtras(project, 'projects/novel/research/notes.md')).toBe(true)
     })
 
-    it('should prevent folder in both content and source', () => {
+    it('should not match sibling folders', () => {
       const project = createTestProject()
-      project.sourceFolders = ['chapters']
+      project.extrasFolder = 'research'
 
-      const result = manager.addContentFolder(project, 'projects/novel/chapters')
-
-      expect(result.success).toBe(false)
-      expect(result.error).toContain('already designated as source')
+      expect(manager.isExtras(project, 'projects/novel/chapters')).toBe(false)
     })
 
-    it('should reject non-existent folder', () => {
+    it('should not match a folder that merely shares a name prefix', () => {
       const project = createTestProject()
+      project.extrasFolder = 'research'
 
-      const result = manager.addContentFolder(project, 'projects/novel/nonexistent')
-
-      expect(result.success).toBe(false)
-      expect(result.error).toContain('not found')
-    })
-  })
-
-  describe('addSourceFolder', () => {
-    it('should add source folder', () => {
-      const project = createTestProject()
-
-      const result = manager.addSourceFolder(project, 'projects/novel/research')
-
-      expect(result.success).toBe(true)
-      expect(project.sourceFolders).toContain('research')
-    })
-
-    it('should prevent duplicate source folders', () => {
-      const project = createTestProject()
-      project.sourceFolders = ['research']
-
-      const result = manager.addSourceFolder(project, 'projects/novel/research')
-
-      expect(result.success).toBe(false)
-      expect(result.error).toContain('already designated')
-    })
-
-    it('should prevent folder in both source and content', () => {
-      const project = createTestProject()
-      project.contentFolders = ['research']
-
-      const result = manager.addSourceFolder(project, 'projects/novel/research')
-
-      expect(result.success).toBe(false)
-      expect(result.error).toContain('already designated as content')
-    })
-  })
-
-  describe('removeContentFolder', () => {
-    it('should remove content folder', () => {
-      const project = createTestProject()
-      project.contentFolders = ['chapters', 'scenes']
-
-      const result = manager.removeContentFolder(project, 'projects/novel/chapters')
-
-      expect(result).toBe(true)
-      expect(project.contentFolders).not.toContain('chapters')
-      expect(project.contentFolders).toContain('scenes')
-    })
-
-    it('should return false if folder not in list', () => {
-      const project = createTestProject()
-
-      const result = manager.removeContentFolder(project, 'projects/novel/chapters')
-
-      expect(result).toBe(false)
-    })
-  })
-
-  describe('removeSourceFolder', () => {
-    it('should remove source folder', () => {
-      const project = createTestProject()
-      project.sourceFolders = ['research', 'notes']
-
-      const result = manager.removeSourceFolder(project, 'projects/novel/research')
-
-      expect(result).toBe(true)
-      expect(project.sourceFolders).not.toContain('research')
-      expect(project.sourceFolders).toContain('notes')
-    })
-
-    it('should return false if folder not in list', () => {
-      const project = createTestProject()
-
-      const result = manager.removeSourceFolder(project, 'projects/novel/research')
-
-      expect(result).toBe(false)
-    })
-  })
-
-  describe('folder type checking', () => {
-    it('should identify content folder', () => {
-      const project = createTestProject()
-      project.contentFolders = ['chapters']
-
-      expect(manager.isContentFolder(project, 'projects/novel/chapters')).toBe(true)
-      expect(manager.isSourceFolder(project, 'projects/novel/chapters')).toBe(false)
-    })
-
-    it('should identify source folder', () => {
-      const project = createTestProject()
-      project.sourceFolders = ['research']
-
-      expect(manager.isSourceFolder(project, 'projects/novel/research')).toBe(true)
-      expect(manager.isContentFolder(project, 'projects/novel/research')).toBe(false)
-    })
-
-    it('should return correct folder type', () => {
-      const project = createTestProject()
-      project.contentFolders = ['chapters']
-      project.sourceFolders = ['research']
-
-      expect(manager.getFolderType(project, 'projects/novel/chapters')).toBe('content')
-      expect(manager.getFolderType(project, 'projects/novel/research')).toBe('source')
-      expect(manager.getFolderType(project, 'projects/novel/other')).toBe('none')
+      expect(manager.isExtras(project, 'projects/novel/research-notes')).toBe(false)
     })
   })
 

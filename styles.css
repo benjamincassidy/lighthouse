@@ -3,10 +3,11 @@
 /* ─── Lighthouse Design System ────────────────────────────────────────────── */
 
 :root {
-  /* Lighthouse amber – warm, readable in light + dark Obsidian themes */
-  --lh-accent: #e8a430;
-  --lh-accent-hover: #d4941a;
-  --lh-accent-subtle: rgba(232, 164, 48, 0.12);
+  /* Follow the user's chosen Obsidian accent color instead of a fixed hue,
+     so Lighthouse matches whatever theme/accent the vault is set to. */
+  --lh-accent: var(--interactive-accent);
+  --lh-accent-hover: var(--interactive-accent-hover);
+  --lh-accent-subtle: color-mix(in srgb, var(--interactive-accent) 12%, transparent);
 
   /* Ring primitives */
   --lh-ring-track: var(--background-modifier-border);
@@ -42,6 +43,15 @@
   align-self: center;
 }
 
+/* Writing Workspace active state: gives entering/exiting the workspace a real
+   visual signal on the Library and Inspector leaves themselves, instead of
+   only changing which panels happen to be open. */
+body[data-lighthouse-workspace='true']
+  .workspace-leaf-content[data-type='lighthouse-project-explorer'],
+body[data-lighthouse-workspace='true'] .workspace-leaf-content[data-type='lighthouse-inspector'] {
+  border-top: 2px solid var(--lh-accent);
+}
+
 /* ─────────────────────────────────────────────────────────────────────────── */
 
 /* Flow Mode Styles */
@@ -75,9 +85,13 @@ body.lh-flow-active[style*='--lh-flow-line-width'] .cm-editor {
 /* Modal Styles */
 .lighthouse-modal-buttons {
   display: flex;
-  gap: 8px;
+  width: 100%;
+  gap: 10px;
   justify-content: flex-end;
-  margin-top: 20px;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--background-modifier-border);
+  box-sizing: border-box;
 }
 
 .lighthouse-section-heading {
@@ -90,8 +104,48 @@ body.lh-flow-active[style*='--lh-flow-line-width'] .cm-editor {
   letter-spacing: 0.05em;
 }
 
-.lighthouse-chapter-goals {
+.lighthouse-group-goals {
   margin-bottom: 8px;
+}
+
+/* Icon picker grid — Edit Group dialog */
+.lighthouse-icon-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.lighthouse-icon-swatch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  color: var(--text-muted);
+  cursor: pointer;
+  box-shadow: none;
+  transition:
+    background 0.1s ease,
+    color 0.1s ease;
+}
+
+.lighthouse-icon-swatch:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+.lighthouse-icon-swatch.is-selected {
+  background: var(--lh-accent, #e8a430);
+  color: var(--text-on-accent, #fff);
+}
+
+.lighthouse-icon-swatch.is-selected:hover {
+  background: var(--lh-accent-hover, #d4941a);
 }
 
 .lighthouse-folder-list {
@@ -129,16 +183,6 @@ body.lh-flow-active[style*='--lh-flow-line-width'] .cm-editor {
 
 .lighthouse-folder-remove:hover {
   color: var(--text-error);
-}
-
-/* Fix chevron rotation for tree items */
-.tree-item-icon.collapse-icon .svg-icon.right-triangle {
-  transform: rotate(0deg);
-  transition: transform 100ms ease-in-out;
-}
-
-.tree-item-icon.collapse-icon .svg-icon.right-triangle.is-collapsed {
-  transform: rotate(-90deg);
 }
 
 /* ================================================================

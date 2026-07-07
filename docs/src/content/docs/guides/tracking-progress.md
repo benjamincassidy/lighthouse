@@ -9,16 +9,16 @@ Lighthouse gives you several interlocking tools to monitor output and stay on pa
 
 ## Setting a Goal & Deadline
 
-Open the project editor (Command Palette → *Lighthouse: Switch project* → Edit, or the pencil icon on the Dashboard) and fill in:
+Open the project editor (open the project's "⋯" menu in the Library header and choose **Edit project…**) and fill in:
 
 - **Word count goal** — Your total target (e.g. 80,000 for a novel)
 - **Goal direction** — *At least* means the bar fills as you approach the goal; *At most* turns the bar red if you exceed it (useful for academic word limits)
-- **Target finish date** — The deadline. Lighthouse uses this with your remaining word count to calculate how many words you need per day.
-- **Daily word goal** — Optional. Sets an explicit daily target used to colour the heatmap cells. If left blank, Lighthouse calculates it automatically from the deadline.
+- **Deadline** — Your target finish date. Lighthouse uses this with your remaining word count to calculate how many words you need per day.
+- **Daily writing goal** — Optional. Sets an explicit daily target used to colour the heatmap cells. If left blank, Lighthouse calculates it automatically from the deadline.
 
-## The Stats Panel Pacing Section
+## The Inspector's Pacing Section
 
-Once you have a goal and deadline set, the Stats Panel shows:
+Once you have a goal and deadline set, the Inspector's **Stats** tab shows:
 
 ```
 Deadline
@@ -36,7 +36,7 @@ The **7-day average** shows your actual output over the past seven writing days 
 
 ## The Writing Heatmap
 
-The Dashboard's 13-week heatmap shows your daily writing history as a grid of circles. Circle size corresponds to output intensity:
+The Inspector Overview tab's 13-week heatmap shows your daily writing history as a grid of circles. Circle size corresponds to output intensity:
 
 - **No circle (dot)** — No writing that day
 - **Small circle** — A little writing (< 40% of daily target)
@@ -48,17 +48,17 @@ When you hover a cell, a tooltip shows the exact date and word count.
 
 ## Writing Streaks
 
-Lighthouse tracks consecutive writing days automatically. The current streak and personal best appear both in the Stats Panel and below the heatmap on the Dashboard.
+Lighthouse tracks consecutive writing days automatically. The current streak and personal best appear both in the Inspector's Stats tab and below the heatmap on the Overview tab.
 
 ### Rest Days
 
-If you plan to take a day off, tap **Mark rest day** in the Stats Panel (visible when today has no writing yet). This registers the day as a deliberate rest, keeping your streak intact without requiring words. You can unmark it anytime.
+If you plan to take a day off, tap **Mark rest day** in the Inspector's Stats tab (visible when today has no writing yet). This registers the day as a deliberate rest, keeping your streak intact without requiring words. You can unmark it anytime.
 
 Rest days are stored per-project — marking a rest day on one project doesn't affect others.
 
-## Chapter Goals
+## Group Goals
 
-For chapter-by-chapter pacing, set per-folder goals in the project editor under **Chapter Goals**. Each folder then shows a small amber progress ring in the Project Explorer, so you can see at a glance which chapters are on track and which need more words.
+For group-by-group pacing, set per-folder goals in the project editor under **Group goals**. Each group then shows a small progress ring in the Library, so you can see at a glance which groups are on track and which need more words.
 
 ## Tips
 

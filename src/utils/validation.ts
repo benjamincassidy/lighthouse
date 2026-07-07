@@ -18,12 +18,8 @@ export function validateProject(project: Partial<Project>): string[] {
     errors.push('Project root path is required')
   }
 
-  if (!Array.isArray(project.contentFolders)) {
-    errors.push('Content folders must be an array')
-  }
-
-  if (!Array.isArray(project.sourceFolders)) {
-    errors.push('Source folders must be an array')
+  if (project.extrasFolder !== undefined && typeof project.extrasFolder !== 'string') {
+    errors.push('Extras folder must be a string')
   }
 
   if (project.wordCountGoal !== undefined && typeof project.wordCountGoal !== 'number') {

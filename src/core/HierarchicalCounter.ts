@@ -80,62 +80,62 @@ export class HierarchicalCounter {
   async countFolder(
     folderPath: string,
     options?: WordCountOptions,
+    excludePath?: string,
   ): Promise<FolderStats | undefined> {
     const folder = this.vault.getAbstractFileByPath(folderPath)
     if (!this.isTFolder(folder)) {
       return undefined
     }
 
-    const stats = await this.calculateFolderStats(folder, options)
+    const stats = await this.calculateFolderStats(folder, options, excludePath)
 
     return stats
   }
 
   /**
-   * Calculate total word count for a project
-   * Only includes content folders, excludes source folders
+   * Calculate total word count for a project.
+   * Walks the entire rootPath tree, excluding the Extras subtree (if set).
    */
   async countProject(project: Project, options?: WordCountOptions): Promise<ProjectStats> {
+    const excludePath = project.extrasFolder
+      ? this.folderManager.resolveProjectPath(project.rootPath, project.extrasFolder)
+      : undefined
+
+    const stats = await this.countFolder(project.rootPath, options, excludePath)
+
     const folderStats = new Map<string, FolderStats>()
-    let totalWords = 0
-    let totalFiles = 0
-
-    // Count only content folders
-    for (const contentFolder of project.contentFolders) {
-      const fullPath = this.folderManager.resolveProjectPath(project.rootPath, contentFolder)
-      const stats = await this.countFolder(fullPath, options)
-
-      if (stats) {
-        folderStats.set(contentFolder, stats)
-        totalWords += stats.wordCount
-        totalFiles += stats.fileCount
-      }
+    if (stats) {
+      folderStats.set(project.rootPath, stats)
     }
 
-    const projectStats: ProjectStats = {
-      totalWords,
-      totalFiles,
+    return {
+      totalWords: stats?.wordCount ?? 0,
+      totalFiles: stats?.fileCount ?? 0,
       folderStats,
     }
-
-    return projectStats
   }
 
   /**
-   * Calculate stats for a folder and its children recursively
+   * Calculate stats for a folder and its children recursively.
+   * Skips recursing into `excludePath` entirely (neither its words nor its
+   * files are counted) — used to exclude a project's Extras subtree.
    */
   private async calculateFolderStats(
     folder: TFolder,
     options?: WordCountOptions,
+    excludePath?: string,
   ): Promise<FolderStats> {
     let wordCount = 0
     let fileCount = 0
     const children: FolderStats[] = []
 
     for (const child of folder.children) {
+      if (excludePath && child.path === excludePath) {
+        continue
+      }
       if (this.isTFolder(child)) {
         // It's a folder
-        const childStats = await this.calculateFolderStats(child, options)
+        const childStats = await this.calculateFolderStats(child, options, excludePath)
         children.push(childStats)
         wordCount += childStats.wordCount
         fileCount += childStats.fileCount

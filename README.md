@@ -23,19 +23,21 @@ Visit the [complete documentation site](https://benjamincassidy.github.io/lighth
 
 ### ✅ Implemented
 
+**Writing Workspace**
+- **The Library** — A Ulysses-style Groups & Sheets browser in the left sidebar, replacing Obsidian's file explorer for the duration; drag-and-drop to reorder groups and sheets
+- **The Inspector** — Right-sidebar panel with Overview (goal ring, writing heatmap, streak), Stats (live counts, pacing), and Outline tabs
+- **One-command layout** — Toggle the whole workspace on/off from the ribbon; native file explorer is restored automatically on exit
+
 **Project Management**
 - **Multiple Projects** — Create and manage independent writing projects, each with its own configuration
-- **Project Dashboard** — Central hub with goal ring, writing activity heatmap, and streak stats
-- **Filtered File Explorer** — Project-scoped file tree; drag-and-drop to reorder files and folders
+- **Groups & Extras** — Organize a project into nestable Groups with custom icons; a built-in Extras group holds research and notes excluded from word counts
 - **Project Switcher** — Fuzzy-search modal to jump between projects instantly
-- **Writing Workspace** — One-command layout that opens all three Lighthouse panels
 
 **Word Counting**
-- **Smart hierarchical counts** — Real-time word counts at file, folder, and project levels
-- **Content vs Source folders** — Count only what matters; designate research/reference folders as Source
-- **Per-file and per-folder goals** — Set individual targets on files or chapters with inline progress rings
+- **Smart hierarchical counts** — Real-time word counts at file, group, and project levels
+- **Per-file and per-group goals** — Set individual targets on files or groups with inline progress rings
 - **Word count goal directions** — *At least* (minimum target) or *at most* (word limit / trim mode)
-- **Status bar count** — Live project total visible at the bottom of every window
+- **Status bar count** — Live word count visible at the bottom of every window
 
 **Progress & Pacing**
 - **Deadline tracking** — Set a target finish date; see words/day needed and days remaining
@@ -45,29 +47,25 @@ Visit the [complete documentation site](https://benjamincassidy.github.io/lighth
 - **7-day rolling average** — On-pace / behind-pace indicator against your required daily target
 - **Read/speak time** — Estimated reading time (250 wpm) and speaking time (130 wpm) for the project total
 
-**Writing Stats Panel**
-- Session words, today words, project total, file count, folder count
-- Goal progress bar with percentage
-- All deadline pacing stats
-- Streak counter with "Mark rest day" toggle
+**Export & Editing**
+- **Compile & Export** — PDF (via Typst), DOCX and EPUB (via Pandoc), or plain Markdown, with built-in style presets and paper sizes
+- **Citations** — Per-project bibliography and CSL citation style, with 10 bundled styles and the ability to download thousands more
+- **Split & Merge** — Split a note at the cursor into a new sibling file; merge one note into another from its context menu
 
-**Flow Mode (Zen Mode)**
+**Flow Mode**
 - Hides sidebars, ribbon, status bar, tabs, breadcrumbs, and navigation
 - Optional typewriter scroll, custom font, line height, and line width settings
 
 ### 🚧 Planned
 
-- **Project Compilation & Export** — Concatenate content files in order, strip frontmatter/wikilinks, save as a single document
-- **File Splitting & Merging** — Split a note at cursor; merge two files into one
 - **Manuscript Mode** — Continuous read-only multi-file view for reading your whole draft as one document
-- **Outline View** — Project-wide heading tree for navigation
-- **Inspector Panel** — Per-file synopsis, scratchpad, and source links
-- **Dataview Integration** — Enhanced dashboard queries
+- **Project-wide Outline** — Cross-file heading tree for navigation, beyond the current per-file Outline tab
+- **Dataview Integration** — Enhanced Inspector queries
 - **Templater Integration** — Project-aware template variables
 
 ## Development Status
 
-**Early Beta:** All core features are functional and tested. The plugin is ready for daily use. The Community Plugin submission is in progress.
+**Active development:** All features listed above are implemented and tested. The plugin is ready for daily use. The Community Plugin submission is in progress.
 
 ## Development
 
@@ -126,7 +124,7 @@ Lighthouse will be available in Obsidian's Community Plugins once the submission
 
 ```bash
 git clone https://github.com/benjamincassidy/lighthouse.git
-cd obsidian-lighthouse
+cd lighthouse
 npm install
 npm run build
 ```
@@ -136,12 +134,10 @@ Then copy `main.js`, `manifest.json`, and `styles.css` to your vault's plugin fo
 ## Quick Start
 
 1. **Create a project** — Command Palette → `Lighthouse: Create new project`
-2. **Configure folders** — Designate which folders are *content* (writing) vs *source* (research)
-3. **Open the Stats Panel** — Click the Lighthouse icon in the ribbon
+2. **Open the Writing Workspace** — Click the compass icon in the ribbon
+3. **Add Groups** — Organize your writing into Groups in the Library; research and notes go in the built-in Extras group
 4. **Set a goal (optional)** — Edit the project and add a word count goal and deadline
-5. **Start writing** — Lighthouse tracks everything automatically
-
-4. **View Dashboard:** Access the project dashboard to see detailed statistics and manage projects
+5. **Start writing** — Lighthouse tracks everything automatically, with live stats in the Inspector
 
 ## Contributing
 

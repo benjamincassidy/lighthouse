@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { getStatusColor } from '@/utils/fileStatus'
+  import { getGroupIcon } from '@/ui/icons/groupIcons'
 
   import TreeNode from './TreeNode.svelte'
 
@@ -21,57 +21,79 @@
   interface Props {
     node: TreeNode
     depth?: number
-    activeFilePath?: string | null
+    selectedPath?: string | null
     folderGoals?: Record<string, number>
+    folderIcons?: Record<string, string>
     folderWordCounts?: Map<string, number>
-    fileGoals?: Record<string, number>
-    fileWordCounts?: Map<string, number>
+    /** Optional CSS color override for this subtree's icons/chevrons (e.g. Extras' tint). */
+    iconColor?: string
     ontoggle?: (_event: CustomEvent<{ path: string }>) => void
-    onopen?: (_event: CustomEvent<{ path: string }>) => void
-    onfilemenu?: (_event: CustomEvent<{ path: string; mouseEvent: globalThis.MouseEvent }>) => void
-    oncreatenote?: (_event: CustomEvent<{ path: string }>) => void
+    onselect?: (_event: CustomEvent<{ path: string }>) => void
+    onfoldermenu?: (
+      _event: CustomEvent<{ path: string; mouseEvent: globalThis.MouseEvent }>,
+    ) => void
     onreorder?: (_event: CustomEvent<ReorderDetail>) => void
   }
 
   let {
     node,
     depth = 0,
-    activeFilePath = null,
+    selectedPath = null,
     folderGoals,
+    folderIcons,
     folderWordCounts,
-    fileGoals,
-    fileWordCounts,
+    iconColor,
     ontoggle,
-    onopen,
-    onfilemenu,
-    oncreatenote,
+    onselect,
+    onfoldermenu,
     onreorder,
   }: Props = $props()
 
-  let isActive = $derived(node.type === 'file' && node.path === activeFilePath)
+  let isSelected = $derived(node.path === selectedPath)
+  let groupIcon = $derived(getGroupIcon(folderIcons?.[node.path]))
+
+  // Groups tree only ever shows subgroups — files live in the Sheet List.
+  // A chevron only appears when there's actually something to expand into;
+  // leaf folders have no reserved space for one (matches Ulysses: only
+  // expandable groups get the extra glyph, leaves sit flush with it).
+  let subgroups = $derived((node.children ?? []).filter((c) => c.type === 'folder'))
+  let hasSubgroups = $derived(subgroups.length > 0)
 
   // Drop indicator: show a line above ('before') or below ('after') this node
   let dropIndicator = $state<'before' | 'after' | null>(null)
 
-  function handleClick() {
-    if (node.type === 'folder' && ontoggle) {
-      ontoggle(new CustomEvent('toggle', { detail: { path: node.path } }))
-    } else if (node.type === 'file' && onopen) {
-      onopen(new CustomEvent('open', { detail: { path: node.path } }))
+  function handleSelect() {
+    if (onselect) {
+      onselect(new CustomEvent('select', { detail: { path: node.path } }))
     }
   }
 
-  function handleKeydown(_event: { key: string }) {
+  function handleSelectKeydown(_event: { key: string }) {
     if (_event.key === 'Enter' || _event.key === ' ') {
-      handleClick()
+      handleSelect()
+    }
+  }
+
+  function handleToggleClick(_event: globalThis.MouseEvent) {
+    _event.stopPropagation()
+    if (ontoggle) {
+      ontoggle(new CustomEvent('toggle', { detail: { path: node.path } }))
+    }
+  }
+
+  function handleToggleKeydown(_event: { key: string }) {
+    if (_event.key === 'Enter' || _event.key === ' ') {
+      if (ontoggle) {
+        ontoggle(new CustomEvent('toggle', { detail: { path: node.path } }))
+      }
     }
   }
 
   function handleContextMenu(_event: globalThis.MouseEvent) {
     _event.preventDefault()
     _event.stopPropagation()
-    if (onfilemenu) {
-      onfilemenu(
+    if (onfoldermenu) {
+      onfoldermenu(
         new CustomEvent('contextmenu', {
           detail: { path: node.path, mouseEvent: _event },
         }),
@@ -79,24 +101,9 @@
     }
   }
 
-  let paddingLeft = $derived(`${depth}px`)
-
-  function handleCreateNote(e: globalThis.MouseEvent) {
-    e.stopPropagation()
-    if (oncreatenote) {
-      oncreatenote(new CustomEvent('createnote', { detail: { path: node.path } }))
-    }
-  }
-
-  // ── Drag-and-drop handlers ────────────────────────────────────────────────
+  // ── Drag-and-drop handlers ───────────────────────────────────────────────
 
   function handleDragStart(e: globalThis.DragEvent) {
-    // Don't initiate a drag when the pointer is over a button (e.g. create-note)
-    const target = e.target as globalThis.HTMLElement | null
-    if (target?.closest('button') !== null) {
-      e.preventDefault()
-      return
-    }
     e.stopPropagation()
     if (e.dataTransfer) {
       e.dataTransfer.effectAllowed = 'move'
@@ -139,18 +146,18 @@
   }
 </script>
 
-<div class="tree-item lh-drag-host" style="padding-left: {paddingLeft}">
+<div class="lh-group-node lh-drag-host">
   {#if dropIndicator === 'before'}
     <div class="lh-drop-line lh-drop-line-before"></div>
   {/if}
   <div
-    class="tree-item-self is-clickable"
-    class:is-active={isActive}
+    class="lh-group-row"
+    class:is-selected={isSelected}
     role="button"
     tabindex="0"
     draggable="true"
-    onclick={handleClick}
-    onkeydown={handleKeydown}
+    onclick={handleSelect}
+    onkeydown={handleSelectKeydown}
     oncontextmenu={handleContextMenu}
     ondragstart={handleDragStart}
     ondragover={handleDragOver}
@@ -158,137 +165,97 @@
     ondrop={handleDrop}
     ondragend={handleDragEnd}
   >
-    {#if node.type === 'folder'}
-      <div class="tree-item-icon collapse-icon">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          class="svg-icon right-triangle"
-          class:is-collapsed={!node.isExpanded}
-        >
-          <path d="M3 8L12 17L21 8" />
-        </svg>
-      </div>
-      <div class="tree-item-inner">{node.name}</div>
-      {#if folderGoals?.[node.path]}
-        {@const goal = folderGoals[node.path]}
-        {@const wordCount = folderWordCounts?.get(node.path) ?? 0}
-        {@const r = 9}
-        {@const circ = 2 * Math.PI * r}
-        {@const offset = circ * (1 - Math.min(wordCount / goal, 1))}
-        <svg
-          class="lh-folder-goal-ring"
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          aria-label="{wordCount} / {goal} words"
-          title="{wordCount} / {goal} words"
-        >
-          <circle
-            cx="12"
-            cy="12"
-            {r}
-            fill="none"
-            stroke="var(--background-modifier-border)"
-            stroke-width="2.5"
-          />
-          <circle
-            cx="12"
-            cy="12"
-            {r}
-            fill="none"
-            stroke="var(--lh-accent, #E8A430)"
-            stroke-width="2.5"
-            stroke-linecap="round"
-            stroke-dasharray={circ}
-            stroke-dashoffset={offset}
-            transform="rotate(-90 12 12)"
-          />
-        </svg>
-      {/if}
+    {#if hasSubgroups}
       <button
-        class="lh-tree-create-note"
-        onclick={handleCreateNote}
-        aria-label="New note in folder"
+        class="lh-chevron"
+        style={iconColor ? `color: ${iconColor}` : undefined}
+        onclick={handleToggleClick}
+        onkeydown={handleToggleKeydown}
+        aria-label={node.isExpanded ? 'Collapse' : 'Expand'}
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          width="13"
-          height="13"
+          width="12"
+          height="12"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
           stroke-width="2.5"
           stroke-linecap="round"
           stroke-linejoin="round"
-          ><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg
+          class="lh-chevron-icon"
+          class:is-collapsed={!node.isExpanded}
         >
+          <path d="M3 8L12 17L21 8" />
+        </svg>
       </button>
     {:else}
-      <!-- file -->
-      <div class="tree-item-icon collapse-icon">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
+      <div class="lh-chevron" aria-hidden="true"></div>
+    {/if}
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      class="lh-group-icon"
+      style={iconColor ? `color: ${iconColor}` : undefined}
+      aria-hidden="true"
+    >
+      {#each groupIcon.shapes as shape, i (i)}
+        {#if shape.type === 'path'}
+          <path d={shape.d} />
+        {:else if shape.type === 'circle'}
+          <circle cx={shape.cx} cy={shape.cy} r={shape.r} />
+        {:else if shape.type === 'rect'}
+          <rect x={shape.x} y={shape.y} width={shape.width} height={shape.height} rx={shape.rx} />
+        {:else if shape.type === 'line'}
+          <line x1={shape.x1} y1={shape.y1} x2={shape.x2} y2={shape.y2} />
+        {:else if shape.type === 'polygon'}
+          <polygon points={shape.points} />
+        {/if}
+      {/each}
+    </svg>
+    <span class="lh-group-name">{node.name}</span>
+    {#if folderGoals?.[node.path]}
+      {@const goal = folderGoals[node.path]}
+      {@const wordCount = folderWordCounts?.get(node.path) ?? 0}
+      {@const r = 9}
+      {@const circ = 2 * Math.PI * r}
+      {@const offset = circ * (1 - Math.min(wordCount / goal, 1))}
+      <svg
+        class="lh-folder-goal-ring"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        aria-label="{wordCount} / {goal} words"
+        title="{wordCount} / {goal} words"
+      >
+        <circle
+          cx="12"
+          cy="12"
+          {r}
           fill="none"
-          stroke="currentColor"
-          stroke-width="0"
-          class="svg-icon"
-        ></svg>
-      </div>
-      {#if getStatusColor(node.status)}
-        <span
-          class="lh-status-dot"
-          style="background-color: {getStatusColor(node.status)}"
-          aria-label="Status: {node.status}"
-        ></span>
-      {/if}
-      <div class="tree-item-inner">{node.name.replace(/\.md$/, '')}</div>
-      {#if fileGoals?.[node.path]}
-        {@const goal = fileGoals[node.path]}
-        {@const wordCount = fileWordCounts?.get(node.path) ?? 0}
-        {@const r = 7}
-        {@const circ = 2 * Math.PI * r}
-        {@const offset = circ * (1 - Math.min(wordCount / goal, 1))}
-        <svg
-          class="lh-file-goal-ring"
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          aria-label="{wordCount} / {goal} words"
-          title="{wordCount} / {goal} words"
-        >
-          <circle
-            cx="12"
-            cy="12"
-            {r}
-            fill="none"
-            stroke="var(--background-modifier-border)"
-            stroke-width="3"
-          />
-          <circle
-            cx="12"
-            cy="12"
-            {r}
-            fill="none"
-            stroke="var(--lh-accent, #E8A430)"
-            stroke-width="3"
-            stroke-linecap="round"
-            stroke-dasharray={circ}
-            stroke-dashoffset={offset}
-            transform="rotate(-90 12 12)"
-          />
-        </svg>
-      {/if}
+          stroke="var(--background-modifier-border)"
+          stroke-width="2.5"
+        />
+        <circle
+          cx="12"
+          cy="12"
+          {r}
+          fill="none"
+          stroke="var(--lh-accent, #E8A430)"
+          stroke-width="2.5"
+          stroke-linecap="round"
+          stroke-dasharray={circ}
+          stroke-dashoffset={offset}
+          transform="rotate(-90 12 12)"
+        />
+      </svg>
     {/if}
   </div>
 
@@ -296,21 +263,20 @@
     <div class="lh-drop-line lh-drop-line-after"></div>
   {/if}
 
-  {#if node.type === 'folder' && node.isExpanded && node.children}
-    <div class="tree-item-children">
-      {#each node.children as child (child.path)}
+  {#if node.isExpanded && hasSubgroups}
+    <div class="lh-group-children">
+      {#each subgroups as child (child.path)}
         <TreeNode
           node={child}
           depth={depth + 1}
-          {activeFilePath}
+          {selectedPath}
           {folderGoals}
+          {folderIcons}
           {folderWordCounts}
-          {fileGoals}
-          {fileWordCounts}
+          {iconColor}
           {ontoggle}
-          {onopen}
-          {onfilemenu}
-          {oncreatenote}
+          {onselect}
+          {onfoldermenu}
           {onreorder}
         />
       {/each}
@@ -319,30 +285,6 @@
 </div>
 
 <style>
-  .lh-tree-create-note {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    align-self: center;
-    flex-shrink: 0;
-    margin-left: auto;
-    width: 18px;
-    height: 18px;
-    padding: 0;
-    border: none;
-    background: transparent;
-    cursor: pointer;
-    color: var(--text-faint);
-    border-radius: var(--radius-s);
-    box-shadow: none;
-    line-height: 0;
-  }
-
-  .lh-tree-create-note:hover {
-    color: var(--text-normal);
-    background: var(--background-modifier-hover);
-  }
-
   /* Drag-and-drop drop indicator lines */
   .lh-drag-host {
     position: relative;
@@ -366,17 +308,71 @@
     bottom: 0;
   }
 
+  /* Fully self-contained row styling — no reliance on Obsidian's own
+     tree-item classes, which carry ambient padding assumptions from the
+     real file explorer that fought our own sizing. */
+  .lh-group-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 8px;
+    border-radius: var(--radius-s);
+    cursor: pointer;
+  }
+
+  .lh-group-row:hover {
+    background: var(--background-modifier-hover);
+  }
+
+  .lh-group-row.is-selected {
+    background: var(--background-modifier-active-hover);
+  }
+
+  .lh-chevron {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0;
+    padding: 0;
+    margin: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    color: var(--text-faint);
+  }
+
+  .lh-chevron-icon {
+    transition: transform 100ms ease-in-out;
+  }
+
+  .lh-chevron-icon.is-collapsed {
+    transform: rotate(-90deg);
+  }
+
+  .lh-group-icon {
+    flex-shrink: 0;
+    color: var(--text-faint);
+  }
+
+  .lh-group-name {
+    flex: 1;
+    min-width: 0;
+    font-size: var(--font-ui-small);
+    color: var(--text-normal);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .lh-folder-goal-ring {
     flex-shrink: 0;
     display: block;
-    margin-left: 4px;
     opacity: 0.9;
   }
 
-  .lh-file-goal-ring {
-    flex-shrink: 0;
-    display: block;
-    margin-left: auto;
-    opacity: 0.9;
+  .lh-group-children {
+    padding-left: 14px;
   }
 </style>

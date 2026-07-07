@@ -20,6 +20,7 @@ When working on long-form writing in Obsidian, you often need to:
 - Monitor progress toward writing goals and deadlines
 - Stay motivated with streak tracking and daily pacing
 - Stay focused without getting overwhelmed by your entire vault
+- Compile scattered notes into a single manuscript when it's time to share or submit
 
 While Obsidian excels at note-taking and knowledge management, it lacks purpose-built tools for managing writing projects.
 
@@ -27,17 +28,19 @@ While Obsidian excels at note-taking and knowledge management, it lacks purpose-
 
 Lighthouse brings professional writing project management to Obsidian:
 
+- **A dedicated Writing Workspace** — One command opens the Library and Inspector, a two-panel layout built specifically for long-form writing, alongside Obsidian's normal editor
 - **Projects as first-class citizens** — Each project has its own configuration, goals, and tracking
-- **Smart folder designation** — Separate "content" (what you're writing) from "source" (research and references)
-- **Hierarchical word counting** — Track progress at file, folder, and project levels in real-time
+- **Groups & Extras** — Organize a project's files into nestable Groups with custom icons; a built-in Extras group holds research and notes that don't count toward your word goal
+- **Hierarchical word counting** — Track progress at file, group, and project levels in real-time
 - **Deadline pacing** — Set a finish date and see your required daily words adapt as you write ahead or fall behind
 - **Writing streaks & heatmap** — GitHub-style activity calendar with consecutive-day tracking and rest day support
 - **Flow Mode** — One-command distraction-free writing with optional typewriter scroll and font customization
-- **Dashboard insights** — Goal ring, project stats, and 13-week writing activity heatmap in one view
+- **Export & compile** — Turn a project into a single PDF, DOCX, or EPUB, with citation formatting and style presets built in
+- **Split & merge** — Break a long note into two at the cursor, or merge two notes back together, without leaving the keyboard
 
 ## Inspiration
 
-Lighthouse is inspired by [Ulysses](https://ulysses.app/), a beloved dedicated writing app for macOS and iOS. Ulysses pioneered the concept of organizing writing into projects with content and source materials. Lighthouse brings this philosophy to Obsidian while preserving Obsidian's flexibility and keeping your files in standard markdown format.
+Lighthouse is inspired by [Ulysses](https://ulysses.app/), a beloved dedicated writing app for macOS and iOS. Ulysses pioneered the concept of organizing writing into projects made of Groups and Sheets, kept separate from reference material. Lighthouse brings this philosophy to Obsidian while preserving Obsidian's flexibility and keeping your files in standard markdown format.
 
 ## Philosophy
 

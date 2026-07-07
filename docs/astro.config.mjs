@@ -34,16 +34,19 @@ export default defineConfig({
 					label: 'Core Concepts',
 					items: [
 						{ label: 'Projects', slug: 'core-concepts/projects' },
-						{ label: 'Content vs Source Folders', slug: 'core-concepts/folders' },
+						{ label: 'Groups & Extras', slug: 'core-concepts/groups' },
 						{ label: 'Word Counting', slug: 'core-concepts/word-counting' },
 					],
 				},
 				{
 					label: 'Features',
 					items: [
-						{ label: 'Project Dashboard', slug: 'features/dashboard' },
-						{ label: 'Writing Stats Panel', slug: 'features/stats-panel' },
 						{ label: 'Project Management', slug: 'features/project-management' },
+						{ label: 'The Library', slug: 'features/library' },
+						{ label: 'The Inspector', slug: 'features/inspector' },
+						{ label: 'Exporting & Compiling', slug: 'features/exporting' },
+						{ label: 'Splitting & Merging Notes', slug: 'features/splitting-and-merging' },
+						{ label: 'Flow Mode', slug: 'features/flow-mode' },
 					],
 				},
 				{

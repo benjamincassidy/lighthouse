@@ -12,8 +12,6 @@ const makeProject = (overrides: Partial<Project> = {}): Project => ({
   id: 'proj-1',
   name: 'Test Project',
   rootPath: 'projects/novel',
-  contentFolders: ['chapters'],
-  sourceFolders: ['research'],
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
   fileOrder: ['projects/novel/chapters/ch1.md'],

@@ -20,7 +20,7 @@ description: Common issues and solutions
 **Solution:**
 1. Open Developer Console (Cmd/Ctrl+Shift+I)
 2. Look for error messages
-3. Verify Obsidian version is 1.0.0 or later
+3. Verify Obsidian version is 1.4.0 or later
 4. Try reinstalling the plugin
 5. Report issues on [GitHub](https://github.com/benjamincassidy/lighthouse/issues)
 
@@ -29,18 +29,17 @@ description: Common issues and solutions
 ### Counts seem incorrect
 
 **Solutions:**
-- Verify content/source folder designations are correct
-- Check that folders are relative to project root
-- Refresh by switching files or reopening the Stats Panel
+- Check whether the file is inside the project's Extras group — Extras is deliberately excluded from all word counts (see [Groups & Extras](/core-concepts/groups/))
+- Verify the file is under the project's root folder
+- Refresh by switching files or reopening the Inspector's Stats tab
 - Verify markdown files have `.md` extension
 
 ### Counts don't update
 
 **Solutions:**
 - Wait 200ms after stopping typing (debounce delay)
-- Check that the file is in a content folder
-- Verify the file is part of the active project
-- Try closing and reopening the Stats Panel
+- Verify the file is part of the active project's root folder
+- Try closing and reopening the Inspector
 
 ### Session/Today counts reset unexpectedly
 
@@ -51,27 +50,32 @@ description: Common issues and solutions
 
 ## Project Issues
 
-### Can't see project files in stats
+### Can't see project files in the Library
 
 **Solutions:**
-- Verify the project is set as active
-- Check folder paths are correct relative to project root
-- Ensure folders are designated as content folders
+- Verify the project is set as active (**Lighthouse: Switch project**)
+- Check the root folder path is still correct — if you moved the folder, update it via **Edit project…**
 - Try editing the project and re-saving
 
-### Project disappeared after restart
+### Project or setting missing after an upgrade
 
-**Note:** This issue was fixed in version 1.0.4.
-
-**If you're on an older version:**
-- Upgrade to 1.0.4 or later to prevent this issue
-- Your project data should persist correctly after upgrading
-
-**If still experiencing issues on 1.0.4+:**
-- Check if `.obsidian/plugins/lighthouse/data.json` exists
+Project configurations live in `.obsidian/plugins/lighthouse/data.json`. If a project or setting seems to have disappeared after updating Lighthouse:
+- Check that `data.json` still exists and isn't empty
 - Verify file permissions allow reading/writing
-- Check if vault syncing is interfering with the file
-- Report on GitHub with version info
+- Check if vault syncing is interfering with the file (conflicting writes from multiple devices)
+- Report on GitHub with your before/after version numbers
+
+## Export Issues
+
+### First export takes a while / seems to hang
+
+PDF and DOCX exports use Pandoc and Typst under the hood. The first time you export to either format, Lighthouse downloads the required tooling automatically — this needs an internet connection and can take a moment depending on your connection. Subsequent exports are fast.
+
+### Citations aren't showing up
+
+- Make sure the project has both a **bibliography file** and a **citation style** set (project editor → Citations)
+- Without a bibliography, citation markup is intentionally stripped rather than left broken — set one to enable formatted citations
+- See [Exporting & Compiling](/features/exporting/)
 
 ## Performance Issues
 
@@ -94,5 +98,3 @@ If you can't resolve an issue:
    - Steps to reproduce
    - Error messages from console
 3. Join discussions on GitHub
-
-*More troubleshooting tips coming soon.*

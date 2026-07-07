@@ -44,8 +44,6 @@ describe('ProjectManager - Store Synchronization', () => {
           id: '1',
           name: 'Project 1',
           rootPath: 'p1',
-          contentFolders: [],
-          sourceFolders: [],
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         },

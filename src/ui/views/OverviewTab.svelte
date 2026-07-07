@@ -1,9 +1,7 @@
 <script lang="ts">
-  import { activeProject, projects } from '@/core/stores'
+  import { activeProject } from '@/core/stores'
   import type LighthousePlugin from '@/main'
   import type { Project } from '@/types/types'
-  import { ExportModal } from '@/ui/modals/ExportModal'
-  import { ProjectModal } from '@/ui/modals/ProjectModal'
   import {
     computeStreak,
     daysRemaining,
@@ -20,16 +18,11 @@
   let projectStats = $state<{
     totalFiles: number
     totalWords: number
-    contentFolders: number
-    sourceFolders: number
   }>({
     totalFiles: 0,
     totalWords: 0,
-    contentFolders: 0,
-    sourceFolders: 0,
   })
 
-  let allProjects = $derived(projects ? $projects : [])
   let currentProject = $derived($activeProject)
 
   // Update stats when project changes
@@ -41,7 +34,7 @@
 
   async function updateProjectStats(project: Project) {
     if (!plugin) {
-      console.error('Lighthouse Dashboard: plugin is undefined')
+      console.error('Lighthouse Overview: plugin is undefined')
       return
     }
 
@@ -50,52 +43,9 @@
       projectStats = {
         totalFiles: result.totalFiles,
         totalWords: result.totalWords,
-        contentFolders: project.contentFolders.length,
-        sourceFolders: project.sourceFolders.length,
       }
     } catch (error) {
-      console.error('Lighthouse Dashboard: Error updating stats:', error)
-    }
-  }
-
-  async function switchProject(projectId: string) {
-    await plugin.projectManager.setActiveProject(projectId)
-  }
-
-  function createNewProject() {
-    const modal = new ProjectModal(plugin, 'create')
-    modal.open()
-  }
-
-  function editProject() {
-    if (!currentProject) return
-    const modal = new ProjectModal(plugin, 'edit', currentProject)
-    modal.open()
-  }
-
-  function exportProject() {
-    if (!currentProject) return
-    new ExportModal(plugin, currentProject).open()
-  }
-
-  async function deleteProject() {
-    if (!currentProject) return
-
-    // eslint-disable-next-line no-undef
-    const confirmed = confirm(
-      `Are you sure you want to delete the project "${currentProject.name}"?\n\n` +
-        `This will only remove the project configuration. Your files will not be deleted.`,
-    )
-
-    if (!confirmed) return
-
-    try {
-      await plugin.projectManager.deleteProject(currentProject.id)
-      // Success - the store will update automatically and UI will react
-    } catch (error) {
-      console.error('Error deleting project:', error)
-      // eslint-disable-next-line no-undef
-      alert('Failed to delete project. See console for details.')
+      console.error('Lighthouse Overview: Error updating stats:', error)
     }
   }
 
@@ -245,106 +195,12 @@
 </script>
 
 <div class="lighthouse-dashboard">
-  <!-- Project Header -->
-  <div class="lighthouse-dashboard-section">
-    <div class="lighthouse-dashboard-section-header">
-      <h3>Active Project</h3>
-      <div class="lighthouse-header-actions">
-        {#if currentProject}
-          <button class="clickable-icon" onclick={exportProject} aria-label="Export project">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="15"
-              height="15"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              ><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline
-                points="7 10 12 15 17 10"
-              /><line x1="12" y1="15" x2="12" y2="3" /></svg
-            >
-          </button>
-          <button class="clickable-icon" onclick={editProject} aria-label="Edit project">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="15"
-              height="15"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              ><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path
-                d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"
-              /></svg
-            >
-          </button>
-          <button
-            class="clickable-icon lighthouse-danger-action"
-            onclick={deleteProject}
-            aria-label="Delete project"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="15"
-              height="15"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              ><polyline points="3 6 5 6 21 6" /><path
-                d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"
-              /><path d="M10 11v6" /><path d="M14 11v6" /><path
-                d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"
-              /></svg
-            >
-          </button>
-        {/if}
-        <button class="clickable-icon" onclick={createNewProject} aria-label="New project">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="15"
-            height="15"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            ><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg
-          >
-        </button>
-      </div>
+  {#if !currentProject}
+    <div class="pane-empty">
+      No active project<br />
+      <span class="pane-empty-message">Select a project from the Library</span>
     </div>
-
-    {#if allProjects.length === 0}
-      <div class="lighthouse-dashboard-empty">
-        <p>No projects yet</p>
-        <button class="mod-cta" onclick={createNewProject}>Create Your First Project</button>
-      </div>
-    {:else}
-      <div class="lighthouse-project-selector">
-        <select
-          class="dropdown"
-          value={currentProject?.id || ''}
-          onchange={(e) => switchProject(e.currentTarget.value)}
-        >
-          <option value="">Select a project...</option>
-          {#each allProjects as project (project.id)}
-            <option value={project.id}>{project.name}</option>
-          {/each}
-        </select>
-      </div>
-    {/if}
-  </div>
-
-  {#if currentProject}
+  {:else}
     <!-- Goal Ring + Stats -->
     <div class="lighthouse-dashboard-section">
       {#if currentProject.wordCountGoal}
@@ -505,12 +361,6 @@
     height: 100%;
     overflow-y: auto;
     padding: var(--size-4-4);
-    /* Redeclare Lighthouse design tokens here so an Obsidian theme cannot
-       shadow them via an ancestor :root or .theme-dark rule. */
-    --lh-accent: #e8a430;
-    --lh-accent-hover: #d4941a;
-    --lh-accent-subtle: rgba(232, 164, 48, 0.12);
-    --lh-ring-transition: stroke-dashoffset 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .lighthouse-dashboard-section {
@@ -531,36 +381,6 @@
     color: var(--lh-accent);
     text-transform: uppercase;
     letter-spacing: 0.08em;
-  }
-
-  .lighthouse-header-actions {
-    display: flex;
-    gap: 2px;
-    align-items: center;
-  }
-
-  .lighthouse-danger-action {
-    color: var(--text-error);
-  }
-
-  .lighthouse-danger-action:hover {
-    color: var(--text-error);
-    background: var(--background-modifier-error-hover);
-  }
-
-  .lighthouse-dashboard-empty {
-    text-align: center;
-    padding: var(--size-4-8);
-    color: var(--text-muted);
-  }
-
-  .lighthouse-dashboard-empty p {
-    margin: 0 0 var(--size-4-4) 0;
-    font-size: var(--font-ui-medium);
-  }
-
-  .lighthouse-project-selector .dropdown {
-    width: 100%;
   }
 
   /* Circular goal ring */
@@ -759,8 +579,6 @@
       width 0.15s ease,
       height 0.15s ease;
   }
-
-  /* Remove the old .lighthouse-heatmap-cell square rule */
 
   .lh-heat-0 {
     width: 5px;

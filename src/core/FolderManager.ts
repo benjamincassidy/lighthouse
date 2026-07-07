@@ -11,7 +11,16 @@ export interface FolderValidationResult {
 }
 
 /**
- * FolderManager handles folder type designation and validation
+ * Every project has an Extras area — a Lighthouse-managed folder at the
+ * project root, excluded from word counts. This is the folder name used when
+ * a project doesn't yet have `extrasFolder` explicitly set (e.g. before it's
+ * been auto-provisioned on first view).
+ */
+export const DEFAULT_EXTRAS_FOLDER_NAME = 'Extras'
+
+/**
+ * FolderManager handles path resolution/validation and the project's
+ * root/Extras folder relationship.
  */
 export class FolderManager {
   private vault: Vault
@@ -64,143 +73,20 @@ export class FolderManager {
   }
 
   /**
-   * Validate all folders in a project
+   * True if `path` is the project's Extras folder, or lives inside it.
+   * Extras contents are excluded from word counts and shown as a separate
+   * section in the Library, but everything else under rootPath counts.
+   * Every project has Extras — falls back to the default folder name when
+   * `extrasFolder` hasn't been explicitly set yet (e.g. before the Library
+   * has auto-provisioned it for a freshly created project).
    */
-  validateProjectFolders(project: Project): {
-    contentFolders: Map<string, FolderValidationResult>
-    sourceFolders: Map<string, FolderValidationResult>
-  } {
-    const contentFolders = new Map<string, FolderValidationResult>()
-    const sourceFolders = new Map<string, FolderValidationResult>()
-
-    for (const folder of project.contentFolders) {
-      const fullPath = this.resolveProjectPath(project.rootPath, folder)
-      contentFolders.set(folder, this.validateFolderPath(fullPath))
-    }
-
-    for (const folder of project.sourceFolders) {
-      const fullPath = this.resolveProjectPath(project.rootPath, folder)
-      sourceFolders.set(folder, this.validateFolderPath(fullPath))
-    }
-
-    return { contentFolders, sourceFolders }
-  }
-
-  /**
-   * Add a content folder to a project
-   */
-  addContentFolder(project: Project, folderPath: string): { success: boolean; error?: string } {
-    const relativePath = this.makeRelativePath(project.rootPath, folderPath)
-
-    // Check if already exists
-    if (project.contentFolders.includes(relativePath)) {
-      return { success: false, error: 'Folder already designated as content folder' }
-    }
-
-    // Check if it's in source folders
-    if (project.sourceFolders.includes(relativePath)) {
-      return {
-        success: false,
-        error: 'Folder is already designated as source folder. Remove it from source first.',
-      }
-    }
-
-    // Validate folder exists
-    const validation = this.validateFolderPath(folderPath)
-    if (!validation.valid) {
-      return { success: false, error: validation.error }
-    }
-
-    project.contentFolders.push(relativePath)
-    return { success: true }
-  }
-
-  /**
-   * Add a source folder to a project
-   */
-  addSourceFolder(project: Project, folderPath: string): { success: boolean; error?: string } {
-    const relativePath = this.makeRelativePath(project.rootPath, folderPath)
-
-    // Check if already exists
-    if (project.sourceFolders.includes(relativePath)) {
-      return { success: false, error: 'Folder already designated as source folder' }
-    }
-
-    // Check if it's in content folders
-    if (project.contentFolders.includes(relativePath)) {
-      return {
-        success: false,
-        error: 'Folder is already designated as content folder. Remove it from content first.',
-      }
-    }
-
-    // Validate folder exists
-    const validation = this.validateFolderPath(folderPath)
-    if (!validation.valid) {
-      return { success: false, error: validation.error }
-    }
-
-    project.sourceFolders.push(relativePath)
-    return { success: true }
-  }
-
-  /**
-   * Remove a content folder from a project
-   */
-  removeContentFolder(project: Project, folderPath: string): boolean {
-    const relativePath = this.makeRelativePath(project.rootPath, folderPath)
-    const index = project.contentFolders.indexOf(relativePath)
-
-    if (index === -1) {
-      return false
-    }
-
-    project.contentFolders.splice(index, 1)
-    return true
-  }
-
-  /**
-   * Remove a source folder from a project
-   */
-  removeSourceFolder(project: Project, folderPath: string): boolean {
-    const relativePath = this.makeRelativePath(project.rootPath, folderPath)
-    const index = project.sourceFolders.indexOf(relativePath)
-
-    if (index === -1) {
-      return false
-    }
-
-    project.sourceFolders.splice(index, 1)
-    return true
-  }
-
-  /**
-   * Check if a folder is a content folder in the project
-   */
-  isContentFolder(project: Project, folderPath: string): boolean {
-    const relativePath = this.makeRelativePath(project.rootPath, folderPath)
-    return project.contentFolders.includes(relativePath)
-  }
-
-  /**
-   * Check if a folder is a source folder in the project
-   */
-  isSourceFolder(project: Project, folderPath: string): boolean {
-    const relativePath = this.makeRelativePath(project.rootPath, folderPath)
-    return project.sourceFolders.includes(relativePath)
-  }
-
-  /**
-   * Get the folder type (content, source, or neither)
-   */
-  getFolderType(project: Project, folderPath: string): 'content' | 'source' | 'none' {
-    if (this.isContentFolder(project, folderPath)) {
-      return 'content'
-    }
-    if (this.isSourceFolder(project, folderPath)) {
-      return 'source'
-    }
-    return 'none'
+  isExtras(project: Project, path: string): boolean {
+    const extrasPath = this.resolveProjectPath(
+      project.rootPath,
+      project.extrasFolder || DEFAULT_EXTRAS_FOLDER_NAME,
+    )
+    const normalizedPath = this.normalizePath(path)
+    return normalizedPath === extrasPath || normalizedPath.startsWith(`${extrasPath}/`)
   }
 
   /**

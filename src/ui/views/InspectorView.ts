@@ -2,11 +2,11 @@ import { ItemView, WorkspaceLeaf } from 'obsidian'
 import { mount, unmount } from 'svelte'
 
 import type LighthousePlugin from '@/main'
-import Dashboard from '@/ui/views/Dashboard.svelte'
+import Inspector from '@/ui/views/Inspector.svelte'
 
-export const DASHBOARD_VIEW_TYPE = 'lighthouse-dashboard'
+export const INSPECTOR_VIEW_TYPE = 'lighthouse-inspector'
 
-export class DashboardView extends ItemView {
+export class InspectorView extends ItemView {
   private component: ReturnType<typeof mount> | null = null
   private plugin: LighthousePlugin
 
@@ -16,28 +16,27 @@ export class DashboardView extends ItemView {
   }
 
   getViewType(): string {
-    return DASHBOARD_VIEW_TYPE
+    return INSPECTOR_VIEW_TYPE
   }
 
   getDisplayText(): string {
-    return 'Project dashboard'
+    return 'Inspector'
   }
 
   getIcon(): string {
-    return 'layout-dashboard'
+    return 'bar-chart-2'
   }
 
   async onOpen(): Promise<void> {
     const container = this.containerEl.children[1]
     container.empty()
 
-    this.component = mount(Dashboard, {
+    this.component = mount(Inspector, {
       target: container,
       props: {
         plugin: this.plugin,
       },
     })
-    // Ensure an await exists to satisfy lint rules
     await Promise.resolve()
   }
 
@@ -46,7 +45,6 @@ export class DashboardView extends ItemView {
       void unmount(this.component)
       this.component = null
     }
-    // Ensure an await exists to satisfy lint rules
     await Promise.resolve()
   }
 }

@@ -1,7 +1,8 @@
-import { App, ButtonComponent, Modal, PluginSettingTab, Setting } from 'obsidian'
+import { App, PluginSettingTab, Setting } from 'obsidian'
 
 import type LighthousePlugin from '@/main'
 import { DEFAULT_SETTINGS, type LighthouseSettings } from '@/types/settings'
+import { ConfirmModal } from '@/ui/modals/ConfirmModal'
 import { ProjectModal } from '@/ui/modals/ProjectModal'
 
 // Re-export for backward compatibility
@@ -46,7 +47,9 @@ export class LighthouseSettingTab extends PluginSettingTab {
     // Active project switcher
     new Setting(containerEl)
       .setName('Active project')
-      .setDesc('The project shown in all views.')
+      .setDesc(
+        'The project shown throughout the plugin — select one here to edit or delete it below.',
+      )
       .addDropdown((dropdown) => {
         const projects = this.plugin.projectManager.getAllProjects()
         const activeProject = this.plugin.projectManager.getActiveProject()
@@ -89,32 +92,16 @@ export class LighthouseSettingTab extends PluginSettingTab {
           button
             .setButtonText('Delete')
             .setWarning()
-            .onClick(async () => {
-              const modal = new Modal(this.app)
-              modal.titleEl.setText('Delete project')
-              modal.contentEl.createEl('p', {
-                text: `Are you sure you want to delete "${activeProject.name}"?`,
-              })
-              modal.contentEl.createEl('p', {
-                text: 'Only the project configuration is removed. Your files stay untouched.',
-                cls: 'mod-muted',
-              })
-
-              const btnRow = modal.contentEl.createDiv({
-                cls: 'lighthouse-modal-buttons',
-              })
-              new ButtonComponent(btnRow).setButtonText('Cancel').onClick(() => modal.close())
-              new ButtonComponent(btnRow)
-                .setButtonText('Delete')
-                .setWarning()
-                .onClick(async () => {
+            .onClick(() => {
+              new ConfirmModal(this.app, {
+                title: 'Delete project',
+                message: `Are you sure you want to delete "${activeProject.name}"?`,
+                note: 'Only the project configuration is removed. Your files stay untouched.',
+                onConfirm: async () => {
                   await this.plugin.projectManager.deleteProject(activeProject.id)
-                  modal.close()
                   this.display()
-                })
-
-              await Promise.resolve()
-              modal.open()
+                },
+              }).open()
             }),
         )
     }
