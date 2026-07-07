@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Menu, type TFile, type TFolder } from 'obsidian'
+  import { Menu, Notice, type TFile, type TFolder } from 'obsidian'
   import { SvelteMap } from 'svelte/reactivity'
 
   import { DEFAULT_EXTRAS_FOLDER_NAME } from '@/core/FolderManager'
@@ -9,6 +9,7 @@
   import SheetList from '@/ui/components/SheetList.svelte'
   import TreeNodeComponent from '@/ui/components/TreeNode.svelte'
   import { buildFolderContextMenu, saveGroupIcon } from '@/ui/menus/buildFolderContextMenu'
+  import { ConfirmModal } from '@/ui/modals/ConfirmModal'
   import { ExportModal } from '@/ui/modals/ExportModal'
   import { GroupModal } from '@/ui/modals/GroupModal'
   import { ProjectModal } from '@/ui/modals/ProjectModal'
@@ -491,21 +492,20 @@
       item
         .setTitle('Delete project')
         .setIcon('trash')
-        .onClick(async () => {
-          // eslint-disable-next-line no-undef
-          const confirmed = confirm(
-            `Are you sure you want to delete the project "${project.name}"?\n\n` +
-              `This will only remove the project configuration. Your files will not be deleted.`,
-          )
-          if (!confirmed) return
-
-          try {
-            await plugin.projectManager.deleteProject(project.id)
-          } catch (error) {
-            console.error('Error deleting project:', error)
-            // eslint-disable-next-line no-undef
-            alert('Failed to delete project. See console for details.')
-          }
+        .onClick(() => {
+          new ConfirmModal(plugin.app, {
+            title: 'Delete project',
+            message: `Are you sure you want to delete "${project.name}"?`,
+            note: 'Only the project configuration is removed. Your files stay untouched.',
+            onConfirm: async () => {
+              try {
+                await plugin.projectManager.deleteProject(project.id)
+              } catch (error) {
+                console.error('Error deleting project:', error)
+                new Notice('Failed to delete project. See console for details.')
+              }
+            },
+          }).open()
         })
     })
 
@@ -689,7 +689,7 @@
   {:else if rootNodes.length === 0 && !extrasNode}
     <div class="pane-empty">No files found</div>
   {:else}
-    <div class="lh-explorer-body">
+    <div class="lh-explorer-body" class:has-selection={selectedGroupPath}>
       <div class="lh-groups-column">
         {#each rootNodes as node (node.path)}
           <TreeNodeComponent
@@ -791,6 +791,7 @@
           onreorder={handleReorder}
           onNewSheet={createSheetInGroup}
           onGoalChanged={() => currentProject && loadFileWordCounts(currentProject)}
+          onback={() => (selectedGroupPath = null)}
         />
       </div>
     </div>
@@ -954,7 +955,17 @@
     margin: 4px 0;
   }
 
-  /* ─── Two-column body: Groups tree | Sheet List ─── */
+  /* ─── Two-column body: Groups tree | Sheet List ───
+     The pane is itself the resize container: below lh-library-narrow-max
+     it collapses to a single drilling column (Groups, then Sheet List,
+     with a back button), matching a narrow Ulysses-style nested menu.
+     At or above that width it's the always-visible two-column browser,
+     with the Groups column capped so only the Sheet List keeps growing. */
+  .lighthouse-explorer {
+    container-type: inline-size;
+    container-name: lh-library;
+  }
+
   .lh-explorer-body {
     flex: 1;
     min-height: 0;
@@ -963,7 +974,8 @@
   }
 
   .lh-groups-column {
-    flex: 0 0 42%;
+    flex: 0 1 42%;
+    max-width: 220px;
     min-width: 0;
     overflow-y: auto;
     border-right: 1px solid var(--background-modifier-border);
@@ -974,6 +986,28 @@
     flex: 1;
     min-width: 0;
     overflow-y: auto;
+  }
+
+  /* Narrow pane: drill between Groups and Sheet List instead of splitting
+     the width between two columns. */
+  @container lh-library (max-width: 340px) {
+    .lh-groups-column {
+      flex: 1 1 100%;
+      max-width: none;
+      border-right: none;
+    }
+
+    .lh-sheetlist-column {
+      flex: 1 1 100%;
+    }
+
+    .lh-explorer-body:not(.has-selection) .lh-sheetlist-column {
+      display: none;
+    }
+
+    .lh-explorer-body.has-selection .lh-groups-column {
+      display: none;
+    }
   }
 
   .lh-extras-header {

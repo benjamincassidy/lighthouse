@@ -39,6 +39,7 @@
     onreorder?: (_event: CustomEvent<ReorderDetail>) => void
     onNewSheet?: (_folderPath: string) => void | Promise<void>
     onGoalChanged?: () => void | Promise<void>
+    onback?: () => void
   }
 
   let {
@@ -54,6 +55,7 @@
     onreorder,
     onNewSheet,
     onGoalChanged,
+    onback,
   }: Props = $props()
 
   function handleNewSheet() {
@@ -102,6 +104,20 @@
 <div class="lh-sheet-list">
   {#if selectedNode}
     <div class="lh-sheet-list-header">
+      <button class="lh-back-btn" onclick={onback} aria-label="Back to groups" title="Back to groups">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          ><path d="M15 18L9 12L15 6" /></svg
+        >
+      </button>
       <span class="lh-sheet-list-title">{selectedNode.name}</span>
       <button
         class="lh-new-sheet-btn"
@@ -175,6 +191,34 @@
     padding: 2px 10px 8px;
     border-bottom: 1px solid var(--background-modifier-border);
     margin-bottom: 4px;
+  }
+
+  .lh-back-btn {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: 50%;
+    box-shadow: none;
+    cursor: pointer;
+    color: var(--text-faint);
+  }
+
+  .lh-back-btn:hover {
+    color: var(--text-normal);
+  }
+
+  /* Only needed once the pane has collapsed to a single drilling column —
+     see the matching @container rule in ProjectExplorer.svelte. */
+  @container lh-library (max-width: 340px) {
+    .lh-back-btn {
+      display: flex;
+    }
   }
 
   .lh-sheet-list-title {

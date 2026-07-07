@@ -123,7 +123,7 @@ export class ProjectModal extends Modal {
     // Project name
     new Setting(contentEl)
       .setName('Project name')
-      .setDesc('A descriptive name for your writing project')
+      .setDesc('A short, descriptive name for this project.')
       .addText((text) => {
         text.setValue(this.name).onChange((value) => {
           this.name = value
@@ -134,7 +134,7 @@ export class ProjectModal extends Modal {
     // Root folder
     new Setting(contentEl)
       .setName('Root folder')
-      .setDesc('The main folder containing your project files')
+      .setDesc('The main folder containing this project’s files.')
       .addButton((button) => {
         button.setButtonText(this.rootPath || 'Select folder').onClick(() => {
           const modal = new FolderSuggestModal(this.app, (folder) => {
@@ -146,11 +146,13 @@ export class ProjectModal extends Modal {
         })
       })
 
+    new Setting(contentEl).setName('Citations').setHeading()
+
     // Bibliography path
     let bibliographyTextInput: { setValue: (value: string) => void } | null = null
     new Setting(contentEl)
       .setName('Bibliography file')
-      .setDesc('Optional citation database for exports')
+      .setDesc('Optional citation database used when exporting with citations.')
       .addText((text) => {
         bibliographyTextInput = text
         text
@@ -192,7 +194,7 @@ export class ProjectModal extends Modal {
 
     const citationStyleSetting = new Setting(contentEl)
       .setName('Citation style')
-      .setDesc('Format for citations and bibliography')
+      .setDesc('Format for citations and bibliography.')
 
     citationStyleSetting.addDropdown((dropdown) => {
       dropdown.addOption('', 'None')
@@ -256,10 +258,12 @@ export class ProjectModal extends Modal {
         })
     })
 
+    new Setting(contentEl).setName('Goals').setHeading()
+
     // Word count goal
     new Setting(contentEl)
       .setName('Word count goal')
-      .setDesc('Optional target word count for this project')
+      .setDesc('Optional target word count for this project.')
       .addText((text) => {
         text
           .setPlaceholder('E.g., 50000')
@@ -274,7 +278,7 @@ export class ProjectModal extends Modal {
     // Goal direction
     new Setting(contentEl)
       .setName('Goal direction')
-      .setDesc('"at least" tracks a minimum; "at most" sets a word limit (turns red when exceeded)')
+      .setDesc('Choose whether the goal is a minimum ("at least") or a maximum ("at most", turns red when exceeded).')
       .addDropdown((dropdown) => {
         dropdown
           .addOption('at-least', 'At least (minimum)')
@@ -288,7 +292,7 @@ export class ProjectModal extends Modal {
     // Deadline
     new Setting(contentEl)
       .setName('Deadline')
-      .setDesc('Target finish date — used to calculate your required daily word count')
+      .setDesc('Target finish date — used to calculate your required daily word count.')
       .addText((text) => {
         text
           .setPlaceholder('E.g., 2026-12-31')
@@ -302,7 +306,7 @@ export class ProjectModal extends Modal {
     // Daily goal
     new Setting(contentEl)
       .setName('Daily writing goal')
-      .setDesc('Words you aim to write each day — sets the scale for the writing heatmap')
+      .setDesc('Words you aim to write each day — sets the scale for the writing heatmap.')
       .addText((text) => {
         text
           .setPlaceholder('E.g., 1000')
@@ -315,11 +319,10 @@ export class ProjectModal extends Modal {
       })
 
     // Group goals
-    contentEl.createEl('h3', { text: 'Group goals', cls: 'lighthouse-section-heading' })
-    contentEl.createEl('p', {
-      text: 'Set optional word count targets per content folder.',
-      cls: 'setting-item-description',
-    })
+    new Setting(contentEl)
+      .setName('Group goals')
+      .setDesc('Optional word count targets for individual groups (top-level folders).')
+      .setHeading()
     this.groupGoalsContainer = contentEl.createDiv({ cls: 'lighthouse-group-goals' })
     this.renderGroupGoals()
 
@@ -356,7 +359,7 @@ export class ProjectModal extends Modal {
     })
   }
 
-  /** Top-level subfolders of the root folder, excluding the Extras folder. */
+  /** Top-level groups (subfolders) of the root folder, excluding Extras. */
   private getTopLevelFolders(): TFolder[] {
     if (!this.rootPath) return []
     const root = this.app.vault.getAbstractFileByPath(this.rootPath)
@@ -375,7 +378,7 @@ export class ProjectModal extends Modal {
 
     if (groupFolders.length === 0) {
       this.groupGoalsContainer.createEl('p', {
-        text: 'No subfolders found under the root folder yet.',
+        text: 'No groups found under the root folder yet.',
         cls: 'setting-item-description',
       })
       return
