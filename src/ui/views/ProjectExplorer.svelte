@@ -802,8 +802,8 @@
     height: 100%;
     display: flex;
     flex-direction: column;
-    --lh-accent: #e8a430;
-    --lh-accent-subtle: rgba(232, 164, 48, 0.12);
+    --lh-accent: var(--interactive-accent);
+    --lh-accent-subtle: color-mix(in srgb, var(--interactive-accent) 12%, transparent);
     /* Distinct tint for Extras — sets it apart from the main content tree,
        matching Ulysses' own coloring of its Extras/reference groups. */
     --lh-extras-color: var(--color-purple, #a78bfa);

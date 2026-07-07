@@ -121,10 +121,11 @@
     display: flex;
     flex-direction: column;
     /* Redeclare Lighthouse design tokens here so an Obsidian theme cannot
-       shadow them via an ancestor :root or .theme-dark rule. */
-    --lh-accent: #e8a430;
-    --lh-accent-hover: #d4941a;
-    --lh-accent-subtle: rgba(232, 164, 48, 0.12);
+       shadow them via an ancestor :root or .theme-dark rule. Sourced from
+       the user's own Obsidian accent color so it matches their theme. */
+    --lh-accent: var(--interactive-accent);
+    --lh-accent-hover: var(--interactive-accent-hover);
+    --lh-accent-subtle: color-mix(in srgb, var(--interactive-accent) 12%, transparent);
     --lh-ring-transition: stroke-dashoffset 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   }
 

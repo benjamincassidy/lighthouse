@@ -80,7 +80,7 @@ export class ProjectModal extends Modal {
   private dailyGoal?: number
   private folderGoals: Record<string, number> = {}
   private setAsActive = true
-  private chapterGoalsContainer: HTMLElement | null = null
+  private groupGoalsContainer: HTMLElement | null = null
 
   constructor(
     plugin: LighthousePlugin,
@@ -140,7 +140,7 @@ export class ProjectModal extends Modal {
           const modal = new FolderSuggestModal(this.app, (folder) => {
             this.rootPath = folder.path
             button.setButtonText(this.rootPath)
-            this.renderChapterGoals()
+            this.renderGroupGoals()
           })
           modal.open()
         })
@@ -314,14 +314,14 @@ export class ProjectModal extends Modal {
         text.inputEl.type = 'number'
       })
 
-    // Chapter goals
-    contentEl.createEl('h3', { text: 'Chapter goals', cls: 'lighthouse-section-heading' })
+    // Group goals
+    contentEl.createEl('h3', { text: 'Group goals', cls: 'lighthouse-section-heading' })
     contentEl.createEl('p', {
       text: 'Set optional word count targets per content folder.',
       cls: 'setting-item-description',
     })
-    this.chapterGoalsContainer = contentEl.createDiv({ cls: 'lighthouse-chapter-goals' })
-    this.renderChapterGoals()
+    this.groupGoalsContainer = contentEl.createDiv({ cls: 'lighthouse-group-goals' })
+    this.renderGroupGoals()
 
     // Set as active project (only for create mode)
     if (this.mode === 'create') {
@@ -367,22 +367,22 @@ export class ProjectModal extends Modal {
     )
   }
 
-  private renderChapterGoals(): void {
-    if (!this.chapterGoalsContainer) return
-    this.chapterGoalsContainer.empty()
+  private renderGroupGoals(): void {
+    if (!this.groupGoalsContainer) return
+    this.groupGoalsContainer.empty()
 
-    const chapterFolders = this.getTopLevelFolders()
+    const groupFolders = this.getTopLevelFolders()
 
-    if (chapterFolders.length === 0) {
-      this.chapterGoalsContainer.createEl('p', {
+    if (groupFolders.length === 0) {
+      this.groupGoalsContainer.createEl('p', {
         text: 'No subfolders found under the root folder yet.',
         cls: 'setting-item-description',
       })
       return
     }
 
-    for (const folder of chapterFolders) {
-      new Setting(this.chapterGoalsContainer).setName(folder.name).addText((text) => {
+    for (const folder of groupFolders) {
+      new Setting(this.groupGoalsContainer).setName(folder.name).addText((text) => {
         text
           .setPlaceholder('Words (optional)')
           .setValue(this.folderGoals[folder.path]?.toString() ?? '')

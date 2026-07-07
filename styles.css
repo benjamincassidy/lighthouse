@@ -3,10 +3,11 @@
 /* ─── Lighthouse Design System ────────────────────────────────────────────── */
 
 :root {
-  /* Lighthouse amber – warm, readable in light + dark Obsidian themes */
-  --lh-accent: #e8a430;
-  --lh-accent-hover: #d4941a;
-  --lh-accent-subtle: rgba(232, 164, 48, 0.12);
+  /* Follow the user's chosen Obsidian accent color instead of a fixed hue,
+     so Lighthouse matches whatever theme/accent the vault is set to. */
+  --lh-accent: var(--interactive-accent);
+  --lh-accent-hover: var(--interactive-accent-hover);
+  --lh-accent-subtle: color-mix(in srgb, var(--interactive-accent) 12%, transparent);
 
   /* Ring primitives */
   --lh-ring-track: var(--background-modifier-border);
@@ -103,7 +104,7 @@ body.lh-flow-active[style*='--lh-flow-line-width'] .cm-editor {
   letter-spacing: 0.05em;
 }
 
-.lighthouse-chapter-goals {
+.lighthouse-group-goals {
   margin-bottom: 8px;
 }
 
