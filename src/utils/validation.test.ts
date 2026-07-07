@@ -47,8 +47,7 @@ describe('validation utilities', () => {
         id: generateUUID(),
         name: 'Test Project',
         rootPath: 'projects/test',
-        contentFolders: ['content'],
-        sourceFolders: ['research'],
+        extrasFolder: 'research',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       }
@@ -74,20 +73,12 @@ describe('validation utilities', () => {
       expect(errors).toContain('Project root path is required')
     })
 
-    it('should require content folders to be an array', () => {
+    it('should require extras folder to be a string when present', () => {
       const errors = validateProject({
         ...validProject,
-        contentFolders: 'not-an-array' as unknown as string[],
+        extrasFolder: 123 as unknown as string,
       })
-      expect(errors).toContain('Content folders must be an array')
-    })
-
-    it('should require source folders to be an array', () => {
-      const errors = validateProject({
-        ...validProject,
-        sourceFolders: 'not-an-array' as unknown as string[],
-      })
-      expect(errors).toContain('Source folders must be an array')
+      expect(errors).toContain('Extras folder must be a string')
     })
 
     it('should validate word count goal is a number', () => {
@@ -113,8 +104,6 @@ describe('validation utilities', () => {
         id: validProject.id,
         name: validProject.name,
         rootPath: validProject.rootPath,
-        contentFolders: [],
-        sourceFolders: [],
       })
       expect(errors).toHaveLength(0)
     })

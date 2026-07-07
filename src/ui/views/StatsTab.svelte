@@ -34,7 +34,7 @@
     try {
       return activeProject ? $activeProject : undefined
     } catch (e) {
-      console.error('Lighthouse StatsPanel: Error accessing activeProject store:', e)
+      console.error('Lighthouse StatsTab: Error accessing activeProject store:', e)
       return undefined
     }
   })
@@ -151,7 +151,7 @@
   // Setup listeners when component mounts
   onMount(() => {
     if (!plugin) {
-      console.error('Lighthouse: StatsPanel plugin is undefined')
+      console.error('Lighthouse: StatsTab plugin is undefined')
       return
     }
 
@@ -206,10 +206,6 @@
 </script>
 
 <div class="lighthouse-stats-panel">
-  <div class="lighthouse-stats-header">
-    <h3>Writing Stats</h3>
-  </div>
-
   {#if !project}
     <div class="pane-empty">
       No active project<br />
@@ -374,25 +370,7 @@
     height: 100%;
     display: flex;
     flex-direction: column;
-    padding: var(--size-4-2);
-    --lh-accent: #e8a430;
-    --lh-accent-hover: #d4941a;
-    --lh-accent-subtle: rgba(232, 164, 48, 0.12);
-  }
-
-  .lighthouse-stats-header {
-    margin-bottom: var(--size-4-4);
-  }
-
-  .lighthouse-stats-header h3 {
-    margin: 0;
-    font-size: var(--font-ui-medium);
-    font-weight: 600;
-  }
-
-  .pane-empty-message {
-    color: var(--text-faint);
-    font-size: var(--font-ui-smaller);
+    padding: var(--size-4-2) var(--size-4-4) var(--size-4-4);
   }
 
   .lighthouse-stats-content {

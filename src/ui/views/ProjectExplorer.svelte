@@ -2,14 +2,20 @@
   import { Menu, type TFile, type TFolder } from 'obsidian'
   import { SvelteMap } from 'svelte/reactivity'
 
-  import { activeProject, workspaceActive } from '@/core/stores'
+  import { DEFAULT_EXTRAS_FOLDER_NAME } from '@/core/FolderManager'
+  import { activeProject, projects, workspaceActive } from '@/core/stores'
   import type LighthousePlugin from '@/main'
   import type { Project } from '@/types/types'
+  import SheetList from '@/ui/components/SheetList.svelte'
   import TreeNodeComponent from '@/ui/components/TreeNode.svelte'
-  import { FileGoalModal } from '@/ui/modals/FileGoalModal'
-  import { MergeModal } from '@/ui/modals/MergeModal'
-  import { ProjectSwitcherModal } from '@/ui/modals/ProjectSwitcher'
+  import { buildFolderContextMenu, saveGroupIcon } from '@/ui/menus/buildFolderContextMenu'
+  import { ExportModal } from '@/ui/modals/ExportModal'
+  import { GroupModal } from '@/ui/modals/GroupModal'
+  import { ProjectModal } from '@/ui/modals/ProjectModal'
+  import { formatDuration, readTime, speakTime } from '@/utils/deadlineUtils'
   import { reorderPaths, sortByFileOrder } from '@/utils/fileOrder'
+  import { deriveSheetTitle } from '@/utils/sheetTitle'
+
 
   interface TreeNode {
     name: string
@@ -17,7 +23,6 @@
     type: 'file' | 'folder'
     children?: TreeNode[]
     isExpanded?: boolean
-    folderType?: 'content' | 'source'
     status?: string
   }
 
@@ -27,14 +32,69 @@
 
   let { plugin }: Props = $props()
 
-  let contentNodes = $state<TreeNode[]>([])
-  let sourceNodes = $state<TreeNode[]>([])
-  let contentCollapsed = $state(false)
-  let sourceCollapsed = $state(false)
+  // Groups tree: root-level items (unlabeled) + a separate Extras subtree
+  let rootNodes = $state<TreeNode[]>([])
+  let extrasNode = $state<TreeNode | null>(null)
+  let extrasCollapsed = $state(false)
   let currentProject = $derived(activeProject ? $activeProject : undefined)
+  let allProjects = $derived(projects ? $projects : [])
   let activeFilePath = $state<string | null>(null)
   let folderWordCounts = new SvelteMap<string, number>()
   let fileWordCounts = new SvelteMap<string, number>()
+  let titles = new SvelteMap<string, string>()
+  let previews = new SvelteMap<string, string>()
+
+  // Quick-stats popover (Sheets/Words/Read time/Speak time) shown from the
+  // header's stats icon. Computed on demand, not kept continuously live.
+  let showStatsPopover = $state(false)
+  let quickStats = $state<{ totalFiles: number; totalWords: number }>({
+    totalFiles: 0,
+    totalWords: 0,
+  })
+  // eslint-disable-next-line no-undef
+  let statsAnchorEl = $state<HTMLElement | null>(null)
+
+  // Selected group (folder) — drives the Sheet List column. Both columns
+  // stay visible together; this is not a drill-in/screen swap.
+  let selectedGroupPath = $state<string | null>(null)
+  let selectedNode = $derived.by(() => {
+    if (!selectedGroupPath) return null
+    return (
+      findNodeByPath(rootNodes, selectedGroupPath) ??
+      (extrasNode ? findNodeByPath([extrasNode], selectedGroupPath) : null)
+    )
+  })
+
+  function findNodeByPath(nodes: TreeNode[], path: string): TreeNode | null {
+    for (const node of nodes) {
+      if (node.path === path) return node
+      if (node.children) {
+        const found = findNodeByPath(node.children, path)
+        if (found) return found
+      }
+    }
+    return null
+  }
+
+  // Close the stats popover on any click outside it
+  $effect(() => {
+    if (!showStatsPopover || !statsAnchorEl) return
+    const doc = statsAnchorEl.ownerDocument
+    const handleWindowClick = (e: globalThis.MouseEvent) => {
+      const target = e.target as globalThis.HTMLElement | null
+      if (!target?.closest('.lh-stats-popover-anchor')) {
+        showStatsPopover = false
+      }
+    }
+    // Defer registration so the click that opened the popover doesn't also close it
+    // eslint-disable-next-line no-undef
+    const id = window.setTimeout(() => doc.addEventListener('click', handleWindowClick), 0)
+    return () => {
+      // eslint-disable-next-line no-undef
+      window.clearTimeout(id)
+      doc.removeEventListener('click', handleWindowClick)
+    }
+  })
 
   // Track active file changes + react to vault mutations
   $effect(() => {
@@ -52,7 +112,12 @@
       if (currentProject) await buildProjectTree(currentProject)
     }
     plugin.registerEvent(plugin.app.vault.on('create', refreshTree))
-    plugin.registerEvent(plugin.app.vault.on('delete', refreshTree))
+    plugin.registerEvent(
+      plugin.app.vault.on('delete', async (file) => {
+        plugin.firstLineCache.invalidate(file.path)
+        await refreshTree()
+      }),
+    )
 
     // Rebuild tree when any file's frontmatter changes (status: field)
     plugin.registerEvent(
@@ -61,35 +126,83 @@
       }),
     )
 
-    // On rename: keep fileOrder in sync, then rebuild
+    // On rename: keep fileOrder + first-line cache in sync, then rebuild
     plugin.registerEvent(
       plugin.app.vault.on('rename', async (file, oldPath) => {
+        plugin.firstLineCache.rename(oldPath, file.path)
         if (currentProject) {
           await plugin.projectManager.updateFileOrderPath(currentProject.id, oldPath, file.path)
+          await plugin.projectManager.updateFolderKeyedRecords(
+            currentProject.id,
+            oldPath,
+            file.path,
+          )
         }
         await refreshTree()
       }),
     )
   })
 
-  // Rebuild tree when active project changes
+  // Rebuild tree + restore last-selected group when active project changes
   $effect(() => {
     if (!plugin) {
-      contentNodes = []
-      sourceNodes = []
+      rootNodes = []
+      extrasNode = null
     } else if (currentProject) {
       buildProjectTree(currentProject)
+      selectedGroupPath = plugin.workspaceManager.getLastGroupPath(currentProject.id) ?? null
     } else {
-      contentNodes = []
-      sourceNodes = []
+      rootNodes = []
+      extrasNode = null
+      selectedGroupPath = null
     }
   })
+
+  // Resolve each visible file's first-line title + preview, Ulysses-style,
+  // via the shared FirstLineCache so re-renders don't re-read every file.
+  $effect(() => {
+    for (const path of collectFilePaths([...rootNodes, ...(extrasNode ? [extrasNode] : [])])) {
+      const file = plugin.app.vault.getAbstractFileByPath(path)
+      if (file && !('children' in file)) {
+        const tFile = file as TFile
+        void plugin.firstLineCache.getFirstLine(tFile).then((firstLine) => {
+          titles.set(path, deriveSheetTitle(firstLine, tFile.basename))
+        })
+        void plugin.firstLineCache.getPreview(tFile).then((preview) => {
+          previews.set(path, preview)
+        })
+      }
+    }
+  })
+
+  /**
+   * Every project has Extras. Creates the folder on disk and persists
+   * `extrasFolder` the first time this project is viewed if it's missing —
+   * a no-op on every subsequent call once it exists.
+   */
+  async function ensureExtrasFolder(project: Project): Promise<Project> {
+    const relPath = project.extrasFolder || DEFAULT_EXTRAS_FOLDER_NAME
+    const fullPath = plugin.folderManager.resolveProjectPath(project.rootPath, relPath)
+    const existing = plugin.app.vault.getAbstractFileByPath(fullPath)
+
+    if (existing && 'children' in existing) {
+      if (project.extrasFolder === relPath) return project
+      const updated = { ...project, extrasFolder: relPath, updatedAt: new Date().toISOString() }
+      await plugin.projectManager.updateProject(updated)
+      return updated
+    }
+
+    await plugin.app.vault.createFolder(fullPath)
+    const updated = { ...project, extrasFolder: relPath, updatedAt: new Date().toISOString() }
+    await plugin.projectManager.updateProject(updated)
+    return updated
+  }
 
   async function buildProjectTree(project: Project) {
     if (!plugin) {
       console.error('Lighthouse: ProjectExplorer plugin is undefined')
-      contentNodes = []
-      sourceNodes = []
+      rootNodes = []
+      extrasNode = null
       return
     }
 
@@ -98,51 +211,29 @@
 
     if (!rootFolder || !('children' in rootFolder)) {
       console.warn('Lighthouse: Root folder not found:', project.rootPath)
-      contentNodes = []
-      sourceNodes = []
+      rootNodes = []
+      extrasNode = null
       return
     }
 
-    const content: TreeNode[] = []
-    const source: TreeNode[] = []
+    const resolvedProject = await ensureExtrasFolder(project)
 
-    // Build content folder nodes
-    for (const folderPath of project.contentFolders) {
-      const fullPath = plugin.folderManager.resolveProjectPath(project.rootPath, folderPath)
-      const folder = vault.getAbstractFileByPath(fullPath)
+    const mainNode = buildTreeNode(rootFolder as TFolder, resolvedProject, true)
+    rootNodes = mainNode?.children ?? []
 
-      if (folder && 'children' in folder) {
-        const node = buildTreeNode(folder as TFolder, project, 'content')
-        if (node) {
-          content.push(node)
-        }
-      } else {
-        console.warn('Lighthouse: Content folder not found:', fullPath)
-      }
-    }
+    const extrasPath = plugin.folderManager.resolveProjectPath(
+      resolvedProject.rootPath,
+      resolvedProject.extrasFolder as string,
+    )
+    const extrasFolder = vault.getAbstractFileByPath(extrasPath)
+    extrasNode =
+      extrasFolder && 'children' in extrasFolder
+        ? buildTreeNode(extrasFolder as TFolder, resolvedProject, false)
+        : null
 
-    // Build source folder nodes
-    for (const folderPath of project.sourceFolders) {
-      const fullPath = plugin.folderManager.resolveProjectPath(project.rootPath, folderPath)
-      const folder = vault.getAbstractFileByPath(fullPath)
-
-      if (folder && 'children' in folder) {
-        const node = buildTreeNode(folder as TFolder, project, 'source')
-        if (node) {
-          source.push(node)
-        }
-      } else {
-        console.warn('Lighthouse: Source folder not found:', fullPath)
-      }
-    }
-
-    // Set tree immediately for fast display
-    contentNodes = content
-    sourceNodes = source
-
-    // Async-load word counts for folders that have goals set
-    await loadFolderWordCounts(project)
-    await loadFileWordCounts(project)
+    // Async-load word counts for folders/files that have goals set
+    await loadFolderWordCounts(resolvedProject)
+    await loadFileWordCounts(resolvedProject)
   }
 
   async function loadFileWordCounts(project: Project): Promise<void> {
@@ -168,22 +259,23 @@
     }
   }
 
-  function buildTreeNode(
-    folder: TFolder,
-    project?: Project,
-    folderType?: 'content' | 'source',
-  ): TreeNode | null {
+  /**
+   * Build a folder's tree node. When `skipExtras` is true (building the main
+   * root tree), any child matching the project's Extras folder is omitted —
+   * it's rendered separately as its own section instead.
+   */
+  function buildTreeNode(folder: TFolder, project: Project, skipExtras: boolean): TreeNode | null {
     const children: TreeNode[] = []
 
     for (const child of folder.children) {
+      if (skipExtras && plugin.folderManager.isExtras(project, child.path)) continue
+
       if ('children' in child) {
-        // It's a folder - inherit parent's folder type
-        const childNode = buildTreeNode(child as TFolder, project, folderType)
+        const childNode = buildTreeNode(child as TFolder, project, skipExtras)
         if (childNode) {
           children.push(childNode)
         }
       } else {
-        // It's a file
         const file = child as TFile
         if (file.extension === 'md') {
           const status = plugin.app.metadataCache.getFileCache(file)?.frontmatter?.status as
@@ -193,7 +285,6 @@
             name: file.name,
             path: file.path,
             type: 'file',
-            folderType,
             status,
           })
         }
@@ -202,7 +293,7 @@
 
     // Sort by custom fileOrder; fall back to folders-first alphabetical for
     // items not yet present in the order array
-    const fileOrder = project?.fileOrder ?? []
+    const fileOrder = project.fileOrder ?? []
     const sortedChildren = sortByFileOrder(children, fileOrder)
 
     return {
@@ -211,7 +302,6 @@
       type: 'folder',
       children: sortedChildren,
       isExpanded: true,
-      folderType,
     }
   }
 
@@ -225,13 +315,23 @@
     return paths
   }
 
-  /** Handle a drag-and-drop reorder emitted by any TreeNode. */
+  /** Collect only file paths from a tree in depth-first order. */
+  function collectFilePaths(nodes: TreeNode[]): string[] {
+    const paths: string[] = []
+    for (const node of nodes) {
+      if (node.type === 'file') paths.push(node.path)
+      if (node.children) paths.push(...collectFilePaths(node.children))
+    }
+    return paths
+  }
+
+  /** Handle a drag-and-drop reorder emitted by the Groups tree or Sheet List. */
   async function handleReorder(
     event: CustomEvent<{ draggedPath: string; targetPath: string; position: 'before' | 'after' }>,
   ) {
     if (!currentProject) return
     const { draggedPath, targetPath, position } = event.detail
-    const allPaths = collectTreePaths([...contentNodes, ...sourceNodes])
+    const allPaths = collectTreePaths([...rootNodes, ...(extrasNode ? [extrasNode] : [])])
     const newOrder = reorderPaths(
       currentProject.fileOrder ?? [],
       allPaths,
@@ -243,7 +343,6 @@
   }
 
   function handleToggle(event: CustomEvent<{ path: string }>) {
-    // Find and toggle the node
     const path = event.detail.path
     function toggleNodeByPath(nodes: TreeNode[]): boolean {
       for (const node of nodes) {
@@ -258,13 +357,20 @@
       return false
     }
 
-    if (!toggleNodeByPath(contentNodes)) {
-      toggleNodeByPath(sourceNodes)
+    if (!toggleNodeByPath(rootNodes) && extrasNode) {
+      toggleNodeByPath([extrasNode])
     }
 
     // Trigger reactivity in Svelte 5
-    contentNodes = [...contentNodes]
-    sourceNodes = [...sourceNodes]
+    rootNodes = [...rootNodes]
+    extrasNode = extrasNode ? { ...extrasNode } : null
+  }
+
+  function handleSelect(event: CustomEvent<{ path: string }>) {
+    selectedGroupPath = event.detail.path
+    if (currentProject) {
+      void plugin.workspaceManager.setLastGroupPath(currentProject.id, selectedGroupPath)
+    }
   }
 
   async function handleOpen(event: CustomEvent<{ path: string }>) {
@@ -276,119 +382,35 @@
     }
   }
 
-  function handleContextMenu(
+  function handleFolderMenu(
     event: CustomEvent<{ path: string; mouseEvent: globalThis.MouseEvent }>,
   ) {
     const { path, mouseEvent } = event.detail
-    const file = plugin.app.vault.getAbstractFileByPath(path)
+    const folder = plugin.app.vault.getAbstractFileByPath(path)
+    if (!folder || !('children' in folder)) return
 
-    if (!file) return
-
-    const menu = new Menu()
-
-    // Let plugins add their menu items first
-    plugin.app.workspace.trigger('file-menu', menu, file, 'file-explorer')
-
-    // Add core file operations
-    if ('children' in file) {
-      // It's a folder
-      menu.addItem((item) => {
-        item
-          .setTitle('New note')
-          .setIcon('document')
-          .onClick(async () => {
-            const newFile = await plugin.app.vault.create(`${file.path}/Untitled.md`, '')
-            const leaf = plugin.app.workspace.getLeaf(false)
-            await leaf.openFile(newFile)
-          })
-      })
-
-      menu.addItem((item) => {
-        item
-          .setTitle('New folder')
-          .setIcon('folder')
-          .onClick(async () => {
-            await plugin.app.vault.createFolder(`${file.path}/New folder`)
-          })
-      })
-    }
-
-    // Rename for both files and folders
-    menu.addItem((item) => {
-      item
-        .setTitle('Rename')
-        .setIcon('pencil')
-        .onClick(() => {
-          // @ts-expect-error - Using internal Obsidian API
-          plugin.app.fileManager.promptForFileRename(file)
-        })
+    const menu = buildFolderContextMenu({
+      plugin,
+      folder: folder as TFolder,
+      currentProject,
+      onGroupChanged: async () => {
+        if (currentProject) await buildProjectTree(currentProject)
+      },
     })
-
-    // Delete for both files and folders
-    menu.addItem((item) => {
-      item
-        .setTitle('Delete')
-        .setIcon('trash')
-        .onClick(async () => {
-          // @ts-expect-error - Using internal Obsidian API
-          await plugin.app.fileManager.promptForFileDeletion(file)
-        })
-    })
-
-    // Per-file word count goal (files only)
-    if (!('children' in file)) {
-      menu.addSeparator()
-      const currentGoal = currentProject?.fileGoals?.[path]
-      menu.addItem((item) => {
-        item
-          .setTitle(currentGoal ? 'Edit file word count goal' : 'Set file word count goal')
-          .setIcon('target')
-          .onClick(() => {
-            if (!currentProject) return
-            new FileGoalModal(plugin, currentGoal, async (goal) => {
-              const fileGoals = { ...(currentProject.fileGoals ?? {}) }
-              if (goal === undefined) {
-                delete fileGoals[path]
-              } else {
-                fileGoals[path] = goal
-              }
-              await plugin.projectManager.updateProject({
-                ...currentProject,
-                fileGoals: Object.keys(fileGoals).length > 0 ? fileGoals : undefined,
-                updatedAt: new Date().toISOString(),
-              })
-              await loadFileWordCounts(currentProject)
-            }).open()
-          })
-      })
-
-      menu.addItem((item) => {
-        item
-          .setTitle('Merge into…')
-          .setIcon('git-merge')
-          .onClick(() => {
-            const sourceFile = file as TFile
-            const projectFiles = plugin.fileSplitter.getProjectFiles()
-            new MergeModal(plugin.app, sourceFile, projectFiles, (target) => {
-              void plugin.fileSplitter.mergeInto(sourceFile, target)
-            }).open()
-          })
-      })
-    }
-
     menu.showAtMouseEvent(mouseEvent)
   }
 
-  function openProjectSwitcher() {
-    new ProjectSwitcherModal(plugin).open()
+  function createNewProject() {
+    const modal = new ProjectModal(plugin, 'create')
+    modal.open()
   }
 
   function exitWorkspace() {
     void plugin.workspaceManager.exitWritingWorkspace()
   }
 
-  async function handleCreateNoteInFolder(event: CustomEvent<{ path: string }>) {
-    const folderPath = event.detail.path
+  /** Create a new sheet directly inside the given group — the Sheet List's "new sheet" action. */
+  async function createSheetInGroup(folderPath: string) {
     let fileName = 'Untitled.md'
     let n = 1
     while (plugin.app.vault.getAbstractFileByPath(`${folderPath}/${fileName}`)) {
@@ -401,27 +423,93 @@
     plugin.app.fileManager.promptForFileRename(newFile)
   }
 
-  async function createFolderInSection(sectionType: 'content' | 'source') {
+  function createRootFolder() {
     if (!currentProject) return
-    let folderName = 'New Folder'
-    let n = 1
-    while (plugin.app.vault.getAbstractFileByPath(`${currentProject.rootPath}/${folderName}`)) {
-      folderName = `New Folder ${n++}`
+    const project = currentProject
+    new GroupModal(plugin, { mode: 'create', parentPath: project.rootPath }, async (newPath, iconId) => {
+      await saveGroupIcon(plugin, project.id, newPath, newPath, iconId)
+      await buildProjectTree(project)
+    }).open()
+  }
+
+  function createExtrasGroup() {
+    if (!currentProject) return
+    const project = currentProject
+    const parentPath = plugin.folderManager.resolveProjectPath(
+      project.rootPath,
+      project.extrasFolder || DEFAULT_EXTRAS_FOLDER_NAME,
+    )
+    new GroupModal(plugin, { mode: 'create', parentPath }, async (newPath, iconId) => {
+      await saveGroupIcon(plugin, project.id, newPath, newPath, iconId)
+      await buildProjectTree(project)
+    }).open()
+  }
+
+  function toggleExtrasCollapsed() {
+    extrasCollapsed = !extrasCollapsed
+  }
+
+  async function toggleStatsPopover() {
+    if (showStatsPopover) {
+      showStatsPopover = false
+      return
     }
-    await plugin.app.vault.createFolder(`${currentProject.rootPath}/${folderName}`)
-    // Add relative path to project config — store update triggers tree rebuild via $effect
-    const updatedProject: Project = {
-      ...currentProject,
-      contentFolders:
-        sectionType === 'content'
-          ? [...currentProject.contentFolders, folderName]
-          : [...currentProject.contentFolders],
-      sourceFolders:
-        sectionType === 'source'
-          ? [...currentProject.sourceFolders, folderName]
-          : [...currentProject.sourceFolders],
+    if (currentProject) {
+      const result = await plugin.hierarchicalCounter.countProject(currentProject)
+      quickStats = { totalFiles: result.totalFiles, totalWords: result.totalWords }
     }
-    await plugin.projectManager.updateProject(updatedProject)
+    showStatsPopover = true
+  }
+
+  function showProjectMenu(event: globalThis.MouseEvent) {
+    if (!currentProject) return
+    const project = currentProject
+
+    const menu = new Menu()
+
+    menu.addItem((item) => {
+      item
+        .setTitle('Edit project…')
+        .setIcon('pencil')
+        .onClick(() => {
+          new ProjectModal(plugin, 'edit', project).open()
+        })
+    })
+
+    menu.addItem((item) => {
+      item
+        .setTitle('Export…')
+        .setIcon('download')
+        .onClick(() => {
+          new ExportModal(plugin, project).open()
+        })
+    })
+
+    menu.addSeparator()
+
+    menu.addItem((item) => {
+      item
+        .setTitle('Delete project')
+        .setIcon('trash')
+        .onClick(async () => {
+          // eslint-disable-next-line no-undef
+          const confirmed = confirm(
+            `Are you sure you want to delete the project "${project.name}"?\n\n` +
+              `This will only remove the project configuration. Your files will not be deleted.`,
+          )
+          if (!confirmed) return
+
+          try {
+            await plugin.projectManager.deleteProject(project.id)
+          } catch (error) {
+            console.error('Error deleting project:', error)
+            // eslint-disable-next-line no-undef
+            alert('Failed to delete project. See console for details.')
+          }
+        })
+    })
+
+    menu.showAtMouseEvent(event)
   }
 </script>
 
@@ -466,163 +554,171 @@
       {/if}
     </div>
 
-    <button class="lh-project-name-btn" onclick={openProjectSwitcher} aria-label="Switch project">
-      <span class="lh-project-name">
-        {currentProject?.name ?? 'Select a project…'}
-      </span>
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="12"
-        height="12"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2.5"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        class="lh-project-chevron"><polyline points="6 9 12 15 18 9" /></svg
-      >
-    </button>
+    <h2 class="lh-project-title">
+      {currentProject?.name ?? 'No project selected'}
+    </h2>
 
-    <div class="lh-mode-tabs" role="tablist">
-      <button class="lh-mode-tab lh-mode-tab-active" role="tab" aria-selected="true">Write</button>
-      <button class="lh-mode-tab" role="tab" disabled aria-selected="false">Outline</button>
-      <button class="lh-mode-tab" role="tab" disabled aria-selected="false">Corkboard</button>
-    </div>
+    {#if currentProject?.wordCountGoal}
+      <div class="lh-project-goal-row">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="13"
+          height="13"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <circle cx="12" cy="12" r="9" />
+          <circle cx="12" cy="12" r="4" />
+        </svg>
+        <span>{currentProject.wordCountGoal.toLocaleString()} words</span>
+      </div>
+    {/if}
+
+    {#if currentProject}
+      <div class="lh-project-actions-row">
+        <div class="lh-stats-popover-anchor" bind:this={statsAnchorEl}>
+          <button
+            class="lh-icon-action-btn"
+            onclick={toggleStatsPopover}
+            aria-label="Project stats"
+            title="Project stats"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              ><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line
+                x1="6"
+                y1="20"
+                x2="6"
+                y2="14"
+              /></svg
+            >
+          </button>
+          {#if showStatsPopover}
+            <div class="lh-stats-popover">
+              <div class="lh-stats-popover-row">
+                <span>Sheets</span>
+                <span>{quickStats.totalFiles.toLocaleString()}</span>
+              </div>
+              <div class="lh-stats-popover-row">
+                <span>Words</span>
+                <span>{quickStats.totalWords.toLocaleString()}</span>
+              </div>
+              <div class="lh-stats-popover-divider"></div>
+              <div class="lh-stats-popover-row">
+                <span>Read time</span>
+                <span>{formatDuration(readTime(quickStats.totalWords))}</span>
+              </div>
+              <div class="lh-stats-popover-row">
+                <span>Speak time</span>
+                <span>{formatDuration(speakTime(quickStats.totalWords))}</span>
+              </div>
+            </div>
+          {/if}
+        </div>
+        <button
+          class="lh-icon-action-btn"
+          onclick={createRootFolder}
+          aria-label="New group"
+          title="New group"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            ><path
+              d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"
+            /><line x1="12" y1="11" x2="12" y2="17" /><line x1="9" y1="14" x2="15" y2="14" /></svg
+          >
+        </button>
+        <button
+          class="lh-icon-action-btn"
+          onclick={showProjectMenu}
+          aria-label="Project actions"
+          title="Project actions"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            ><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /><circle
+              cx="5"
+              cy="12"
+              r="1"
+            /></svg
+          >
+        </button>
+      </div>
+    {/if}
   </div>
 
   {#if !currentProject}
     <div class="pane-empty">
-      No active project<br />
-      <span class="pane-empty-message">Select a project to see its files</span>
+      {#if allProjects.length === 0}
+        No projects yet<br />
+        <button class="mod-cta" onclick={createNewProject}>Create Your First Project</button>
+      {:else}
+        No active project<br />
+        <span class="pane-empty-message">Select a project to see its files</span>
+      {/if}
     </div>
-  {:else if contentNodes.length === 0 && sourceNodes.length === 0}
+  {:else if rootNodes.length === 0 && !extrasNode}
     <div class="pane-empty">No files found</div>
   {:else}
-    <div class="nav-files-container">
-      {#if contentNodes.length > 0}
-        <div class="tree-item nav-folder mod-root" class:is-collapsed={contentCollapsed}>
-          <div
-            class="tree-item-self is-clickable nav-folder-title"
-            role="button"
-            tabindex="0"
-            onclick={() => (contentCollapsed = !contentCollapsed)}
-            onkeydown={(e) =>
-              (e.key === 'Enter' || e.key === ' ') && (contentCollapsed = !contentCollapsed)}
-          >
-            <div class="tree-item-icon">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                class="svg-icon lucide-folder"
-              >
-                <path
-                  d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"
-                />
-              </svg>
-            </div>
-            <div class="tree-item-inner">Content</div>
-            <button
-              class="clickable-icon lh-section-add-btn"
-              onclick={(e) => {
-                e.stopPropagation()
-                createFolderInSection('content')
-              }}
-              aria-label="New folder in Content"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                ><path
-                  d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"
-                /><line x1="12" y1="11" x2="12" y2="17" /><line
-                  x1="9"
-                  y1="14"
-                  x2="15"
-                  y2="14"
-                /></svg
-              >
-            </button>
-          </div>
-          {#if !contentCollapsed}
-            <div class="tree-item-children">
-              {#each contentNodes as node (node.path)}
-                <TreeNodeComponent
-                  {node}
-                  depth={0}
-                  {activeFilePath}
-                  folderGoals={currentProject?.folderGoals}
-                  {folderWordCounts}
-                  fileGoals={currentProject?.fileGoals}
-                  {fileWordCounts}
-                  ontoggle={handleToggle}
-                  onopen={handleOpen}
-                  onfilemenu={handleContextMenu}
-                  oncreatenote={handleCreateNoteInFolder}
-                  onreorder={handleReorder}
-                />
-              {/each}
-            </div>
-          {/if}
-        </div>
-      {/if}
+    <div class="lh-explorer-body">
+      <div class="lh-groups-column">
+        {#each rootNodes as node (node.path)}
+          <TreeNodeComponent
+            {node}
+            depth={0}
+            selectedPath={selectedGroupPath}
+            folderGoals={currentProject?.folderGoals}
+            folderIcons={currentProject?.folderIcons}
+            {folderWordCounts}
+            ontoggle={handleToggle}
+            onselect={handleSelect}
+            onfoldermenu={handleFolderMenu}
+            onreorder={handleReorder}
+          />
+        {/each}
 
-      {#if sourceNodes.length > 0}
-        <div class="tree-item nav-folder mod-root" class:is-collapsed={sourceCollapsed}>
-          <div
-            class="tree-item-self is-clickable nav-folder-title"
-            role="button"
-            tabindex="0"
-            onclick={() => (sourceCollapsed = !sourceCollapsed)}
-            onkeydown={(e) =>
-              (e.key === 'Enter' || e.key === ' ') && (sourceCollapsed = !sourceCollapsed)}
-          >
-            <div class="tree-item-icon">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                class="svg-icon lucide-folder-pen"
-              >
-                <path d="M8.42 10.61a2.1 2.1 0 1 1 2.97 2.97L5.95 19 2 20l.99-3.95 5.43-5.44Z" />
-                <path
-                  d="M2 11.5V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-9.5"
-                />
-              </svg>
-            </div>
-            <div class="tree-item-inner">Source</div>
+        <div class="lh-extras-header">
+          <span class="lh-section-label lh-extras-label">Extras</span>
+          <div class="lh-extras-actions">
             <button
-              class="clickable-icon lh-section-add-btn"
-              onclick={(e) => {
-                e.stopPropagation()
-                createFolderInSection('source')
-              }}
-              aria-label="New folder in Source"
+              class="lh-extras-icon-btn"
+              onclick={createExtrasGroup}
+              aria-label="New group"
+              title="New group"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                width="14"
-                height="14"
+                width="13"
+                height="13"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -639,25 +735,64 @@
                 /></svg
               >
             </button>
+            <button
+              class="lh-extras-icon-btn"
+              onclick={toggleExtrasCollapsed}
+              aria-label={extrasCollapsed ? 'Show extras' : 'Hide extras'}
+              title={extrasCollapsed ? 'Show extras' : 'Hide extras'}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="lh-chevron-icon"
+                class:is-collapsed={extrasCollapsed}
+                ><path d="M3 8L12 17L21 8" /></svg
+              >
+            </button>
           </div>
-          {#if !sourceCollapsed}
-            <div class="tree-item-children">
-              {#each sourceNodes as node (node.path)}
-                <TreeNodeComponent
-                  {node}
-                  depth={0}
-                  {activeFilePath}
-                  ontoggle={handleToggle}
-                  onopen={handleOpen}
-                  onfilemenu={handleContextMenu}
-                  oncreatenote={handleCreateNoteInFolder}
-                  onreorder={handleReorder}
-                />
-              {/each}
-            </div>
-          {/if}
         </div>
-      {/if}
+        {#if !extrasCollapsed && extrasNode?.children}
+          {#each extrasNode.children as node (node.path)}
+            <TreeNodeComponent
+              {node}
+              depth={0}
+              selectedPath={selectedGroupPath}
+              folderGoals={currentProject?.folderGoals}
+              folderIcons={currentProject?.folderIcons}
+              {folderWordCounts}
+              iconColor="var(--lh-extras-color)"
+              ontoggle={handleToggle}
+              onselect={handleSelect}
+              onfoldermenu={handleFolderMenu}
+              onreorder={handleReorder}
+            />
+          {/each}
+        {/if}
+      </div>
+
+      <div class="lh-sheetlist-column">
+        <SheetList
+          {plugin}
+          {selectedNode}
+          {currentProject}
+          {activeFilePath}
+          {titles}
+          {previews}
+          fileGoals={currentProject?.fileGoals}
+          {fileWordCounts}
+          onopen={handleOpen}
+          onreorder={handleReorder}
+          onNewSheet={createSheetInGroup}
+          onGoalChanged={() => currentProject && loadFileWordCounts(currentProject)}
+        />
+      </div>
     </div>
   {/if}
 </div>
@@ -669,6 +804,9 @@
     flex-direction: column;
     --lh-accent: #e8a430;
     --lh-accent-subtle: rgba(232, 164, 48, 0.12);
+    /* Distinct tint for Extras — sets it apart from the main content tree,
+       matching Ulysses' own coloring of its Extras/reference groups. */
+    --lh-extras-color: var(--color-purple, #a78bfa);
   }
 
   .pane-empty-message {
@@ -683,6 +821,7 @@
     gap: 6px;
     padding: 8px 10px 6px;
     border-bottom: 1px solid var(--background-modifier-border);
+    flex-shrink: 0;
   }
 
   .lh-brand-row {
@@ -713,97 +852,186 @@
     padding: 0;
     background: transparent;
     border: none;
-    border-radius: var(--radius-s);
+    border-radius: 50%;
+    box-shadow: none;
     cursor: pointer;
     color: var(--text-muted);
     line-height: 0;
   }
 
   .lh-exit-btn:hover {
-    background: var(--background-modifier-hover);
     color: var(--text-normal);
   }
 
-  .lh-project-name-btn {
+  /* Prominent, Ulysses-style project title — plain text, no picker.
+     Switching projects happens via the command palette ("Switch project"),
+     not a dropdown here. */
+  .lh-project-title {
+    margin: 2px 4px 0;
+    font-size: 1.3em;
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--text-normal);
+    overflow-wrap: break-word;
+  }
+
+  .lh-project-goal-row {
     display: flex;
     align-items: center;
-    gap: 4px;
-    width: 100%;
-    padding: 3px 4px;
-    background: transparent;
-    border: none;
-    border-radius: var(--radius-s);
-    cursor: pointer;
-    color: var(--text-normal);
-    text-align: left;
-  }
-
-  .lh-project-name-btn:hover {
-    background: var(--background-modifier-hover);
-  }
-
-  .lh-project-name {
-    flex: 1;
+    gap: 5px;
+    margin: 6px 4px 0;
+    color: var(--text-muted);
     font-size: var(--font-ui-small);
-    font-weight: 600;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
 
-  .lh-project-chevron {
-    flex-shrink: 0;
-    color: var(--text-faint);
-  }
-
-  .lh-mode-tabs {
+  .lh-project-actions-row {
     display: flex;
+    align-items: center;
+    justify-content: flex-start;
     gap: 2px;
+    margin-top: 8px;
   }
 
-  .lh-mode-tab {
-    flex: 1;
-    padding: 3px 0;
-    background: transparent;
-    border: none;
-    border-radius: var(--radius-s);
-    cursor: default;
-    font-size: 0.75em;
-    font-weight: 500;
-    color: var(--text-faint);
-    opacity: 0.5;
-    transition: background 0.1s;
-  }
-
-  .lh-mode-tab-active {
-    background: var(--lh-accent-subtle);
-    color: var(--lh-accent);
-    opacity: 1;
-    cursor: default;
-  }
-
-  .lh-mode-tab:not(:disabled):not(.lh-mode-tab-active):hover {
-    background: var(--background-modifier-hover);
-    opacity: 1;
-  }
-
-  /* ─── Section add button ─── */
-  .lh-section-add-btn {
+  .lh-icon-action-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    align-self: center;
     flex-shrink: 0;
-    margin-left: auto;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: 50%;
+    box-shadow: none;
+    cursor: pointer;
+    color: var(--text-faint);
+  }
+
+  .lh-icon-action-btn:hover {
+    color: var(--text-normal);
+  }
+
+  .lh-stats-popover-anchor {
+    position: relative;
+  }
+
+  .lh-stats-popover {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    z-index: 50;
+    min-width: 180px;
+    padding: 10px 12px;
+    background: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-m);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  }
+
+  .lh-stats-popover-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 3px 0;
+    font-size: var(--font-ui-small);
+    color: var(--text-normal);
+  }
+
+  .lh-stats-popover-row span:first-child {
+    color: var(--text-muted);
+  }
+
+  .lh-stats-popover-row span:last-child {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+  }
+
+  .lh-stats-popover-divider {
+    height: 1px;
+    background: var(--background-modifier-border);
+    margin: 4px 0;
+  }
+
+  /* ─── Two-column body: Groups tree | Sheet List ─── */
+  .lh-explorer-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: row;
+  }
+
+  .lh-groups-column {
+    flex: 0 0 42%;
+    min-width: 0;
+    overflow-y: auto;
+    border-right: 1px solid var(--background-modifier-border);
+    padding: 4px 0;
+  }
+
+  .lh-sheetlist-column {
+    flex: 1;
+    min-width: 0;
+    overflow-y: auto;
+  }
+
+  .lh-extras-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    margin-top: 8px;
+    padding: 4px 6px 4px 10px;
+    border-radius: var(--radius-s);
+  }
+
+  .lh-extras-header:hover {
+    background: var(--background-modifier-hover);
+  }
+
+  .lh-extras-label {
+    margin: 0;
+  }
+
+  .lh-extras-actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    opacity: 0;
+    transition: opacity 0.1s ease;
+  }
+
+  .lh-extras-header:hover .lh-extras-actions,
+  .lh-extras-actions:focus-within {
+    opacity: 1;
+  }
+
+  .lh-extras-icon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
     width: 20px;
     height: 20px;
     padding: 0;
-    color: var(--text-faint);
+    background: transparent;
+    border: none;
+    border-radius: 50%;
     box-shadow: none;
-    line-height: 0;
+    cursor: pointer;
+    color: var(--text-faint);
   }
 
-  .lh-section-add-btn:hover {
+  .lh-extras-icon-btn:hover {
     color: var(--text-normal);
+  }
+
+  .lh-extras-icon-btn .lh-chevron-icon {
+    transition: transform 100ms ease-in-out;
+  }
+
+  .lh-extras-icon-btn .lh-chevron-icon.is-collapsed {
+    transform: rotate(-90deg);
   }
 </style>

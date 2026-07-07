@@ -1,6 +1,7 @@
 import { Notice, Plugin } from 'obsidian'
 
 import { FileSplitter } from '@/core/FileSplitter'
+import { FirstLineCache } from '@/core/FirstLineCache'
 import { FlowMode } from '@/core/FlowMode'
 import { FolderManager } from '@/core/FolderManager'
 import { HierarchicalCounter } from '@/core/HierarchicalCounter'
@@ -14,9 +15,14 @@ import { ExportModal } from '@/ui/modals/ExportModal'
 import { ProjectModal } from '@/ui/modals/ProjectModal'
 import { ProjectSwitcherModal } from '@/ui/modals/ProjectSwitcher'
 import { LighthouseSettingTab } from '@/ui/SettingsTab'
-import { DASHBOARD_VIEW_TYPE, DashboardView } from '@/ui/views/DashboardView'
+import { INSPECTOR_VIEW_TYPE, InspectorView } from '@/ui/views/InspectorView'
 import { PROJECT_EXPLORER_VIEW_TYPE, ProjectExplorerView } from '@/ui/views/ProjectExplorerView'
-import { STATS_PANEL_VIEW_TYPE, StatsPanelView } from '@/ui/views/StatsPanelView'
+
+// Retired view types, superseded by INSPECTOR_VIEW_TYPE — kept as string
+// literals (not imports) purely so onload can detach any leaves saved under
+// these types by users upgrading from an older version.
+const RETIRED_DASHBOARD_VIEW_TYPE = 'lighthouse-dashboard'
+const RETIRED_STATS_PANEL_VIEW_TYPE = 'lighthouse-stats-panel'
 
 export default class LighthousePlugin extends Plugin {
   settings!: LighthouseSettings
@@ -29,6 +35,7 @@ export default class LighthousePlugin extends Plugin {
   sessionTracker!: WritingSessionTracker
   binaryManager!: BinaryManager
   fileSplitter!: FileSplitter
+  firstLineCache!: FirstLineCache
 
   private getActiveDocument(): Document {
     const workspace = this.app.workspace as unknown as {
@@ -53,6 +60,7 @@ export default class LighthousePlugin extends Plugin {
     this.workspaceManager = new WorkspaceManager(this)
     this.sessionTracker = new WritingSessionTracker(this)
     this.binaryManager = new BinaryManager(this)
+    this.firstLineCache = new FirstLineCache(this.app.vault)
     await this.projectManager.initialize()
     this.fileSplitter = new FileSplitter(this.app, this.projectManager)
     // Settings are owned by ProjectStorage — sync the plugin reference
@@ -60,9 +68,14 @@ export default class LighthousePlugin extends Plugin {
 
     // Register views AFTER stores are initialized
     // This prevents race condition when Obsidian restores saved workspace layouts
-    this.registerView(DASHBOARD_VIEW_TYPE, (leaf) => new DashboardView(leaf, this))
     this.registerView(PROJECT_EXPLORER_VIEW_TYPE, (leaf) => new ProjectExplorerView(leaf, this))
-    this.registerView(STATS_PANEL_VIEW_TYPE, (leaf) => new StatsPanelView(leaf, this))
+    this.registerView(INSPECTOR_VIEW_TYPE, (leaf) => new InspectorView(leaf, this))
+
+    // One-time migration: Dashboard and the standalone Stats panel were merged
+    // into the Inspector. Detach any leaves upgrading users still have saved
+    // under the old view types instead of leaving a broken/unrecognized leaf.
+    this.app.workspace.getLeavesOfType(RETIRED_DASHBOARD_VIEW_TYPE).forEach((l) => l.detach())
+    this.app.workspace.getLeavesOfType(RETIRED_STATS_PANEL_VIEW_TYPE).forEach((l) => l.detach())
 
     // Restore workspace layout from last session
     await this.workspaceManager.restoreState()
@@ -70,33 +83,6 @@ export default class LighthousePlugin extends Plugin {
     // Single ribbon icon — toggles the Writing Workspace on/off
     this.addRibbonIcon('compass', 'Toggle writing workspace', () => {
       void this.workspaceManager.toggleWritingWorkspace()
-    })
-
-    // Add command to open dashboard
-    this.addCommand({
-      id: 'open-dashboard',
-      name: 'Open project dashboard',
-      callback: () => {
-        void this.activateDashboard()
-      },
-    })
-
-    // Add command to open project explorer
-    this.addCommand({
-      id: 'open-project-explorer',
-      name: 'Open project explorer',
-      callback: () => {
-        void this.activateProjectExplorer()
-      },
-    })
-
-    // Add command to open stats panel
-    this.addCommand({
-      id: 'open-stats-panel',
-      name: 'Open writing stats',
-      callback: () => {
-        void this.activateStatsPanel()
-      },
     })
 
     // Add command to toggle flow mode
@@ -159,7 +145,7 @@ export default class LighthousePlugin extends Plugin {
       },
     })
 
-    // Add workspace commands
+    // Add workspace commands — the one real front door into Lighthouse
     this.addCommand({
       id: 'open-writing-workspace',
       name: 'Open writing workspace',
@@ -173,6 +159,24 @@ export default class LighthousePlugin extends Plugin {
       name: 'Exit writing workspace',
       callback: () => {
         void this.workspaceManager.exitWritingWorkspace()
+      },
+    })
+
+    // Narrow, command-palette-only utilities for reopening one pane a user
+    // closed mid-session without leaving the workspace
+    this.addCommand({
+      id: 'toggle-library',
+      name: 'Toggle library',
+      callback: () => {
+        this.toggleProjectExplorer()
+      },
+    })
+
+    this.addCommand({
+      id: 'toggle-inspector',
+      name: 'Toggle inspector',
+      callback: () => {
+        this.toggleInspector()
       },
     })
 
@@ -221,23 +225,6 @@ export default class LighthousePlugin extends Plugin {
     }
   }
 
-  activateDashboard(): void {
-    const { workspace } = this.app
-
-    let leaf = workspace.getLeavesOfType(DASHBOARD_VIEW_TYPE)[0]
-
-    if (!leaf) {
-      // Create new leaf as main view
-      leaf = workspace.getLeaf('tab')
-      void leaf.setViewState({
-        type: DASHBOARD_VIEW_TYPE,
-        active: true,
-      })
-    }
-
-    workspace.setActiveLeaf(leaf, { focus: true })
-  }
-
   activateProjectExplorer(): void {
     const { workspace } = this.app
 
@@ -259,10 +246,10 @@ export default class LighthousePlugin extends Plugin {
     workspace.setActiveLeaf(leaf, { focus: true })
   }
 
-  activateStatsPanel(): void {
+  activateInspector(): void {
     const { workspace } = this.app
 
-    let leaf = workspace.getLeavesOfType(STATS_PANEL_VIEW_TYPE)[0]
+    let leaf = workspace.getLeavesOfType(INSPECTOR_VIEW_TYPE)[0]
 
     if (!leaf) {
       // Create new leaf in right sidebar
@@ -272,7 +259,7 @@ export default class LighthousePlugin extends Plugin {
       }
       leaf = rightLeaf
       void leaf.setViewState({
-        type: STATS_PANEL_VIEW_TYPE,
+        type: INSPECTOR_VIEW_TYPE,
         active: true,
       })
     }
@@ -291,14 +278,14 @@ export default class LighthousePlugin extends Plugin {
     }
   }
 
-  toggleStatsPanel(): void {
+  toggleInspector(): void {
     const { workspace } = this.app
-    const leaf = workspace.getLeavesOfType(STATS_PANEL_VIEW_TYPE)[0]
+    const leaf = workspace.getLeavesOfType(INSPECTOR_VIEW_TYPE)[0]
 
     if (leaf) {
       leaf.detach()
     } else {
-      this.activateStatsPanel()
+      this.activateInspector()
     }
   }
 
@@ -306,7 +293,7 @@ export default class LighthousePlugin extends Plugin {
     return this.app.workspace.getLeavesOfType(PROJECT_EXPLORER_VIEW_TYPE).length > 0
   }
 
-  isStatsPanelOpen(): boolean {
-    return this.app.workspace.getLeavesOfType(STATS_PANEL_VIEW_TYPE).length > 0
+  isInspectorOpen(): boolean {
+    return this.app.workspace.getLeavesOfType(INSPECTOR_VIEW_TYPE).length > 0
   }
 }

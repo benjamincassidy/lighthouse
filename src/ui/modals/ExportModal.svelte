@@ -283,6 +283,7 @@
   function collectMarkdownFiles(folder: TFolder): string[] {
     const paths: string[] = []
     for (const child of folder.children) {
+      if (plugin.folderManager.isExtras(project, child.path)) continue
       if (isTFolder(child)) {
         paths.push(...collectMarkdownFiles(child))
       } else if (isTFile(child) && (child as TFile).extension === 'md') {
@@ -293,15 +294,9 @@
   }
 
   function getContentFilePaths(): string[] {
-    const paths: string[] = []
-    for (const rel of project.contentFolders) {
-      const full = plugin.folderManager.resolveProjectPath(project.rootPath, rel)
-      const abstract = plugin.app.vault.getAbstractFileByPath(full)
-      if (abstract && isTFolder(abstract)) {
-        paths.push(...collectMarkdownFiles(abstract))
-      }
-    }
-    return paths
+    const abstract = plugin.app.vault.getAbstractFileByPath(project.rootPath)
+    if (!abstract || !isTFolder(abstract)) return []
+    return collectMarkdownFiles(abstract)
   }
 
   // ---------------------------------------------------------------------------

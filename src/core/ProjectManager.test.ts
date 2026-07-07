@@ -43,8 +43,7 @@ describe('ProjectManager', () => {
       expect(project.id).toBeTruthy()
       expect(project.name).toBe('My Novel')
       expect(project.rootPath).toBe('projects/novel')
-      expect(project.contentFolders).toEqual([])
-      expect(project.sourceFolders).toEqual([])
+      expect(project.extrasFolder).toBeUndefined()
       expect(project.createdAt).toBeTruthy()
       expect(project.updatedAt).toBeTruthy()
     })
@@ -87,8 +86,6 @@ describe('ProjectManager', () => {
         id: '',
         name: '',
         rootPath: '',
-        contentFolders: [],
-        sourceFolders: [],
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       }
@@ -295,6 +292,83 @@ describe('ProjectManager', () => {
 
       const updated = manager.getProject(project.id)
       expect(updated?.fileOrder).toEqual(['novel/a.md', 'novel/beta.md', 'novel/c.md'])
+    })
+  })
+
+  describe('updateFolderKeyedRecords', () => {
+    it('should move a folderGoals entry from the old path to the new path', async () => {
+      const project = await manager.createProject('Novel', 'novel')
+      await manager.updateProject({
+        ...project,
+        folderGoals: { 'novel/chapters': 5000 },
+      })
+
+      await manager.updateFolderKeyedRecords(project.id, 'novel/chapters', 'novel/Chapters')
+
+      const updated = manager.getProject(project.id)
+      expect(updated?.folderGoals).toEqual({ 'novel/Chapters': 5000 })
+    })
+
+    it('should move a folderIcons entry from the old path to the new path', async () => {
+      const project = await manager.createProject('Novel', 'novel')
+      await manager.updateProject({
+        ...project,
+        folderIcons: { 'novel/chapters': 'book' },
+      })
+
+      await manager.updateFolderKeyedRecords(project.id, 'novel/chapters', 'novel/Chapters')
+
+      const updated = manager.getProject(project.id)
+      expect(updated?.folderIcons).toEqual({ 'novel/Chapters': 'book' })
+    })
+
+    it('should move both folderGoals and folderIcons in one call', async () => {
+      const project = await manager.createProject('Novel', 'novel')
+      await manager.updateProject({
+        ...project,
+        folderGoals: { 'novel/chapters': 5000 },
+        folderIcons: { 'novel/chapters': 'book' },
+      })
+
+      await manager.updateFolderKeyedRecords(project.id, 'novel/chapters', 'novel/Chapters')
+
+      const updated = manager.getProject(project.id)
+      expect(updated?.folderGoals).toEqual({ 'novel/Chapters': 5000 })
+      expect(updated?.folderIcons).toEqual({ 'novel/Chapters': 'book' })
+    })
+
+    it('should leave unrelated entries untouched', async () => {
+      const project = await manager.createProject('Novel', 'novel')
+      await manager.updateProject({
+        ...project,
+        folderGoals: { 'novel/chapters': 5000, 'novel/research': 1000 },
+      })
+
+      await manager.updateFolderKeyedRecords(project.id, 'novel/chapters', 'novel/Chapters')
+
+      const updated = manager.getProject(project.id)
+      expect(updated?.folderGoals).toEqual({
+        'novel/Chapters': 5000,
+        'novel/research': 1000,
+      })
+    })
+
+    it('should be a no-op when neither record has an entry at the old path', async () => {
+      const project = await manager.createProject('Novel', 'novel')
+      await manager.updateProject({ ...project, folderGoals: { 'novel/other': 100 } })
+      const beforeUpdatedAt = manager.getProject(project.id)?.updatedAt
+
+      await manager.updateFolderKeyedRecords(project.id, 'novel/chapters', 'novel/Chapters')
+
+      const updated = manager.getProject(project.id)
+      expect(updated?.folderGoals).toEqual({ 'novel/other': 100 })
+      expect(updated?.updatedAt).toBe(beforeUpdatedAt)
+    })
+
+    it('should be a no-op for an unknown project id', async () => {
+      await expect(
+        manager.updateFolderKeyedRecords('nonexistent-id', 'a', 'b'),
+      ).resolves.toBeUndefined()
     })
   })
 })

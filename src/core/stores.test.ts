@@ -17,8 +17,6 @@ describe('stores', () => {
     id,
     name,
     rootPath: `projects/${name.toLowerCase()}`,
-    contentFolders: [],
-    sourceFolders: [],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   })

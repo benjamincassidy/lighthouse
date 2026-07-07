@@ -112,16 +112,10 @@ export class FileSplitter {
     const project = this.projectManager.getActiveProject()
     if (!project) return []
 
-    const allFolders = [...project.contentFolders, ...project.sourceFolders].map((rel) =>
-      rel ? `${project.rootPath}/${rel}` : project.rootPath,
-    )
-
     const files: TFile[] = []
-    for (const folderPath of allFolders) {
-      const folder = this.app.vault.getAbstractFileByPath(folderPath)
-      if (folder && 'children' in folder) {
-        this.collectMarkdownFiles(folder as Parameters<typeof this.collectMarkdownFiles>[0], files)
-      }
+    const rootFolder = this.app.vault.getAbstractFileByPath(project.rootPath)
+    if (rootFolder && 'children' in rootFolder) {
+      this.collectMarkdownFiles(rootFolder as Parameters<typeof this.collectMarkdownFiles>[0], files)
     }
     return files
   }

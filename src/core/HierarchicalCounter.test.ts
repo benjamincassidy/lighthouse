@@ -54,8 +54,7 @@ describe('HierarchicalCounter', () => {
     id: 'test-project',
     name: 'Test Project',
     rootPath: 'projects/novel',
-    contentFolders: ['chapters'],
-    sourceFolders: ['research'],
+    extrasFolder: 'research',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   })
@@ -175,33 +174,30 @@ describe('HierarchicalCounter', () => {
   })
 
   describe('countProject', () => {
-    it('should count only content folders', async () => {
+    it('should count everything under rootPath except the Extras folder', async () => {
       const project = createTestProject()
 
       const result = await counter.countProject(project)
 
-      expect(result.totalFiles).toBe(2) // Only chapters, not research
+      expect(result.totalFiles).toBe(2) // chapters only, research is Extras
       expect(result.totalWords).toBeGreaterThan(0)
-      expect(result.folderStats.has('chapters')).toBe(true)
-      expect(result.folderStats.has('research')).toBe(false)
+      expect(result.folderStats.has(project.rootPath)).toBe(true)
     })
 
-    it('should handle project with no content folders', async () => {
+    it('should count everything when no Extras folder is configured', async () => {
       const project = createTestProject()
-      project.contentFolders = []
+      project.extrasFolder = undefined
 
       const result = await counter.countProject(project)
 
-      expect(result.totalFiles).toBe(0)
-      expect(result.totalWords).toBe(0)
-      expect(result.folderStats.size).toBe(0)
+      expect(result.totalFiles).toBe(3) // 2 chapters + 1 research, nothing excluded
+      expect(result.totalWords).toBeGreaterThan(0)
     })
 
-    it('should aggregate multiple content folders', async () => {
+    it('should exclude the Extras subtree while aggregating other sibling folders', async () => {
       const project = createTestProject()
-      project.contentFolders = ['chapters', 'scenes']
 
-      // Add scenes folder
+      // Add a sibling "scenes" folder alongside chapters/research
       const scenesFolder = createMockFolder('projects/novel/scenes', [
         createMockFile('projects/novel/scenes/scene1.md', 'Scene one content'),
       ])
@@ -218,9 +214,7 @@ describe('HierarchicalCounter', () => {
 
       const result = await counter.countProject(project)
 
-      expect(result.folderStats.has('chapters')).toBe(true)
-      expect(result.folderStats.has('scenes')).toBe(true)
-      expect(result.totalFiles).toBeGreaterThanOrEqual(2)
+      expect(result.totalFiles).toBe(3) // 2 chapters + 1 scene, research excluded
     })
   })
 
@@ -257,22 +251,23 @@ describe('HierarchicalCounter', () => {
     })
   })
 
-  describe('content vs source distinction', () => {
-    it('should exclude source folders from project count', async () => {
+  describe('root vs Extras distinction', () => {
+    it('should exclude the Extras folder from the project count', async () => {
       const project = createTestProject()
 
       const result = await counter.countProject(project)
 
-      // Should only count chapters (content), not research (source)
+      // Research exists and is directly countable...
       const researchStats = await counter.countFolder('projects/novel/research')
-      expect(researchStats?.fileCount).toBeGreaterThan(0) // Research exists
+      expect(researchStats?.fileCount).toBeGreaterThan(0)
 
-      // But project total should not include research
-      const chaptersStats = result.folderStats.get('chapters')
-      expect(result.totalFiles).toBe(chaptersStats?.fileCount)
+      // ...but the project total (Extras excluded) should just be the chapters
+      const rootStats = result.folderStats.get(project.rootPath)
+      expect(result.totalFiles).toBe(2)
+      expect(rootStats?.fileCount).toBe(2)
     })
 
-    it('should allow counting source folders directly', async () => {
+    it('should allow counting the Extras folder directly', async () => {
       const result = await counter.countFolder('projects/novel/research')
 
       expect(result).toBeDefined()

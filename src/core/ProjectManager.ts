@@ -132,6 +132,32 @@ export class ProjectManager {
   }
 
   /**
+   * Fix up any folder-keyed records (`folderGoals`, `folderIcons`) after a
+   * vault rename — moves the value from `oldPath` to `newPath` when present.
+   * No-ops for records that don't have an entry at `oldPath`.
+   */
+  async updateFolderKeyedRecords(projectId: string, oldPath: string, newPath: string): Promise<void> {
+    const project = this.getProject(projectId)
+    if (!project) return
+
+    let changed = false
+
+    if (project.folderGoals && oldPath in project.folderGoals) {
+      const { [oldPath]: value, ...rest } = project.folderGoals
+      project.folderGoals = { ...rest, [newPath]: value }
+      changed = true
+    }
+
+    if (project.folderIcons && oldPath in project.folderIcons) {
+      const { [oldPath]: value, ...rest } = project.folderIcons
+      project.folderIcons = { ...rest, [newPath]: value }
+      changed = true
+    }
+
+    if (changed) await this.updateProject(project)
+  }
+
+  /**
    * Check if a project name already exists
    */
   projectNameExists(name: string, excludeId?: string): boolean {

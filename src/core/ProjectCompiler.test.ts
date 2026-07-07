@@ -21,8 +21,6 @@ function makeProject(overrides: Partial<Project> = {}): Project {
     id: 'test-id',
     name: 'Test Project',
     rootPath: 'Writing/Novel',
-    contentFolders: ['Chapters'],
-    sourceFolders: [],
     createdAt: '2026-01-01',
     updatedAt: '2026-01-01',
     ...overrides,

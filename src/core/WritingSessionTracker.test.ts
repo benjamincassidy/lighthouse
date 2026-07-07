@@ -26,8 +26,6 @@ function makeProject(overrides: Partial<Project> = {}): Project {
     id: 'proj-1',
     name: 'Test',
     rootPath: 'test',
-    contentFolders: [],
-    sourceFolders: [],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     todayWordCountBaseline: 100,
