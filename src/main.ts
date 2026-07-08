@@ -42,13 +42,13 @@ export default class LighthousePlugin extends Plugin {
       activeDocument?: Document
       containerEl?: HTMLElement
     }
-    return workspace.activeDocument ?? workspace.containerEl?.ownerDocument ?? document
+    return workspace.activeDocument ?? workspace.containerEl?.ownerDocument ?? activeDocument
   }
 
   async onload() {
     // Initialize core services
     this.folderManager = new FolderManager(this.app.vault)
-    this.wordCounter = new WordCounter(this.app)
+    this.wordCounter = new WordCounter()
     this.hierarchicalCounter = new HierarchicalCounter(
       this.app.vault,
       this.wordCounter,

@@ -101,7 +101,7 @@ describe('FlowMode — typography overrides', () => {
       querySelectorAll: vi.fn().mockReturnValue({ forEach: vi.fn() }),
     }
 
-    vi.stubGlobal('document', mockDoc)
+    vi.stubGlobal('activeDocument', mockDoc)
 
     mockApp = makeApp()
     flowMode = new FlowMode(mockApp as unknown as App, () =>
