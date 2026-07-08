@@ -51,7 +51,6 @@
     totalFiles: 0,
     totalWords: 0,
   })
-  // eslint-disable-next-line no-undef
   let statsAnchorEl = $state<HTMLElement | null>(null)
 
   // Selected group (folder) — drives the Sheet List column. Both columns
@@ -87,10 +86,8 @@
       }
     }
     // Defer registration so the click that opened the popover doesn't also close it
-    // eslint-disable-next-line no-undef
     const id = window.setTimeout(() => doc.addEventListener('click', handleWindowClick), 0)
     return () => {
-      // eslint-disable-next-line no-undef
       window.clearTimeout(id)
       doc.removeEventListener('click', handleWindowClick)
     }

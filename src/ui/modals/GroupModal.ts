@@ -54,7 +54,7 @@ export class GroupModal extends Modal {
       if (this.options.mode === 'edit') text.inputEl.select()
     })
 
-    contentEl.createEl('div', { text: 'Icon', cls: 'lighthouse-section-heading' })
+    contentEl.createDiv({ text: 'Icon', cls: 'lighthouse-section-heading' })
 
     const iconGrid = contentEl.createDiv({ cls: 'lighthouse-icon-grid' })
     const buttons = new Map<string, HTMLElement>()

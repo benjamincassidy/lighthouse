@@ -1,4 +1,10 @@
-import { App, PluginSettingTab, Setting, type SettingDefinitionItem } from 'obsidian'
+import {
+  App,
+  PluginSettingTab,
+  requireApiVersion,
+  Setting,
+  type SettingDefinitionItem,
+} from 'obsidian'
 
 import type LighthousePlugin from '@/main'
 import { DEFAULT_SETTINGS, type LighthouseSettings } from '@/types/settings'
@@ -32,8 +38,8 @@ export class LighthouseSettingTab extends PluginSettingTab {
   }
 
   /**
-   * @deprecated Since 1.13.0. Kept as the render path for Obsidian versions
-   * older than our minAppVersion's ceiling — see getSettingDefinitions().
+   * Render path for Obsidian versions older than 1.13.0 (our minAppVersion's
+   * ceiling) — see getSettingDefinitions(), which takes over on 1.13.0+.
    */
   display(): void {
     const { containerEl } = this
@@ -81,12 +87,10 @@ export class LighthouseSettingTab extends PluginSettingTab {
    * Obsidian already owns containerEl via the declarative path.
    */
   private refresh(): void {
-    const withUpdate = this as unknown as { update?: () => void }
-    if (typeof withUpdate.update === 'function') {
-      withUpdate.update()
+    if (requireApiVersion('1.13.0')) {
+      this.update()
       return
     }
-    // eslint-disable-next-line @typescript-eslint/no-deprecated -- fallback for < 1.13.0, see display() above
     this.display()
   }
 

@@ -138,10 +138,8 @@
   // Debounced update for editor changes (typing)
   function debouncedUpdate() {
     if (updateDebounceTimer !== null) {
-      // eslint-disable-next-line no-undef
       window.clearTimeout(updateDebounceTimer)
     }
-    // eslint-disable-next-line no-undef
     updateDebounceTimer = window.setTimeout(() => {
       updateStats()
       updateDebounceTimer = null
@@ -179,14 +177,12 @@
     )
 
     // Initial update - wait a tick for stores and workspace to be ready
-    // eslint-disable-next-line no-undef
-    setTimeout(async () => {
+    window.setTimeout(async () => {
       await updateStats()
     }, 100)
 
     // Also trigger update after a longer delay to catch late-loading files
-    // eslint-disable-next-line no-undef
-    setTimeout(() => {
+    window.setTimeout(() => {
       updateStats()
     }, 500)
   })

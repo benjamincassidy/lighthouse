@@ -50,7 +50,7 @@ export class CslStyleDownloadModal extends Modal {
 
     // Info
     contentEl.createEl('p', {
-      text: 'Styles are downloaded from github.com/citation-style-language/styles',
+      text: 'Styles are downloaded from GitHub.com/citation-style-language/styles',
       cls: 'setting-item-description',
     })
   }
