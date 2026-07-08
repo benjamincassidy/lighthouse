@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-07-08
+
+### Added
+- Feature 1
+- Feature 2
+
+### Fixed
+- Bug fix 1
+
+### Changed
+- Change 1
+
 ## [1.2.0] - 2026-07-07
 
 ### Added
@@ -220,10 +232,11 @@ This is the first alpha release of Lighthouse. The plugin is functional and read
 
 As this is the first release, no migration is necessary. All project data is stored in plugin settings and uses standard Obsidian markdown files.
 
-[Unreleased]: https://github.com/benjamincassidy/lighthouse/compare/1.2.0...HEAD
+[Unreleased]: https://github.com/benjamincassidy/lighthouse/compare/1.3.0...HEAD
 [0.9.0]: https://github.com/benjamincassidy/lighthouse/releases/tag/0.9.0
 [1.0.0]: https://github.com/benjamincassidy/lighthouse/compare/0.9.0...1.0.0
 [1.0.2]: https://github.com/benjamincassidy/lighthouse/compare/1.0.0...1.0.2
 [1.0.3]: https://github.com/benjamincassidy/lighthouse/compare/1.0.2...1.0.3
 [1.0.6]: https://github.com/benjamincassidy/lighthouse/compare/1.0.3...1.0.6
 [1.2.0]: https://github.com/benjamincassidy/lighthouse/compare/1.0.6...1.2.0
+[1.3.0]: https://github.com/benjamincassidy/lighthouse/compare/1.2.0...1.3.0
