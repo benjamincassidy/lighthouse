@@ -52,7 +52,7 @@ export class FlowMode {
       activeDocument?: Document
       containerEl?: HTMLElement
     }
-    return workspace.activeDocument ?? workspace.containerEl?.ownerDocument ?? document
+    return workspace.activeDocument ?? workspace.containerEl?.ownerDocument ?? activeDocument
   }
 
   isFlowModeActive(): boolean {

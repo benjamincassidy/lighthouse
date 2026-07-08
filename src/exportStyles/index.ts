@@ -1,24 +1,15 @@
 /**
  * Export style registry.
  *
- * Built-in styles are embedded as string constants so the plugin bundles them
- * without needing to load files from disk at runtime.
- *
  * Each ExportStyle carries:
  *   - id / name / description
- *   - css: the full @media print stylesheet
+ *   - css: optional custom `@media print` stylesheet — populated for
+ *     user styles loaded from the vault (see AUTHORING.md); built-in styles
+ *     are styled via downloaded Typst/Word reference-doc templates instead
+ *     (see BinaryManager), not CSS.
  *   - previewSvg: an inline SVG thumbnail shown in the style gallery
  *   - builtIn: true for bundled styles; false for user styles loaded from vault
  */
-
-// ---------------------------------------------------------------------------
-// CSS strings (embedded at build time via esbuild text loader)
-// ---------------------------------------------------------------------------
-
-// Raw imports handled by the text loader configured in esbuild.config.mjs
-import academicA4Css from './styles/academic-a4.css'
-import manuscriptStandardCss from './styles/manuscript-standard.css'
-import novelTradeCss from './styles/novel-trade.css'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -29,7 +20,7 @@ export interface ExportStyle {
   name: string
   description: string
   pageSize: string
-  css: string
+  css?: string
   /** Inline SVG data URI used in the gallery thumbnail */
   previewSvg: string
   builtIn: boolean
@@ -142,7 +133,6 @@ export const BUILT_IN_STYLES: ExportStyle[] = [
     name: 'Novel — Trade',
     description: '5.5 × 8.5 in, Palatino serif, first-line indent, chapter page breaks',
     pageSize: '5.5 × 8.5 in',
-    css: novelTradeCss,
     builtIn: true,
     previewSvg: makeThumbnail({
       fontFamily: 'Palatino, serif',
@@ -158,7 +148,6 @@ export const BUILT_IN_STYLES: ExportStyle[] = [
     name: 'Manuscript Standard',
     description: 'US Letter, 12pt Courier, double-spaced — industry submission format',
     pageSize: 'US Letter',
-    css: manuscriptStandardCss,
     builtIn: true,
     previewSvg: makeThumbnail({
       fontFamily: 'Courier New, monospace',
@@ -174,7 +163,6 @@ export const BUILT_IN_STYLES: ExportStyle[] = [
     name: 'Academic — A4',
     description: 'A4, 12pt Times New Roman, 1.5 spacing — for essays, theses, dissertations',
     pageSize: 'A4',
-    css: academicA4Css,
     builtIn: true,
     previewSvg: makeThumbnail({
       fontFamily: 'Times New Roman, serif',

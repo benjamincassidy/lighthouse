@@ -1,5 +1,7 @@
 import { Modal, ButtonComponent, type App } from 'obsidian'
 
+import { setDestructiveButton } from '@/utils/buttonCompat'
+
 export interface ConfirmModalOptions {
   title: string
   message: string
@@ -32,13 +34,12 @@ export class ConfirmModal extends Modal {
 
     const buttonContainer = contentEl.createDiv({ cls: 'lighthouse-modal-buttons' })
     new ButtonComponent(buttonContainer).setButtonText('Cancel').onClick(() => this.close())
-    new ButtonComponent(buttonContainer)
-      .setButtonText(this.options.confirmText ?? 'Delete')
-      .setWarning()
-      .onClick(async () => {
-        await this.options.onConfirm()
-        this.close()
-      })
+    setDestructiveButton(
+      new ButtonComponent(buttonContainer).setButtonText(this.options.confirmText ?? 'Delete'),
+    ).onClick(async () => {
+      await this.options.onConfirm()
+      this.close()
+    })
   }
 
   onClose(): void {

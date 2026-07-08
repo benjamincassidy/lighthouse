@@ -9,7 +9,7 @@ function getDesktopRequire(): (moduleName: string) => unknown {
     throw new Error('This feature is only available on desktop.')
   }
 
-  const win = (document.defaultView as unknown as WindowWithRequire | null) ?? null
+  const win: WindowWithRequire | null = activeDocument.defaultView
   if (!win?.require) {
     throw new Error('Node.js runtime is not available in this environment.')
   }

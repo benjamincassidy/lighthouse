@@ -41,7 +41,7 @@ export class WorkspaceManager {
       activeDocument?: Document
       containerEl?: HTMLElement
     }
-    return workspace.activeDocument ?? workspace.containerEl?.ownerDocument ?? document
+    return workspace.activeDocument ?? workspace.containerEl?.ownerDocument ?? activeDocument
   }
 
   isWritingWorkspaceActive(): boolean {

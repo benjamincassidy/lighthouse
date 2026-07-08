@@ -55,17 +55,21 @@ body[data-lighthouse-workspace='true'] .workspace-leaf-content[data-type='lighth
 /* ─────────────────────────────────────────────────────────────────────────── */
 
 /* Flow Mode Styles */
-.lighthouse-hidden {
-  display: none !important;
+/* Doubled class selector bumps specificity above Obsidian's own core rules
+   without resorting to !important. */
+.lighthouse-hidden.lighthouse-hidden {
+  display: none;
 }
 
-/* Dim tabs in zen mode instead of hiding them */
-body:has(.workspace-tabs.lighthouse-zen-dim) .workspace-tab-header-container {
+/* Dim tabs in zen mode instead of hiding them. workspace-tab-header-container
+   is a direct descendant of workspace-tabs, so a plain descendant selector
+   reaches it without needing :has(). */
+.workspace-tabs.lighthouse-zen-dim .workspace-tab-header-container {
   opacity: 0;
   transition: opacity 0.2s;
 }
 
-body:has(.workspace-tabs.lighthouse-zen-dim) .workspace-tab-header-container:hover {
+.workspace-tabs.lighthouse-zen-dim .workspace-tab-header-container:hover {
   opacity: 0.6;
 }
 

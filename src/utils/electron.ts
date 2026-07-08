@@ -34,11 +34,11 @@ export function getElectronDialog(app?: App): ElectronDialog | null {
     const appWindow = app
       ? ((app.workspace as unknown as { activeWindow: WindowWithRequire }).activeWindow ?? null)
       : null
-    const win = appWindow ?? (document.defaultView as unknown as WindowWithRequire) ?? null
+    const win: WindowWithRequire | null = appWindow ?? activeDocument.defaultView ?? null
     if (!win) return null
 
     // Dynamic require to avoid bundling issues
-    const electronRequire = win.require as ((module: string) => unknown) | undefined
+    const electronRequire = win.require
     if (!electronRequire) return null
 
     // Try @electron/remote first (newer)

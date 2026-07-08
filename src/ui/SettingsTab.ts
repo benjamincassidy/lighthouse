@@ -1,9 +1,10 @@
-import { App, PluginSettingTab, Setting } from 'obsidian'
+import { App, PluginSettingTab, Setting, type SettingDefinitionItem } from 'obsidian'
 
 import type LighthousePlugin from '@/main'
 import { DEFAULT_SETTINGS, type LighthouseSettings } from '@/types/settings'
 import { ConfirmModal } from '@/ui/modals/ConfirmModal'
 import { ProjectModal } from '@/ui/modals/ProjectModal'
+import { setDestructiveButton } from '@/utils/buttonCompat'
 
 // Re-export for backward compatibility
 export type { LighthouseSettings }
@@ -30,6 +31,10 @@ export class LighthouseSettingTab extends PluginSettingTab {
     return fallbackWindow
   }
 
+  /**
+   * @deprecated Since 1.13.0. Kept as the render path for Obsidian versions
+   * older than our minAppVersion's ceiling — see getSettingDefinitions().
+   */
   display(): void {
     const { containerEl } = this
 
@@ -39,6 +44,50 @@ export class LighthouseSettingTab extends PluginSettingTab {
     this.addFlowModeSection(containerEl)
     this.addWordCountSection(containerEl)
     this.addGeneralSection(containerEl)
+  }
+
+  /**
+   * Obsidian 1.13.0+ renders from this instead of calling display() — see
+   * https://docs.obsidian.md/Plugins/User+interface/Settings. Our
+   * minAppVersion (1.12.0) predates that, so display() above remains the
+   * fallback for anyone on an older Obsidian; on 1.13.0+ Obsidian calls this
+   * method and never calls display() at all.
+   *
+   * Reuses the exact same section-builder methods as display() — a single
+   * `render` escape hatch rather than converting every field to the
+   * key/control-bound declarative model — so the two render paths can't
+   * drift out of sync with each other.
+   */
+  getSettingDefinitions(): SettingDefinitionItem[] {
+    return [
+      {
+        name: '',
+        searchable: false,
+        render: (setting, group) => {
+          setting.settingEl.remove()
+          this.addProjectsSection(group.listEl)
+          this.addFlowModeSection(group.listEl)
+          this.addWordCountSection(group.listEl)
+          this.addGeneralSection(group.listEl)
+        },
+      },
+    ]
+  }
+
+  /**
+   * Re-renders the tab after data changes, on whichever render path is
+   * actually active for the running Obsidian version. update() only exists
+   * on 1.13.0+; calling display() there too would double-render since
+   * Obsidian already owns containerEl via the declarative path.
+   */
+  private refresh(): void {
+    const withUpdate = this as unknown as { update?: () => void }
+    if (typeof withUpdate.update === 'function') {
+      withUpdate.update()
+      return
+    }
+    // eslint-disable-next-line @typescript-eslint/no-deprecated -- fallback for < 1.13.0, see display() above
+    this.display()
   }
 
   private addProjectsSection(containerEl: HTMLElement): void {
@@ -62,7 +111,7 @@ export class LighthouseSettingTab extends PluginSettingTab {
 
         dropdown.onChange(async (value) => {
           await this.plugin.projectManager.setActiveProject(value || undefined)
-          this.display()
+          this.refresh()
         })
 
         return dropdown
@@ -89,20 +138,17 @@ export class LighthouseSettingTab extends PluginSettingTab {
           }),
         )
         .addButton((button) =>
-          button
-            .setButtonText('Delete')
-            .setWarning()
-            .onClick(() => {
-              new ConfirmModal(this.app, {
-                title: 'Delete project',
-                message: `Are you sure you want to delete "${activeProject.name}"?`,
-                note: 'Only the project configuration is removed. Your files stay untouched.',
-                onConfirm: async () => {
-                  await this.plugin.projectManager.deleteProject(activeProject.id)
-                  this.display()
-                },
-              }).open()
-            }),
+          setDestructiveButton(button.setButtonText('Delete')).onClick(() => {
+            new ConfirmModal(this.app, {
+              title: 'Delete project',
+              message: `Are you sure you want to delete "${activeProject.name}"?`,
+              note: 'Only the project configuration is removed. Your files stay untouched.',
+              onConfirm: async () => {
+                await this.plugin.projectManager.deleteProject(activeProject.id)
+                this.refresh()
+              },
+            }).open()
+          }),
         )
     }
 
