@@ -160,13 +160,10 @@
     top: number
   }
   let tooltip = $state<HeatTooltip | null>(null)
-  // eslint-disable-next-line no-undef
   let heatmapOuterEl = $state<HTMLElement | null>(null)
 
-  // eslint-disable-next-line no-undef
   function handleCellEnter(cell: HeatCell, e: MouseEvent) {
     if (!heatmapOuterEl) return
-    // eslint-disable-next-line no-undef
     const cellRect = (e.currentTarget as HTMLElement).getBoundingClientRect()
     const outerRect = heatmapOuterEl.getBoundingClientRect()
     const TOOLTIP_W = 140 // matches min-width in CSS

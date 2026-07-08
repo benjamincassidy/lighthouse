@@ -69,7 +69,7 @@ describe('ProjectManager', () => {
       const originalUpdatedAt = project.updatedAt
 
       // Wait a bit to ensure timestamp difference
-      await new Promise((resolve) => setTimeout(resolve, 10))
+      await new Promise((resolve) => window.setTimeout(resolve, 10))
 
       project.name = 'Updated Name'
       project.wordCountGoal = 50000
