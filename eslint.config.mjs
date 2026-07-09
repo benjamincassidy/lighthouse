@@ -14,6 +14,8 @@ export default tseslint.config(
       'docs/',
       'coverage/',
       'scripts/',
+      '.demo-vault/',
+      '.demo-vault-userdata/',
       '*.config.*',
       '*.json',
       '*.md',

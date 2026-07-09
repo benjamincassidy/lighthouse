@@ -1,0 +1,601 @@
+---
+import { Image } from 'astro:assets'
+import LighthouseMark from '../components/LighthouseMark.astro'
+import screenshot from '../assets/screenshots/writing-workspace.png'
+
+const base = import.meta.env.BASE_URL.endsWith('/')
+  ? import.meta.env.BASE_URL
+  : `${import.meta.env.BASE_URL}/`
+const gettingStarted = `${base}getting-started/introduction/`
+const githubUrl = 'https://github.com/benjamincassidy/lighthouse'
+const communityPluginsUrl = 'https://community.obsidian.md/plugins/lighthouse'
+
+const features = [
+  {
+    title: 'The Writing Workspace',
+    body: "One command opens a dedicated Library and Inspector. Obsidian's file explorer steps aside — it feels like a writing app of its own.",
+  },
+  {
+    title: 'Groups & Extras',
+    body: 'Nest chapters and sections into Groups with custom icons. Keep research and notes in Extras, automatically excluded from your count.',
+  },
+  {
+    title: 'Smart Word Counting',
+    body: 'Real-time counts at file, group, and project level, with goals and inline progress rings.',
+  },
+  {
+    title: 'Deadline Pacing',
+    body: 'Set a finish date and watch your required daily count recalculate as you write, with a rolling average of your pace.',
+  },
+  {
+    title: 'Writing Activity Heatmap',
+    body: 'A 13-week calendar of daily output. Streaks, personal bests, rest days — all tracked.',
+  },
+  {
+    title: 'Export to PDF, DOCX & EPUB',
+    body: 'Compile a project into one manuscript, with style presets, citations, and a table of contents.',
+  },
+  {
+    title: 'Split & Merge Notes',
+    body: 'Split a note at the cursor, or merge notes back together — reshape your structure without leaving the editor.',
+  },
+  {
+    title: 'Flow Mode',
+    body: 'One command for distraction-free writing. Sidebars, tabs, ribbon and status bar disappear. Typewriter scroll optional.',
+  },
+]
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lighthouse — Project-based writing for Obsidian</title>
+    <meta
+      name="description"
+      content="Project-based writing for Obsidian — groups, goals, pacing, and focus, brought to your vault. Inspired by Ulysses, built for long-form writers."
+    />
+    <link rel="icon" href={`${base}favicon.svg`} type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Work+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    {/* Same mechanism as Starlight's ThemeProvider, so a theme picked while
+       browsing the docs is respected here too. Inlined to avoid a flash. */}
+    <script is:inline>
+      const storedTheme =
+        typeof localStorage !== 'undefined' && localStorage.getItem('starlight-theme')
+      const theme =
+        storedTheme || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
+      document.documentElement.dataset.theme = theme === 'light' ? 'light' : 'dark'
+    </script>
+  </head>
+  <body>
+    <!-- NAV -->
+    <div class="nav">
+      <a class="nav-brand" href={base}>
+        <LighthouseMark size={24} strokeWidth={6} />
+        <span class="wordmark">Lighthouse</span>
+      </a>
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#why">Why Lighthouse</a>
+        <a href={githubUrl}>GitHub</a>
+        <a class="btn btn-navy" href={gettingStarted}>Get Started</a>
+      </div>
+    </div>
+
+    <!-- HERO -->
+    <div class="hero">
+      <LighthouseMark size={88} strokeWidth={5} />
+      <div class="eyebrow">For Obsidian</div>
+      <h1>Built for the long work.</h1>
+      <p class="subhead">
+        Project-based writing for Obsidian — groups, goals, pacing, and focus, brought to your
+        vault. Inspired by Ulysses, built for long-form writers.
+      </p>
+      <div class="cta-row">
+        <a class="btn btn-amber" href={gettingStarted}>Get Started</a>
+        <a class="link-arrow" href={githubUrl}>View on GitHub &rarr;</a>
+      </div>
+    </div>
+
+    <!-- SCREENSHOT -->
+    <div class="screenshot-wrap">
+      <div class="screenshot-card">
+        <div class="chrome-bar">
+          <div class="dot"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+        </div>
+        <Image src={screenshot} alt="The Lighthouse Writing Workspace: Library, editor, and Inspector together" />
+      </div>
+    </div>
+
+    <!-- FEATURES -->
+    <div id="features" class="features">
+      <div class="section-header">
+        <div class="eyebrow">Features</div>
+        <h2>Everything a long project needs</h2>
+      </div>
+      <div class="features-grid">
+        {
+          features.map((f) => (
+            <div>
+              <div class="rule" />
+              <h3>{f.title}</h3>
+              <p>{f.body}</p>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+
+    <!-- WHO -->
+    <div class="who">
+      <div class="eyebrow">Who it's for</div>
+      <p class="who-line">
+        Novelists drafting long fiction, academics writing theses, technical writers coordinating
+        docs — anyone with a long manuscript and a deadline.
+      </p>
+    </div>
+
+    <!-- WHY -->
+    <div id="why" class="why-band">
+      <div class="why-inner">
+        <p class="quote">
+          "It was done; it was finished. Yes, she thought, laying down her brush in extreme
+          fatigue, I have had my vision."
+        </p>
+        <div class="attribution">Virginia Woolf, To the Lighthouse</div>
+        <p class="why-body">
+          Lighthouse brings the focus of a dedicated writing app to Obsidian, without leaving it.
+          Your words stay exactly what they've always been — plain markdown, in your vault. No
+          lock-in, no proprietary format, no compromise.
+        </p>
+      </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="footer">
+      <div class="nav-brand">
+        <LighthouseMark size={18} variant="filled" fillColor="var(--lh-ink)" />
+        <span class="wordmark footer-wordmark">Lighthouse</span>
+      </div>
+      <div class="footer-links">
+        <a href={gettingStarted}>Documentation</a>
+        <a href={githubUrl}>GitHub</a>
+        <a href={communityPluginsUrl}>Community Plugins</a>
+      </div>
+      <div class="colophon">MIT Licensed &middot; Made by Benjamin Cassidy</div>
+    </div>
+  </body>
+</html>
+
+<style>
+  :root {
+    --lh-navy: #1e3a5f;
+    --lh-amber: #b45309;
+    --lh-paper: #faf8f3;
+    --lh-ink: #2b2620;
+    --lh-border: color-mix(in srgb, var(--lh-ink) 12%, transparent);
+    --lh-border-strong: color-mix(in srgb, var(--lh-ink) 18%, transparent);
+    --lh-shadow: color-mix(in srgb, var(--lh-ink) 35%, transparent);
+    --lh-chrome-bg: #ece5d6;
+    --lh-tile-bg: #f2ede2;
+    /* Always-light text for surfaces that stay dark/saturated in both themes
+       (navy why-band, navy/amber buttons) rather than inverting with the
+       page background. */
+    --lh-on-navy: #faf8f3;
+    --lh-on-brand: #faf8f3;
+  }
+
+  :global(html[data-theme='dark']) {
+    --lh-navy: #2c5488;
+    --lh-amber: #d68a3f;
+    --lh-paper: #161b22;
+    --lh-ink: #e8e2d4;
+    --lh-border: color-mix(in srgb, var(--lh-ink) 14%, transparent);
+    --lh-border-strong: color-mix(in srgb, var(--lh-ink) 20%, transparent);
+    --lh-shadow: color-mix(in srgb, black 55%, transparent);
+    --lh-chrome-bg: #1f2731;
+    --lh-tile-bg: #1c232c;
+  }
+
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    background: var(--lh-paper);
+    color: var(--lh-ink);
+    font-family: 'Work Sans', sans-serif;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    transition:
+      background-color 150ms ease,
+      color 150ms ease;
+  }
+
+  a {
+    text-decoration: none;
+    color: inherit;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: 'Newsreader', serif;
+    margin: 0;
+  }
+
+  .eyebrow {
+    font-size: 13px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-weight: 600;
+    opacity: 0.55;
+  }
+
+  /* Nav */
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 48px;
+    background: color-mix(in srgb, var(--lh-paper) 88%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--lh-border);
+  }
+
+  .nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .wordmark {
+    font-family: 'Newsreader', serif;
+    font-size: 19px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+  }
+
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 36px;
+  }
+
+  .nav-links > a:not(.btn) {
+    font-size: 14.5px;
+    opacity: 0.75;
+    transition: opacity 150ms ease;
+  }
+
+  .nav-links > a:not(.btn):hover {
+    opacity: 1;
+  }
+
+  .btn {
+    font-weight: 600;
+    border-radius: 3px;
+    transition: background-color 150ms ease;
+  }
+
+  .btn-navy {
+    background: var(--lh-navy);
+    color: var(--lh-on-brand);
+    font-size: 14px;
+    padding: 10px 20px;
+  }
+
+  .btn-navy:hover {
+    background: color-mix(in srgb, var(--lh-navy) 85%, black);
+  }
+
+  .btn-amber {
+    background: var(--lh-amber);
+    color: var(--lh-on-brand);
+    font-size: 15px;
+    padding: 13px 26px;
+  }
+
+  .btn-amber:hover {
+    background: color-mix(in srgb, var(--lh-amber) 88%, black);
+  }
+
+  /* Hero */
+  .hero {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 96px 32px 56px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .hero > :global(svg) {
+    margin-bottom: 32px;
+  }
+
+  .hero .eyebrow {
+    margin-bottom: 18px;
+  }
+
+  .hero h1 {
+    font-size: 56px;
+    line-height: 1.08;
+    font-weight: 500;
+    margin: 0 0 22px;
+    letter-spacing: -0.01em;
+  }
+
+  .subhead {
+    font-size: 18px;
+    line-height: 1.6;
+    opacity: 0.72;
+    max-width: 540px;
+    margin: 0 0 36px;
+  }
+
+  .cta-row {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+  }
+
+  .link-arrow {
+    font-size: 15px;
+    font-weight: 600;
+    padding: 13px 10px;
+    border-bottom: 1px solid transparent;
+    transition: border-color 150ms ease;
+  }
+
+  .link-arrow:hover {
+    border-bottom-color: currentColor;
+  }
+
+  /* Screenshot */
+  .screenshot-wrap {
+    max-width: 980px;
+    margin: 0 auto 120px;
+    padding: 0 32px;
+  }
+
+  .screenshot-card {
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--lh-border);
+    box-shadow: 0 30px 60px -30px var(--lh-shadow);
+  }
+
+  .screenshot-card :global(img) {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .chrome-bar {
+    height: 42px;
+    background: var(--lh-chrome-bg);
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 0 16px;
+    border-bottom: 1px solid var(--lh-border);
+  }
+
+  .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--lh-border-strong);
+  }
+
+  /* Features */
+  .features {
+    max-width: 980px;
+    margin: 0 auto 128px;
+    padding: 0 32px;
+  }
+
+  .section-header {
+    text-align: center;
+    margin-bottom: 64px;
+  }
+
+  .section-header .eyebrow {
+    margin-bottom: 14px;
+  }
+
+  .features h2 {
+    font-size: 36px;
+    font-weight: 500;
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 48px 56px;
+  }
+
+  .rule {
+    width: 20px;
+    height: 3px;
+    background: var(--lh-amber);
+    margin-bottom: 16px;
+  }
+
+  .features-grid h3 {
+    font-size: 21px;
+    font-weight: 500;
+    margin: 0 0 10px;
+  }
+
+  .features-grid p {
+    font-size: 15px;
+    line-height: 1.65;
+    opacity: 0.68;
+    margin: 0;
+  }
+
+  /* Who */
+  .who {
+    max-width: 760px;
+    margin: 0 auto 128px;
+    padding: 0 32px;
+    text-align: center;
+  }
+
+  .who .eyebrow {
+    margin-bottom: 22px;
+  }
+
+  .who-line {
+    font-family: 'Newsreader', serif;
+    font-size: 26px;
+    line-height: 1.5;
+    font-style: italic;
+    margin: 0;
+  }
+
+  /* Why band */
+  .why-band {
+    background: var(--lh-navy);
+    padding: 96px 32px;
+    margin-bottom: 128px;
+  }
+
+  .why-inner {
+    max-width: 680px;
+    margin: 0 auto;
+    text-align: center;
+  }
+
+  .quote {
+    font-family: 'Newsreader', serif;
+    font-size: 30px;
+    font-style: italic;
+    line-height: 1.5;
+    color: var(--lh-on-navy);
+    margin: 0 0 20px;
+  }
+
+  .attribution {
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--lh-amber);
+    font-weight: 600;
+    margin-bottom: 48px;
+  }
+
+  .why-body {
+    font-size: 16.5px;
+    line-height: 1.7;
+    color: var(--lh-on-navy);
+    opacity: 0.75;
+    margin: 0;
+  }
+
+  /* Footer */
+  .footer {
+    border-top: 1px solid var(--lh-border);
+    padding: 40px 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+
+  .footer .nav-brand {
+    gap: 9px;
+  }
+
+  .footer-wordmark {
+    font-size: 15.5px;
+  }
+
+  .footer-links {
+    display: flex;
+    gap: 28px;
+  }
+
+  .footer-links a {
+    font-size: 14px;
+    opacity: 0.65;
+    transition: opacity 150ms ease;
+  }
+
+  .footer-links a:hover {
+    opacity: 1;
+  }
+
+  .colophon {
+    font-size: 13px;
+    opacity: 0.45;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .nav {
+      padding: 14px 20px;
+    }
+
+    .nav-links {
+      gap: 16px;
+    }
+
+    .nav-links a:not(.btn) {
+      display: none;
+    }
+
+    .hero {
+      padding: 56px 20px 40px;
+    }
+
+    .hero h1 {
+      font-size: 38px;
+    }
+
+    .subhead {
+      font-size: 16px;
+    }
+
+    .screenshot-wrap,
+    .features,
+    .who {
+      padding: 0 20px;
+    }
+
+    .features-grid {
+      grid-template-columns: 1fr;
+      gap: 36px;
+    }
+
+    .why-band {
+      padding: 56px 20px;
+    }
+
+    .quote {
+      font-size: 22px;
+    }
+
+    .footer {
+      padding: 28px 20px;
+      justify-content: center;
+      text-align: center;
+    }
+  }
+</style>

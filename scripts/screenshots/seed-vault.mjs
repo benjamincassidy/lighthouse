@@ -4,15 +4,7 @@
 // wipes and rebuilds the vault from scratch, so it's always reproducible.
 
 import { randomUUID } from 'crypto'
-import {
-  existsSync,
-  cpSync,
-  rmSync,
-  mkdirSync,
-  writeFileSync,
-  readFileSync,
-  readdirSync,
-} from 'fs'
+import { existsSync, cpSync, rmSync, mkdirSync, writeFileSync, readFileSync, readdirSync } from 'fs'
 import { dirname, join } from 'path'
 import { fileURLToPath } from 'url'
 

@@ -10,6 +10,10 @@ export default defineConfig({
 		starlight({
 			title: 'Lighthouse',
 			description: 'Project-based writing for Obsidian',
+			logo: {
+				light: './src/assets/brand/icon-line.svg',
+				dark: './src/assets/brand/icon-line-dark.svg',
+			},
 			social: [
 				{
 					name: 'GitHub',

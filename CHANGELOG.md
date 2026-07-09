@@ -9,15 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.3.0] - 2026-07-08
 
-### Added
-- Feature 1
-- Feature 2
+### Changed
+- **Raised minimum Obsidian version to 1.12.0** (from 1.4.0) to support current Settings and popout-window APIs
+- Adopted Obsidian's new declarative Settings API (`getSettingDefinitions`) on 1.13.0+, with the classic `display()` path kept as an automatic fallback on older 1.12.x installs
+- Destructive actions (e.g. deleting a project) use Obsidian's native destructive button styling on 1.13.0+, falling back to the previous styling on older versions
+- Internal code now consistently uses Obsidian's `activeDocument`/`activeWindow` instead of the browser's bare `document`/`window`, for correctness in popout windows
+- Removed unused legacy CSS and data left over from an early export-style prototype that was never wired to actual PDF/DOCX output — built-in export styles have used downloaded Typst/Word templates for some time
 
 ### Fixed
-- Bug fix 1
-
-### Changed
-- Change 1
+- Cleaned up remaining CSS lint issues (`!important`, an expensive `:has()` selector) flagged by Obsidian's plugin review tooling
+- Fixed `docs/README.md`, which still had the unedited Astro/Starlight starter template text
+- Fixed a formatting bug in `scripts/README.md`'s version-numbering section
+- Updated dependencies (esbuild, eslint-plugin-obsidianmd, and a transitive `brace-expansion` advisory) to resolve moderate security advisories
 
 ## [1.2.0] - 2026-07-07
 
