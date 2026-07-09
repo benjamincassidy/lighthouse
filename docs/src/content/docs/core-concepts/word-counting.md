@@ -28,6 +28,18 @@ Lighthouse tracks words at three levels:
 
 Project totals include everything under the project root **except the Extras group**. This ensures your progress toward a goal reflects actual writing, not research notes. See [Groups & Extras](/core-concepts/groups/) for how Extras works.
 
+### Excluding an Individual File
+
+To exclude a single file from word-count totals without moving it into Extras, add this to its YAML frontmatter:
+
+```yaml
+---
+lighthouse-uncounted: true
+---
+```
+
+The file is skipped entirely from project and group totals — same treatment as an Extras file, just scoped to one note wherever it lives. Useful for a dedication, an epigraph, or any note you don't want counted toward a goal but don't want to relocate.
+
 ## What Gets Counted
 
 ### Included by default

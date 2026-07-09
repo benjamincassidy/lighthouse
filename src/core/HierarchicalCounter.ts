@@ -116,9 +116,18 @@ export class HierarchicalCounter {
   }
 
   /**
+   * True if the file's frontmatter has `lighthouse-uncounted: true`, excluding
+   * it from word-count totals independent of Extras-folder membership.
+   */
+  private isUncounted(file: TFile): boolean {
+    return this.app.metadataCache.getFileCache(file)?.frontmatter?.['lighthouse-uncounted'] === true
+  }
+
+  /**
    * Calculate stats for a folder and its children recursively.
    * Skips recursing into `excludePath` entirely (neither its words nor its
-   * files are counted) — used to exclude a project's Extras subtree.
+   * files are counted) — used to exclude a project's Extras subtree. Also
+   * skips individual files flagged `lighthouse-uncounted: true`.
    */
   private async calculateFolderStats(
     folder: TFolder,
@@ -140,6 +149,9 @@ export class HierarchicalCounter {
         wordCount += childStats.wordCount
         fileCount += childStats.fileCount
       } else if (this.isTFile(child) && child.extension === 'md') {
+        if (this.isUncounted(child)) {
+          continue
+        }
         // It's a markdown file
         const result = await this.countFile(child, options)
         if (result) {
