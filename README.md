@@ -19,6 +19,23 @@ Lighthouse brings professional writing project management to Obsidian, inspired 
 
 Visit the [complete documentation site](https://benjamincassidy.github.io/lighthouse/) for detailed guides, tutorials, and reference materials.
 
+## Screenshots
+
+<table>
+  <tr>
+    <td width="50%"><img src="screenshots/01-writing-workspace.png" alt="Writing Workspace: Library, editor, and Inspector together" /><br/><sub><b>The Writing Workspace</b> — Library, editor, and Inspector side by side</sub></td>
+    <td width="50%"><img src="screenshots/02-inspector-stats.png" alt="Inspector Stats tab showing pacing and streak" /><br/><sub><b>The Inspector</b> — live word counts, deadline pacing, and streak</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="screenshots/03-groups-and-extras.png" alt="Groups and Extras with nested folders" /><br/><sub><b>Groups & Extras</b> — nested groups, tinted icons for research notes</sub></td>
+    <td width="50%"><img src="screenshots/04-export.png" alt="Export dialog with PDF style and paper size options" /><br/><sub><b>Export</b> — compile to PDF, DOCX, or EPUB with style presets</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="screenshots/05-flow-mode.png" alt="Flow Mode distraction-free editor" /><br/><sub><b>Flow Mode</b> — distraction-free writing</sub></td>
+    <td width="50%"></td>
+  </tr>
+</table>
+
 ## Features
 
 ### ✅ Implemented

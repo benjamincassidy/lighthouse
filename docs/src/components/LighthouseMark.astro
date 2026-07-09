@@ -1,0 +1,61 @@
+---
+// Reusable Lighthouse mark — tower/light/base reduced to their simplest
+// geometry. `variant="outline"` (default) is the line treatment used in
+// nav/hero; `variant="filled"` is the solid navy treatment, which reads
+// better at very small sizes (footer, favicon-scale demos).
+interface Props {
+  size?: number
+  variant?: 'outline' | 'filled'
+  strokeWidth?: number
+  inkColor?: string
+  amberColor?: string
+  fillColor?: string
+}
+
+// Defaults reference CSS custom properties (defined per-theme by the
+// consuming page) rather than fixed hex values, so the outline variant's
+// stroke — and the filled variant's fill, when it's meant to read as "ink"
+// rather than a fixed brand color — flips light/dark automatically.
+const {
+  size = 24,
+  variant = 'outline',
+  strokeWidth = 6,
+  inkColor = 'var(--lh-ink)',
+  amberColor = 'var(--lh-amber)',
+  fillColor = 'var(--lh-navy)',
+} = Astro.props
+---
+
+<svg width={size} height={size} viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+  {
+    variant === 'outline' ? (
+      <>
+        <polygon
+          points="45,46 75,46 85,98 35,98"
+          fill="none"
+          stroke={inkColor}
+          stroke-width={strokeWidth}
+          stroke-linejoin="round"
+        />
+        <rect x="49" y="30" width="22" height="16" fill="none" stroke={inkColor} stroke-width={strokeWidth} />
+        <polygon
+          points="46,30 74,30 60,15"
+          fill="none"
+          stroke={inkColor}
+          stroke-width={strokeWidth}
+          stroke-linejoin="round"
+        />
+        <rect x="49" y="35" width="22" height="6" fill={amberColor} />
+        <rect x="18" y="98" width="84" height="5" rx="1" fill={amberColor} />
+      </>
+    ) : (
+      <>
+        <polygon points="45,46 75,46 85,98 35,98" fill={fillColor} />
+        <rect x="49" y="30" width="22" height="16" fill={fillColor} />
+        <polygon points="46,30 74,30 60,15" fill={fillColor} />
+        <rect x="49" y="35" width="22" height="6" fill={amberColor} />
+        <rect x="18" y="98" width="84" height="5" rx="1" fill={amberColor} />
+      </>
+    )
+  }
+</svg>

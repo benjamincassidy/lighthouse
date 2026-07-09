@@ -44,3 +44,8 @@ yarn-error.log*
 # Environment
 .env
 .env.local
+
+# Screenshot generation (scripts/screenshots/) — throwaway vault/profile only;
+# screenshots/ itself is checked in and shown in the README
+.demo-vault
+.demo-vault-userdata

@@ -34,7 +34,9 @@ Before creating a release, ensure:
   - [ ] `versions.json`
 - [ ] `CHANGELOG.md` updated with:
   - [ ] New version header `## [X.Y.Z] - YYYY-MM-DD`
-  - [ ] All changes documented
+  - [ ] All changes documented — write real entries, not the skeleton
+        placeholders the release script generates when it can't infer
+        anything from commit messages
   - [ ] Comparison link at bottom
 - [ ] Documentation up to date
 - [ ] README.md reflects current features
@@ -53,9 +55,9 @@ npm run release 1.0.0
 This script:
 - Updates `manifest.json`, `package.json`, `versions.json`
 - Regenerates `package-lock.json` with the new version
+- Generates a CHANGELOG.md entry from conventional commits since the last
+  tag (or a skeleton to fill in by hand if none are found)
 - Shows you the next steps
-
-See [scripts/README.md](scripts/README.md) for full documentation.
 
 **Option B: Manual Update**
 
@@ -143,11 +145,12 @@ Once the PR is merged to `main`, the workflow will automatically:
 
 ## Version Verification
 
-The workflow automatically vis different from latest release
+The workflow automatically verifies:
+- ✅ `manifest.json` version is different from latest release
 - ⚠️ `package.json` version matches `manifest.json` (warning only)
 - ✅ `versions.json` includes the new version
 
-If the version hasn't changed, the workflow skips
+If the version hasn't changed, the workflow skips the release.
 
 If versions don't match, the workflow will fail before creating a release.
 
@@ -187,14 +190,14 @@ If `main.js` or `styles.css` are missing:
 
 To rollback a release:
 
-1. Delete the GitHub release (if already published)
-2. Delete the tag:n GitHub UI or via CLI)
+1. Delete the GitHub release (via GitHub UI or `gh release delete`)
 2. Delete the tag:
    ```bash
    git push origin :refs/tags/0.9.0
    ```
 3. Revert the version bump commit on main
 4. Fix issues and create a new release with a new version
+
 ## Manual Release (Fallback)
 
 If the automated workflow fails, you can create a manual release:
@@ -207,17 +210,6 @@ If the automated workflow fails, you can create a manual release:
 6. Mark as pre-release if applicable
 7. Publish release
 
-## First Release Special Notes
-
-For the first `0.9.0` release:
-
-- ✅ All core features implemented
-- ✅ Documentation complete
-- ✅ Tests passing (95% coverage)
-- ✅ Obsidian plugin policies followed
-- 🏷️ Will be marked as pre-release (0.x version)
-- 📣 Ready for alpha testing
-
 After release, users can manually install by:
 1. Downloading `main.js`, `manifest.json`, and `styles.css`
 2. Creating `.obsidian/plugins/lighthouse/` in their vault
@@ -227,9 +219,6 @@ After release, users can manually install by:
 ## After Release
 
 1. ✅ Test the release by manually installing in a test vault
-2. 📣 Announce on:
-   - GitHub Discussions
-   - Reddit r/ObsidianMD (if appropriate)
-   - Discord (if applicable)
+2. 📣 Announce on relevant channels (GitHub Discussions, Reddit r/ObsidianMD, etc.) if it's a notable release
 3. 🐛 Monitor for bug reports
 4. 📝 Plan next release based on feedback

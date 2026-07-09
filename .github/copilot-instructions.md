@@ -1,142 +1,101 @@
 # Lighthouse Plugin - Copilot Instructions
 
 ## Project Overview
-Lighthouse is an Obsidian plugin for project-based, long-form writing. Inspired by Ulysses, it provides writing project management without sacrificing Obsidian's flexibility. The project is currently in **pre-implementation** phase with comprehensive planning complete.
+Lighthouse is a shipped, actively-maintained Obsidian plugin for project-based, long-form writing, inspired by Ulysses. It's listed on the community plugin directory (community.obsidian.md/plugins/lighthouse). This file describes the actual current architecture — check the code before assuming anything here is still accurate, but it should be a reliable starting map.
 
 ## Architecture & Tech Stack
 
 **Core Technologies:**
 - TypeScript (strict mode)
-- Svelte for UI components
-- esbuild for builds (with Svelte plugin)
-- Obsidian Plugin API (latest stable)
+- Svelte 5 (runes) for UI components
+- esbuild for builds (with `esbuild-svelte`)
+- Obsidian Plugin API
 - Svelte stores for state management
+- Pandoc + Typst (downloaded on demand) for DOCX/EPUB and PDF export
 
-**Planned Module Structure:**
-- `src/core/` - Core business logic (ProjectManager, WordCounter, FolderManager, stores)
-- `src/ui/` - Svelte views and components
-- `src/integrations/` - External plugin integrations (Dataview, Templater)
-- `src/utils/` - Pure utility functions
-- `src/types/` - TypeScript interfaces and types
+**Module Structure:**
+- `src/core/` — business logic: `ProjectManager`/`ProjectStorage` (CRUD + persistence), `WordCounter`/`HierarchicalCounter` (counting), `FolderManager` (path resolution, Extras detection), `WorkspaceManager` (Writing Workspace layout), `FlowMode`, `WritingSessionTracker`, `FileSplitter`, `ProjectCompiler`, `exporters/` (PDF/DOCX/EPUB), `tools/` (Pandoc/Typst binary management)
+- `src/ui/views/` — the two main panels: `ProjectExplorer.svelte` (the **Library**, left sidebar) and `Inspector.svelte` (right sidebar, with `OverviewTab`/`StatsTab`/`OutlineTab`)
+- `src/ui/modals/` — `ProjectModal`, `GroupModal`, `ExportModal`, `FileGoalModal`, `MergeModal`, `ConfirmModal`, etc.
+- `src/ui/components/` — shared Svelte components (`TreeNode`, `SheetCard`, `SheetList`, …)
+- `src/ui/menus/` — right-click context menu builders
+- `src/utils/` — pure utility functions (no Obsidian API dependency where possible)
+- `src/types/` — TypeScript interfaces (`Project` etc.)
 
 ## Key Architectural Decisions
 
+### The Writing Workspace
+`WorkspaceManager` owns entering/exiting a dedicated layout: the Library in the left sidebar, the Inspector in the right sidebar, Obsidian's native file explorer detached for the duration and restored on exit. Toggled via the ribbon icon or the `Lighthouse: Open/Exit writing workspace` commands.
+
+### Groups & Extras (not "content/source folders")
+A project is a single root folder. Every subfolder under the root is a **Group** shown in the Library, and can nest. One subfolder is designated **Extras** (auto-provisioned, default name `Extras`) and is excluded from word counts — this replaced an earlier `contentFolders`/`sourceFolders` array design; don't reintroduce that model.
+
 ### Data Ownership
 - User data stays in standard markdown files
-- No vendor lock-in - projects are just folders
-- Project metadata stored in plugin settings (not in vault files)
+- No vendor lock-in — projects are just a root folder pointer
+- Project metadata stored in `<vault>/.obsidian/lighthouse.json` (see `ProjectStorage.ts` — a custom path, not the default per-plugin `data.json`)
 - Vault-relative paths for portability
 
 ### Performance Strategy
-- **Word counting:** Cached calculations with debounced updates
-- Real-time updates but throttled to avoid blocking
-- Hierarchical calculation: file → folder → project levels
+- Word counting: debounced (`WordCounter`), with `HierarchicalCounter` aggregating file → group → project
+- Hierarchical calculation avoids redundant re-reads where possible
 
 ### State Management
-- Svelte stores for reactive state (see planned `src/core/stores.ts`)
-- Active project context persists across sessions
-- Store active project ID in plugin data
+- Svelte stores for reactive state (`src/core/stores.ts`)
+- Active project ID persists in `lighthouse.json`
 
 ## Core Data Model
 
+See `src/types/types.ts` for the authoritative `Project` interface. Key shape (abbreviated):
+
 ```typescript
 interface Project {
-  id: string;                    // UUID
-  name: string;
-  rootPath: string;              // Vault-relative
-  contentFolders: string[];      // Paths relative to rootPath
-  sourceFolders: string[];       // Paths relative to rootPath
-  wordCountGoal?: number;
-  dashboardConfig?: DashboardConfig;
-  templateFolder?: string;
-  metadata?: Record<string, any>;
+  id: string
+  name: string
+  rootPath: string              // Vault-relative
+  extrasFolder?: string         // Single subfolder excluded from word counts
+  wordCountGoal?: number
+  goalDirection?: 'at-least' | 'at-most'
+  folderGoals?: Record<string, number>   // per-group goals
+  folderIcons?: Record<string, string>   // per-group icon IDs
+  fileGoals?: Record<string, number>     // per-file goals
+  fileOrder?: string[]                   // custom sheet/group order
+  deadline?: string
+  dailyGoal?: number
+  dailyWordCounts?: Record<string, number>  // heatmap/streak source
+  daysOff?: string[]
+  bibliographyPath?: string
+  citationStyle?: string
+  lastExportSettings?: LastExportSettings
 }
 ```
 
-**Critical distinction:** Content folders count toward word goals; source folders don't (research, notes, references).
+**There is no `contentFolders`/`sourceFolders` distinction anymore.** Everything under `rootPath` counts except the single `extrasFolder`.
 
 ## Development Workflow
 
-**Not yet implemented - when building:**
+1. **Build:** `npm run dev` (watch mode) or `npm run build` (production, type-checks first)
+2. **Testing:** `npm test` (Vitest, `environment: 'node'`, pure-logic tests only — Svelte components aren't unit tested) + manual testing in an Obsidian dev vault
+3. **Lint:** `npm run lint` (ESLint with `eslint-plugin-obsidianmd` — keep this package current, its rules track Obsidian's own review bot)
+4. **Screenshots:** `npm run screenshots` regenerates the store-listing screenshots via a Playwright-driven demo vault (see `scripts/screenshots/`)
 
-1. **Build:** `npm run dev` (hot reload with obsidian-hot-reload plugin)
-2. **Testing:** `npm test` (Vitest for unit tests) + manual testing in Obsidian dev vault
-3. **Building for release:** `npm run build`
-
-**Build Configuration:**
-- esbuild with Svelte plugin for fast compilation
-- Source maps enabled in dev mode
-- CSS bundling: Svelte scoped styles + global `styles.css`
-- Minification in production builds only
-
-**Testing Strategy:**
-- **Vitest** for unit tests (core logic, utilities, word counting)
-- Test files: `*.test.ts` or `*.spec.ts` alongside source files
-- Mock Obsidian API in tests using `vi.mock()`
-- Focus testing on: ProjectManager CRUD, WordCounter logic, FolderManager operations
-- Manual testing in Obsidian for UI components and integration
-
-**Plugin Development:**
-- Start minimal: scaffold → basic loading → add features incrementally
-- Test each feature in Obsidian before moving to next
-- Use Obsidian's developer console for debugging
-
-**Import Paths:**
-- Use relative path aliases via `tsconfig.json`:
-  - `@/core/*` → `src/core/*`
-  - `@/ui/*` → `src/ui/*`
-  - `@/utils/*` → `src/utils/*`
-  - `@/types/*` → `src/types/*`
-- Example: `import { ProjectManager } from '@/core/ProjectManager'`
+**Import Paths:** path aliases via `tsconfig.json` — `@/core/*`, `@/ui/*`, `@/utils/*`, `@/types/*`.
 
 ## Project-Specific Patterns
 
-### Folder Type System
-Projects distinguish between content (counts) and source (doesn't count) folders. This is core to the plugin's value proposition. Always respect this distinction in word counting logic.
+### Obsidian API version guards
+When using an Obsidian API newer than `minAppVersion` (currently 1.12.0), guard it with `requireApiVersion('x.y.z')` rather than duck-typing — that's what `eslint-plugin-obsidianmd`'s `no-unsupported-api` rule recognizes as safe. See `src/utils/buttonCompat.ts` and `SettingsTab.ts`'s `getSettingDefinitions()`/`display()` pair for the pattern.
 
-### Plugin Integration Strategy
-- **Dataview:** Optional integration for dashboard queries
-- **Templater:** Optional integration for project templates with variables like `{{project_name}}`, `{{project_path}}`
-- Check if plugins are installed before using their APIs
+### Deprecated API usage
+Don't suppress `@typescript-eslint/no-deprecated` with a disable comment — the lint config forbids it. If you have a legitimate reason to call a deprecated API (e.g. a fallback path for an older Obsidian version), let the warning surface; it doesn't fail the build.
 
-### Zen Mode Implementation
-Must hide: sidebars, status bar, ribbon, plugin UI. Should coexist with other focus/zen plugins. Use Obsidian's `Workspace` API to manipulate UI elements.
-
-## Key Features (Priority Order)
-
-1. **Foundation:** Project CRUD, storage, switching
-2. **Word Counting:** Accurate counts at file/folder/project levels
-3. **Filtered Explorer:** Project-scoped file tree view
-4. **Dashboard:** Stats and customizable dataview queries
-5. **Zen Mode:** Distraction-free writing toggle
-6. **Templates:** Project-aware template system
+### Popout-window compatibility
+Use `activeDocument`/`activeWindow` (Obsidian's globals) instead of the bare `document`/`window`, and `window.setTimeout`/`window.clearTimeout` explicitly rather than the bare globals, for correctness when Obsidian is used in a popout window.
 
 ## Code Style Preferences
 
-- Modern, clean TypeScript (use async/await, optional chaining)
-- Prefer composition over inheritance
+- Modern, clean TypeScript (async/await, optional chaining)
 - Keep components small and focused
-- Use descriptive names (e.g., `ProjectManager.switchActiveProject()` not `ProjectManager.switch()`)
-- Document complex logic with comments explaining "why" not "what"
-
-## Important Constraints
-
-- User is experienced with TypeScript and Obsidian plugins
-- User prefers minimal, modern design (think Ulysses aesthetic)
-- Primary use case: literary/creative writing projects, academic theses and dissertations, blog posts, technical writing, journal articles
-- Must integrate smoothly with Obsidian ecosystem
-- Must be fast and performant even with large vaults
-- No data loss - autosave, proper error handling
-- Starting fresh - prioritize modern, clean patterns over legacy approaches
-
-## When Building New Features
-
-1. Check if feature exists in project brief (`LIGHTHOUSE_PROJECT_BRIEF.md`)
-2. Follow planned file structure in brief
-3. Use data models defined in brief as starting point
-4. Ask for clarification on ambiguous design decisions before implementing
-5. Prioritize working code over completeness
-6. Keep extensibility in mind - architecture should accommodate future features
-
-## Files to Reference
-- [LIGHTHOUSE_PROJECT_BRIEF.md](../LIGHTHOUSE_PROJECT_BRIEF.md) - Comprehensive requirements and architecture
+- Use descriptive names (e.g., `ProjectManager.setActiveProject()` not `ProjectManager.switch()`)
+- Comment only the "why" (non-obvious constraints, workarounds), not the "what"
+- No new features/abstractions beyond what's asked
