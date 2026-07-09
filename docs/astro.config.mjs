@@ -69,6 +69,10 @@ export default defineConfig({
 						{ label: 'Troubleshooting', slug: 'reference/troubleshooting' },
 					],
 				},
+				{
+					label: 'Comparison',
+					items: [{ label: 'Lighthouse vs. Other Plugins', slug: 'comparison' }],
+				},
 			],
 			customCss: ['./src/styles/custom.css'],
 		}),

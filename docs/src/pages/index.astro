@@ -7,6 +7,7 @@ const base = import.meta.env.BASE_URL.endsWith('/')
   ? import.meta.env.BASE_URL
   : `${import.meta.env.BASE_URL}/`
 const gettingStarted = `${base}getting-started/introduction/`
+const comparisonUrl = `${base}comparison/`
 const githubUrl = 'https://github.com/benjamincassidy/lighthouse'
 const communityPluginsUrl = 'https://community.obsidian.md/plugins/lighthouse'
 
@@ -139,6 +140,9 @@ const features = [
       <p class="who-line">
         Novelists drafting long fiction, academics writing theses, technical writers coordinating
         docs — anyone with a long manuscript and a deadline.
+      </p>
+      <p class="who-compare">
+        <a class="link-arrow" href={comparisonUrl}>See how Lighthouse compares to other Obsidian writing plugins &rarr;</a>
       </p>
     </div>
 
@@ -467,6 +471,10 @@ const features = [
     line-height: 1.5;
     font-style: italic;
     margin: 0;
+  }
+
+  .who-compare {
+    margin: 24px 0 0;
   }
 
   /* Why band */

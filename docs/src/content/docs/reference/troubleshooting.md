@@ -10,17 +10,16 @@ description: Common issues and solutions
 ### Plugin won't appear after installation
 
 **Solution:**
-1. Verify all three files are present: `main.js`, `manifest.json`, `styles.css`
-2. Check folder name is exactly `lighthouse` (lowercase)
-3. Restart Obsidian completely
-4. Disable Restricted Mode in Settings → Community Plugins
+1. If you installed manually, verify all three files are present: `main.js`, `manifest.json`, `styles.css`, and that the folder name is exactly `lighthouse` (lowercase)
+2. Restart Obsidian completely
+3. Disable Restricted Mode in Settings → Community Plugins
 
 ### Plugin won't enable
 
 **Solution:**
 1. Open Developer Console (Cmd/Ctrl+Shift+I)
 2. Look for error messages
-3. Verify Obsidian version is 1.4.0 or later
+3. Verify Obsidian version is 1.12.0 or later
 4. Try reinstalling the plugin
 5. Report issues on [GitHub](https://github.com/benjamincassidy/lighthouse/issues)
 
