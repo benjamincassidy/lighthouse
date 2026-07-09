@@ -1,23 +1,23 @@
-# Lighthouse
+<div align="center">
+  <img src="assets/icon-app-tile.svg" alt="Lighthouse" width="96" height="96" />
 
-<img align="right" src="docs/src/assets/lighthouse.jpeg" alt="Lighthouse" width="300"/>
+  # Lighthouse
+
+  ### Project-based writing for Obsidian
+
+  [![GitHub release](https://img.shields.io/github/v/release/benjamincassidy/lighthouse?label=release)](https://github.com/benjamincassidy/lighthouse/releases/latest)
+  [![Downloads](https://img.shields.io/badge/dynamic/json?logo=obsidian&color=%23483699&label=downloads&query=%24%5B%27lighthouse%27%5D.downloads&url=https%3A%2F%2Fraw.githubusercontent.com%2Fobsidianmd%2Fobsidian-releases%2Fmaster%2Fcommunity-plugin-stats.json)](https://community.obsidian.md/plugins/lighthouse)
+  [![License: MIT](https://img.shields.io/badge/license-MIT-b45309)](LICENSE)
+
+  [Documentation](https://benjamincassidy.github.io/lighthouse/) · [Community Plugin listing](https://community.obsidian.md/plugins/lighthouse) · [Report an issue](https://github.com/benjamincassidy/lighthouse/issues)
+</div>
+
+<br />
 
 > "It was done; it was finished. Yes, she thought, laying down her brush in extreme fatigue, I have had my vision."
 > — Virginia Woolf, *To the Lighthouse*
 
-<br />
-
-### Project-based writing for Obsidian.
-
-Lighthouse brings professional writing project management to Obsidian, inspired by Ulysses but without sacrificing Obsidian's power and flexibility. Perfect for novelists, academic writers, and anyone working on long-form writing projects.
-
-<br clear="right"/>
-
----
-
-## 📖 [Full Documentation](https://benjamincassidy.github.io/lighthouse/)
-
-Visit the [complete documentation site](https://benjamincassidy.github.io/lighthouse/) for detailed guides, tutorials, and reference materials.
+Lighthouse brings the focus of a dedicated writing app to Obsidian, inspired by Ulysses but without giving up Obsidian's power and flexibility. One command opens a dedicated Library and Inspector for a project — groups, goals, pacing, and focus, all built on plain markdown files in your vault. No lock-in, no proprietary format.
 
 ## Screenshots
 
@@ -38,76 +38,76 @@ Visit the [complete documentation site](https://benjamincassidy.github.io/lighth
 
 ## Features
 
-### ✅ Implemented
-
 **Writing Workspace**
-- **The Library** — A Ulysses-style Groups & Sheets browser in the left sidebar, replacing Obsidian's file explorer for the duration; drag-and-drop to reorder groups and sheets
-- **The Inspector** — Right-sidebar panel with Overview (goal ring, writing heatmap, streak), Stats (live counts, pacing), and Outline tabs
-- **One-command layout** — Toggle the whole workspace on/off from the ribbon; native file explorer is restored automatically on exit
+- The Library — a Ulysses-style Groups & Sheets browser in the left sidebar, replacing Obsidian's file explorer for the duration; drag-and-drop to reorder groups and sheets
+- The Inspector — right-sidebar panel with Overview (goal ring, writing heatmap, streak), Stats (live counts, pacing), and Outline tabs
+- One-command layout — toggle the whole workspace on/off from the ribbon; the native file explorer is restored automatically on exit
 
 **Project Management**
-- **Multiple Projects** — Create and manage independent writing projects, each with its own configuration
-- **Groups & Extras** — Organize a project into nestable Groups with custom icons; a built-in Extras group holds research and notes excluded from word counts
-- **Project Switcher** — Fuzzy-search modal to jump between projects instantly
+- Multiple projects — create and manage independent writing projects, each with its own configuration
+- Groups & Extras — organize a project into nestable Groups with custom icons; a built-in Extras group holds research and notes excluded from word counts
+- Project switcher — fuzzy-search modal to jump between projects instantly
 
 **Word Counting**
-- **Smart hierarchical counts** — Real-time word counts at file, group, and project levels
-- **Per-file and per-group goals** — Set individual targets on files or groups with inline progress rings
-- **Word count goal directions** — *At least* (minimum target) or *at most* (word limit / trim mode)
-- **Status bar count** — Live word count visible at the bottom of every window
+- Smart hierarchical counts — real-time word counts at file, group, and project levels
+- Per-file and per-group goals — set individual targets on files or groups with inline progress rings
+- Word count goal directions — at least (minimum target) or at most (word limit / trim mode)
+- Status bar count — live word count visible at the bottom of every window
 
 **Progress & Pacing**
-- **Deadline tracking** — Set a target finish date; see words/day needed and days remaining
-- **Adaptive daily pace** — Required daily target recalculates automatically as you write over or under the target
-- **Writing activity heatmap** — GitHub-style calendar showing 13 weeks of daily output with variable-size circles
-- **Writing streak** — Current streak and personal best; rest days keep the chain alive
-- **7-day rolling average** — On-pace / behind-pace indicator against your required daily target
-- **Read/speak time** — Estimated reading time (250 wpm) and speaking time (130 wpm) for the project total
+- Deadline tracking — set a target finish date; see words/day needed and days remaining
+- Adaptive daily pace — required daily target recalculates automatically as you write over or under the target
+- Writing activity heatmap — a 13-week calendar of daily output with variable-size circles
+- Writing streak — current streak and personal best; rest days keep the chain alive
+- 7-day rolling average — on-pace / behind-pace indicator against your required daily target
+- Read/speak time — estimated reading time (250 wpm) and speaking time (130 wpm) for the project total
 
 **Export & Editing**
-- **Compile & Export** — PDF (via Typst), DOCX and EPUB (via Pandoc), or plain Markdown, with built-in style presets and paper sizes
-- **Citations** — Per-project bibliography and CSL citation style, with 10 bundled styles and the ability to download thousands more
-- **Split & Merge** — Split a note at the cursor into a new sibling file; merge one note into another from its context menu
+- Compile & export — PDF (via Typst), DOCX and EPUB (via Pandoc), or plain Markdown, with built-in style presets and paper sizes
+- Citations — per-project bibliography and CSL citation style, with 10 bundled styles and the ability to download thousands more
+- Split & merge — split a note at the cursor into a new sibling file; merge one note into another from its context menu
 
 **Flow Mode**
 - Hides sidebars, ribbon, status bar, tabs, breadcrumbs, and navigation
 - Optional typewriter scroll, custom font, line height, and line width settings
 
-### 🚧 Planned
+### Roadmap
 
-- **Manuscript Mode** — Continuous read-only multi-file view for reading your whole draft as one document
-- **Project-wide Outline** — Cross-file heading tree for navigation, beyond the current per-file Outline tab
-- **Dataview Integration** — Enhanced Inspector queries
-- **Templater Integration** — Project-aware template variables
-
-## Development Status
-
-**Active development:** All features listed above are implemented and tested. The plugin is ready for daily use. The Community Plugin submission is in progress.
+- Manuscript Mode — continuous read-only multi-file view for reading your whole draft as one document
+- Project-wide Outline — cross-file heading tree for navigation, beyond the current per-file Outline tab
+- Dataview integration — enhanced Inspector queries
+- Templater integration — project-aware template variables
 
 ## Quick Start
 
 1. **Create a project** — Command Palette → `Lighthouse: Create new project`
-2. **Open the Writing Workspace** — Click the compass icon in the ribbon
-3. **Add Groups** — Organize your writing into Groups in the Library; research and notes go in the built-in Extras group
-4. **Set a goal (optional)** — Edit the project and add a word count goal and deadline
+2. **Open the Writing Workspace** — click the compass icon in the ribbon
+3. **Add Groups** — organize your writing into Groups in the Library; research and notes go in the built-in Extras group
+4. **Set a goal (optional)** — edit the project and add a word count goal and deadline
 5. **Start writing** — Lighthouse tracks everything automatically, with live stats in the Inspector
+
+See the [Getting Started guide](https://benjamincassidy.github.io/lighthouse/getting-started/introduction/) for the full walkthrough.
+
+## Installation
+
+Open the [Lighthouse listing](https://community.obsidian.md/plugins/lighthouse) on the Obsidian Community Plugins website and click **Add to Obsidian** — this opens Obsidian directly to the install page. See the [installation guide](https://benjamincassidy.github.io/lighthouse/getting-started/installation/) for the in-app browse method and manual installation.
 
 ## Contributing
 
-Contributions welcome! This is an early-stage project. See [LIGHTHOUSE_PROJECT_BRIEF.md](LIGHTHOUSE_PROJECT_BRIEF.md) for architecture and design decisions.
+Contributions are welcome — bug reports, feature suggestions, and pull requests. Open an [issue](https://github.com/benjamincassidy/lighthouse/issues) to start a discussion before larger changes.
 
 ## Support
 
 If you find Lighthouse helpful, consider:
-- ⭐ Starring the repository
-- 💝 [Sponsoring on GitHub](https://github.com/sponsors/benjamincassidy)
-- 🐛 Reporting bugs and suggesting features
-- 📖 Improving documentation
+- Starring the repository
+- [Sponsoring on GitHub](https://github.com/sponsors/benjamincassidy)
+- Reporting bugs and suggesting features
+- Improving documentation
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+MIT License — see [LICENSE](LICENSE) for details.
 
 ## Acknowledgments
 
-- Built for the [Obsidian](https://obsidian.md/) community
+Built for the [Obsidian](https://obsidian.md/) community.
