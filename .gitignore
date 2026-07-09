@@ -49,3 +49,4 @@ yarn-error.log*
 # screenshots/ itself is checked in and shown in the README
 .demo-vault
 .demo-vault-userdata
+ROADMAP.md

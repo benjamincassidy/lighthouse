@@ -53,6 +53,7 @@ Lighthouse brings the focus of a dedicated writing app to Obsidian, inspired by 
 - Per-file and per-group goals — set individual targets on files or groups with inline progress rings
 - Word count goal directions — at least (minimum target) or at most (word limit / trim mode)
 - Status bar count — live word count visible at the bottom of every window
+- Per-file exclusion — tag any note `lighthouse-uncounted: true` to exclude it from totals without moving it into Extras
 
 **Progress & Pacing**
 - Deadline tracking — set a target finish date; see words/day needed and days remaining

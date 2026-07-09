@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `lighthouse-uncounted: true` YAML frontmatter flag to exclude an individual file from word-count totals, goals, and pacing — independent of Extras-folder membership
+
 ## [1.3.0] - 2026-07-08
 
 ### Changed

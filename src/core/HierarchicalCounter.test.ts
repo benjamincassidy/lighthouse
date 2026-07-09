@@ -12,6 +12,7 @@ describe('HierarchicalCounter', () => {
   let wordCounter: WordCounter
   let folderManager: FolderManager
   let mockVault: Vault
+  let frontmatterMap: Map<string, Record<string, unknown>>
 
   type MockFile = TFile & { cachedRead?: () => Promise<string> }
   type MockFolder = TFolder
@@ -97,9 +98,17 @@ describe('HierarchicalCounter', () => {
       adapter: { constructor: Object },
     } as unknown as Vault
 
+    frontmatterMap = new Map()
+
     const mockApp = {
       workspace: {
         getActiveFile: () => null,
+      },
+      metadataCache: {
+        getFileCache: (file: TFile) => {
+          const frontmatter = frontmatterMap.get(file.path)
+          return frontmatter ? { frontmatter } : null
+        },
       },
     } as unknown as App
 
@@ -273,6 +282,44 @@ describe('HierarchicalCounter', () => {
       expect(result).toBeDefined()
       expect(result?.fileCount).toBeGreaterThan(0)
       expect(result?.wordCount).toBeGreaterThan(0)
+    })
+  })
+
+  describe('lighthouse-uncounted frontmatter flag', () => {
+    it('should exclude a file flagged lighthouse-uncounted: true from folder stats', async () => {
+      frontmatterMap.set('projects/novel/chapters/chapter1.md', { 'lighthouse-uncounted': true })
+
+      const result = await counter.countFolder('projects/novel/chapters')
+
+      expect(result?.fileCount).toBe(1) // chapter2 only
+    })
+
+    it('should not exclude a file without the flag set to true', async () => {
+      frontmatterMap.set('projects/novel/chapters/chapter1.md', { 'lighthouse-uncounted': false })
+
+      const result = await counter.countFolder('projects/novel/chapters')
+
+      expect(result?.fileCount).toBe(2)
+    })
+
+    it('should exclude flagged files from project totals', async () => {
+      const project = createTestProject()
+      frontmatterMap.set('projects/novel/chapters/chapter1.md', { 'lighthouse-uncounted': true })
+
+      const result = await counter.countProject(project)
+
+      expect(result.totalFiles).toBe(1) // chapter2 only; research excluded via Extras as usual
+    })
+
+    it('should be independent of Extras-folder exclusion', async () => {
+      const project = createTestProject()
+      // Flagging a file that's already excluded via Extras should be a no-op,
+      // not double-exclude or otherwise change behavior.
+      frontmatterMap.set('projects/novel/research/notes.md', { 'lighthouse-uncounted': true })
+
+      const result = await counter.countProject(project)
+
+      expect(result.totalFiles).toBe(2) // chapters unaffected either way
     })
   })
 })
