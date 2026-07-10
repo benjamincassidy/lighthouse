@@ -221,6 +221,17 @@ function main() {
     }
     cpSync(src, join(pluginDir, file))
   }
+  // Typst-WASM assets (see #78) — copied to the repo root by esbuild.config.mjs's
+  // build step, not tracked in git. Same plugin-relative-path resolution as
+  // main.js itself, so they need to sit alongside it here too.
+  for (const asset of ['typst-compiler.wasm', 'typst-cmarker', 'typst-fonts']) {
+    const src = join(repoRoot, asset)
+    if (!existsSync(src)) {
+      console.error(`Missing ${asset} — run "npm run build" first.`)
+      process.exit(1)
+    }
+    cpSync(src, join(pluginDir, asset), { recursive: true })
+  }
 
   console.log('Demo vault ready:', vaultDir)
   console.log('Project word goal:', project.wordCountGoal, '· deadline:', project.deadline)

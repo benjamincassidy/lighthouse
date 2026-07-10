@@ -55,7 +55,7 @@ export type ProgressCallback = (p: DownloadProgress) => void
 // Path helpers
 // ---------------------------------------------------------------------------
 
-function getPluginBaseDir(plugin: LighthousePlugin): string {
+export function getPluginBaseDir(plugin: LighthousePlugin): string {
   const path = requireDesktopModule<typeof import('path')>('path')
   const adapter = plugin.app.vault.adapter as unknown as { basePath: string }
   // plugin.manifest.dir is the vault-relative path Obsidian sets to the actual
@@ -82,16 +82,6 @@ export function getBinPath(tool: ToolName, plugin: LighthousePlugin): string {
 export function getStylesDir(plugin: LighthousePlugin): string {
   const path = requireDesktopModule<typeof import('path')>('path')
   return path.join(getPluginBaseDir(plugin), 'styles')
-}
-
-/**
- * Directory used as Typst's package cache (TYPST_PACKAGE_CACHE_PATH).
- * Typst downloads cmarker here on first PDF export; subsequent exports
- * are fully offline.
- */
-export function getPackagesCacheDir(plugin: LighthousePlugin): string {
-  const path = requireDesktopModule<typeof import('path')>('path')
-  return path.join(getBinDir(plugin), 'packages')
 }
 
 /**

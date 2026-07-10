@@ -24,8 +24,6 @@ export interface PdfExportOptions {
   outputPath: string
   /** Path to a .typ Typst template for visual styling */
   template?: string
-  /** Directory to use as Typst's package cache (TYPST_PACKAGE_CACHE_PATH) */
-  packageCacheDir?: string
   /** Typst paper size identifier, e.g. "us-letter", "a4", "us-trade" */
   paperSize?: string
   /** Absolute path to a bibliography file (.bib, .yml, .yaml, .json) for resolving citations */
@@ -45,7 +43,6 @@ export class PdfExporter {
     await this.typst.toPdf(doc.fullText, {
       outputPath: options.outputPath,
       template: options.template,
-      packageCacheDir: options.packageCacheDir,
       paperSize: options.paperSize,
       bibliography: options.bibliography,
       citationStyle: options.citationStyle,

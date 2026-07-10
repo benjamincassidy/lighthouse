@@ -1,19 +1,26 @@
 /**
- * TypstRunner — compiles a Markdown document to PDF using the local Typst
- * binary and the cmarker Typst package.
+ * TypstRunner — compiles a Markdown document to PDF using Typst compiled to
+ * WebAssembly, entirely in-process. No native binary, no subprocess, no
+ * runtime download, no network call — see GitHub issue #77 for the spike
+ * that established this is possible and #78 for this integration.
  *
  * Pipeline:
- *   1. Write the compiled Markdown to a temp file.
- *   2. Either use a caller-supplied .typ template, or generate a minimal
+ *   1. Lazily load the WASM compiler (only on first actual PDF export —
+ *      never at plugin startup) from a plugin-relative path, NOT via
+ *      require.resolve()/module resolution, which doesn't work once main.js
+ *      is installed with no node_modules nearby (confirmed in #77).
+ *   2. Add the compiled Markdown as a virtual source file.
+ *   3. Either use a caller-supplied .typ template, or generate a minimal
  *      built-in shim that imports cmarker and sets basic page geometry.
- *   3. Invoke `typst compile <entry.typ> <output.pdf>` with the content file
- *      path passed via `--input content=<path>`.
- *   4. Clean up temp files.
+ *   4. Compile in-process; write the resulting PDF bytes to outputPath.
  *
  * The cmarker package (https://typst.app/universe/package/cmarker/) parses
  * CommonMark Markdown directly inside Typst — no pandoc required for PDF.
- * On first use Typst downloads cmarker from packages.typst.org automatically;
- * subsequent compiles are fully offline.
+ * Typst's WASM compiler has no filesystem access, so both cmarker and a
+ * default font are bundled locally (see vendor/typst/) and loaded into an
+ * in-memory access model — there is no equivalent of the native CLI's
+ * on-first-use download from packages.typst.org; a package registry must be
+ * supplied explicitly or compilation fails outright.
  *
  * Custom templates receive the content path via sys.inputs.content:
  *
@@ -29,7 +36,18 @@
 
 import { Platform } from 'obsidian'
 
-import { getDesktopProcess, requireDesktopModule } from '@/utils/desktopNode'
+import type LighthousePlugin from '@/main'
+import { requireDesktopModule } from '@/utils/desktopNode'
+
+import { getPluginBaseDir } from './BinaryManager'
+
+import type { MemoryAccessModel as MemoryAccessModelType } from '@myriaddreamin/typst.ts'
+import type {
+  PackageRegistry,
+  PackageResolveContext,
+  PackageSpec,
+} from '@myriaddreamin/typst.ts/dist/esm/internal.types.mjs'
+import type { BeforeBuildFn } from '@myriaddreamin/typst.ts/dist/esm/options.init.mjs'
 
 export const CMARKER_VERSION = '0.1.8'
 
@@ -37,7 +55,7 @@ export const CMARKER_VERSION = '0.1.8'
 // Types
 // ---------------------------------------------------------------------------
 
-export interface TypestPdfOptions {
+export interface TypstPdfOptions {
   /** Absolute path where the output PDF should be written */
   outputPath: string
   /**
@@ -54,12 +72,6 @@ export interface TypestPdfOptions {
    * Only used when no template is provided. Default: "us-letter".
    */
   paperSize?: string
-  /**
-   * Directory to use as Typst's package cache (TYPST_PACKAGE_CACHE_PATH).
-   * Redirects the default ~/.cache/typst/packages to the plugin's own bin
-   * directory so the plugin is self-contained and vault-portable.
-   */
-  packageCacheDir?: string
   /**
    * Absolute path to a bibliography file (.bib, .yml, .yaml, .json).
    * When provided, citations in the markdown will be resolved against this file.
@@ -81,119 +93,138 @@ export interface TypestPdfOptions {
 // ---------------------------------------------------------------------------
 
 export class TypstRunner {
-  constructor(private typstPath: string) {}
+  constructor(private plugin: LighthousePlugin) {}
 
-  async toPdf(markdownContent: string, opts: TypestPdfOptions): Promise<void> {
-    const os = requireDesktopModule<typeof import('os')>('os')
+  async toPdf(markdownContent: string, opts: TypstPdfOptions): Promise<void> {
+    if (!Platform.isDesktop) {
+      throw new Error('PDF export is only available on desktop.')
+    }
+
     const fs = requireDesktopModule<typeof import('fs')>('fs')
     const path = requireDesktopModule<typeof import('path')>('path')
 
-    const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`
-    const tmpDir = os.tmpdir()
-
-    // Write markdown to a temp file — typst reads it via sys.inputs.content
-    const contentPath = path.join(tmpDir, `lh-content-${id}.md`)
-    fs.writeFileSync(contentPath, markdownContent, 'utf8')
-
-    // Use caller template or generate a minimal shim
-    let shimPath: string | null = null
-    const entryPath =
-      opts.template ??
-      (() => {
-        shimPath = path.join(tmpDir, `lh-shim-${id}.typ`)
-        fs.writeFileSync(
-          shimPath,
-          buildShim(
-            opts.paperSize ?? 'us-letter',
-            !!opts.bibliography,
-            !!opts.tableOfContents,
-            !!opts.chapterPageBreaks,
-            opts.citationStyle,
-          ),
-          'utf8',
-        )
-        return shimPath
-      })()
-
-    try {
-      await this.compile(
-        entryPath,
-        opts.outputPath,
-        contentPath,
-        opts.packageCacheDir,
-        opts.bibliography,
-      )
-    } finally {
-      tryUnlink(contentPath)
-      if (shimPath) tryUnlink(shimPath)
-    }
-  }
-
-  // ---------------------------------------------------------------------------
-  // Private
-  // ---------------------------------------------------------------------------
-
-  private compile(
-    entryPath: string,
-    outputPath: string,
-    contentPath: string,
-    packageCacheDir?: string,
-    bibliographyPath?: string,
-  ): Promise<void> {
-    return new Promise((resolve, reject) => {
-      if (!Platform.isDesktop) {
-        reject(new Error('PDF export is only available on desktop.'))
-        return
+    // Lazy-loaded — only reached on an actual PDF export, never at plugin
+    // startup. Keeps Obsidian's load time unaffected by this dependency.
+    const typstTs = await import('@myriaddreamin/typst.ts')
+    // withAccessModel/withPackageRegistry aren't part of the package's
+    // public type exports, but the runtime functions live here (confirmed
+    // empirically, see #78) — this submodule has no .d.mts of its own
+    // reachable from the public export map, hence the untyped import.
+    const { withAccessModel, withPackageRegistry } =
+      (await import('@myriaddreamin/typst.ts/dist/esm/options.init.mjs')) as {
+        withAccessModel: (am: MemoryAccessModelType) => BeforeBuildFn
+        withPackageRegistry: (registry: PackageRegistry) => BeforeBuildFn
       }
 
-      const childProcess = requireDesktopModule<typeof import('child_process')>('child_process')
-      const fs = requireDesktopModule<typeof import('fs')>('fs')
-      const processRef = getDesktopProcess()
+    const baseDir = getPluginBaseDir(this.plugin)
+    const wasmBinary = fs.readFileSync(path.join(baseDir, 'typst-compiler.wasm'))
+    const accessModel = buildAccessModel(typstTs.MemoryAccessModel, baseDir, fs, path)
+    const packageRegistry = buildCmarkerRegistry(baseDir, fs, path, accessModel)
+    const fontBuffers = readBundledFonts(baseDir, fs, path)
 
-      const args = [
-        'compile',
-        entryPath,
-        outputPath,
-        '--root',
-        '/',
-        '--input',
-        `content=${contentPath}`,
-      ]
-
-      if (bibliographyPath) {
-        args.push('--input', `bibliography=${bibliographyPath}`)
-      }
-
-      const env: Record<string, string | undefined> = { ...processRef.env }
-
-      if (packageCacheDir) {
-        // Redirect the package cache into the plugin's own bin directory.
-        // Typst fetches cmarker from packages.typst.org on first use and
-        // caches it here; subsequent compiles are fully offline.
-        if (!fs.existsSync(packageCacheDir)) fs.mkdirSync(packageCacheDir, { recursive: true })
-        env.TYPST_PACKAGE_CACHE_PATH = packageCacheDir
-      }
-
-      const child = childProcess.spawn(this.typstPath, args, { env })
-      const stderrChunks: Uint8Array[] = []
-
-      child.stderr.on('data', (chunk: Uint8Array) => stderrChunks.push(chunk))
-
-      child.once('close', (code) => {
-        const stderrStr = decodeUtf8(concatChunks(stderrChunks))
-        if (stderrStr) console.debug('[Lighthouse] typst stderr:', stderrStr)
-        if (code !== 0) {
-          reject(new Error(`Typst compilation failed (exit ${code}): ${stderrStr}`))
-        } else {
-          resolve()
-        }
-      })
-
-      child.once('error', (err) => {
-        reject(new Error(`Failed to spawn typst: ${err.message}`))
-      })
+    const compiler = typstTs.createTypstCompiler()
+    await compiler.init({
+      getModule: () => wasmBinary,
+      beforeBuild: [
+        typstTs.loadFonts(fontBuffers, { assets: false }),
+        withAccessModel(accessModel),
+        withPackageRegistry(packageRegistry),
+      ],
     })
+
+    compiler.addSource('/content.md', markdownContent)
+
+    const inputs: Record<string, string> = { content: '/content.md' }
+    if (opts.bibliography) {
+      const bibExt = path.extname(opts.bibliography) || '.bib'
+      compiler.addSource(`/bibliography${bibExt}`, fs.readFileSync(opts.bibliography, 'utf8'))
+      inputs.bibliography = `/bibliography${bibExt}`
+    }
+
+    const entryContent = opts.template
+      ? fs.readFileSync(opts.template, 'utf8')
+      : buildShim(
+          opts.paperSize ?? 'us-letter',
+          !!opts.bibliography,
+          !!opts.tableOfContents,
+          !!opts.chapterPageBreaks,
+          opts.citationStyle,
+        )
+    compiler.addSource('/entry.typ', entryContent)
+
+    const { result, diagnostics } = await compiler.compile({
+      mainFilePath: '/entry.typ',
+      format: 1, // CompileFormatEnum.pdf — not exported as a runtime value, see #77/#78
+      diagnostics: 'full',
+      inputs,
+    })
+
+    const errors = (diagnostics ?? []).filter((d) => d.severity === 'error')
+    if (!result || errors.length > 0) {
+      const message = errors.map((d) => d.message).join('\n') || 'unknown error'
+      throw new Error(`Typst compilation failed: ${message}`)
+    }
+
+    fs.writeFileSync(opts.outputPath, result)
   }
+}
+
+// ---------------------------------------------------------------------------
+// Bundled asset loading — cmarker package + default font, both hard
+// requirements for compilation to succeed at all (see #77's findings).
+// ---------------------------------------------------------------------------
+
+const CMARKER_PACKAGE_DIR = '/@memory/local/packages/preview/cmarker/0.1.8'
+
+function buildAccessModel(
+  MemoryAccessModel: typeof MemoryAccessModelType,
+  baseDir: string,
+  fs: typeof import('fs'),
+  path: typeof import('path'),
+): MemoryAccessModelType {
+  const am = new MemoryAccessModel()
+  const cmarkerDir = path.join(baseDir, 'typst-cmarker')
+  const now = new Date()
+  for (const file of ['lib.typ', 'plugin.wasm', 'typst.toml']) {
+    am.insertFile(
+      `${CMARKER_PACKAGE_DIR}/${file}`,
+      fs.readFileSync(path.join(cmarkerDir, file)),
+      now,
+    )
+  }
+  return am
+}
+
+function buildCmarkerRegistry(
+  baseDir: string,
+  fs: typeof import('fs'),
+  path: typeof import('path'),
+  accessModel: MemoryAccessModelType,
+): PackageRegistry {
+  // Populating the access model happens once, eagerly, in buildAccessModel —
+  // this registry just needs to tell the compiler where to find it.
+  void baseDir
+  void fs
+  void path
+  void accessModel
+  return {
+    resolve(spec: PackageSpec, _context: PackageResolveContext) {
+      if (spec.namespace === 'preview' && spec.name === 'cmarker' && spec.version === '0.1.8') {
+        return CMARKER_PACKAGE_DIR
+      }
+      return undefined
+    },
+  }
+}
+
+function readBundledFonts(
+  baseDir: string,
+  fs: typeof import('fs'),
+  path: typeof import('path'),
+): Uint8Array[] {
+  const fontsDir = path.join(baseDir, 'typst-fonts')
+  const files = fs.readdirSync(fontsDir).filter((f: string) => /\.(ttf|otf)$/i.test(f))
+  return files.map((f: string) => fs.readFileSync(path.join(fontsDir, f)))
 }
 
 // ---------------------------------------------------------------------------
@@ -210,7 +241,7 @@ function buildShim(
   let shim = `#import "@preview/cmarker:${CMARKER_VERSION}"
 
 #set page(paper: "${paperSize}")
-#set text(size: 11pt)
+#set text(font: "Liberation Serif", size: 11pt)
 #set par(leading: 0.75em)
 
 `
@@ -246,32 +277,4 @@ function buildShim(
   }
 
   return shim
-}
-
-// ---------------------------------------------------------------------------
-// Utilities
-// ---------------------------------------------------------------------------
-
-function tryUnlink(path: string): void {
-  const fs = requireDesktopModule<typeof import('fs')>('fs')
-  try {
-    fs.unlinkSync(path)
-  } catch {
-    // Best-effort cleanup
-  }
-}
-
-function concatChunks(chunks: Uint8Array[]): Uint8Array {
-  const total = chunks.reduce((sum, c) => sum + c.length, 0)
-  const out = new Uint8Array(total)
-  let offset = 0
-  for (const chunk of chunks) {
-    out.set(chunk, offset)
-    offset += chunk.length
-  }
-  return out
-}
-
-function decodeUtf8(bytes: Uint8Array): string {
-  return new TextDecoder().decode(bytes)
 }

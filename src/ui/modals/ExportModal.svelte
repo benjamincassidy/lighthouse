@@ -10,12 +10,7 @@
   import { EpubExporter } from '@/core/exporters/EpubExporter'
   import { PdfExporter } from '@/core/exporters/PdfExporter'
   import { ProjectCompiler } from '@/core/ProjectCompiler'
-  import {
-    BinaryManager,
-    getBinPath,
-    getPackagesCacheDir,
-    getStylePath,
-  } from '@/core/tools/BinaryManager'
+  import { BinaryManager, getBinPath, getStylePath } from '@/core/tools/BinaryManager'
   import type { DownloadProgress } from '@/core/tools/BinaryManager'
   import { PandocRunner } from '@/core/tools/PandocRunner'
   import type { StyleName, ToolName } from '@/core/tools/ToolsManifest'
@@ -140,9 +135,10 @@
 
   type ToolStatus = 'checking' | 'ready' | 'needs-install'
 
-  // Which tools each format needs
+  // Which tools each format needs. PDF no longer needs a downloaded binary —
+  // it compiles via bundled Typst-WASM entirely in-process (see #78).
   const FORMAT_TOOLS: Record<ExportFormat, ToolName[]> = {
-    pdf: ['typst'],
+    pdf: [],
     docx: ['pandoc'],
     epub: ['pandoc'],
     markdown: [],
@@ -491,7 +487,7 @@
         await saveExportSettings()
         onSuccess(`Exported to ${absolutePath}`)
       } else if (format === 'pdf') {
-        const typst = new TypstRunner(getBinPath('typst', plugin))
+        const typst = new TypstRunner(plugin)
         const exporter = new PdfExporter(typst)
         const adapter = plugin.app.vault.adapter as unknown as { basePath: string }
         const outPath = resolveOutputPath('pdf')
@@ -503,7 +499,6 @@
 
         await exporter.export(doc, {
           outputPath: absPath,
-          packageCacheDir: getPackagesCacheDir(plugin),
           paperSize: typstPaperSize(selectedPaperSizeId),
           template,
           bibliography: resolveResourcePath(bibliography),

@@ -110,6 +110,8 @@ export default tseslint.config(
         setTimeout: 'readonly',
         clearTimeout: 'readonly',
         Buffer: 'readonly',
+        process: 'readonly',
+        require: 'readonly',
       },
     },
     rules: {

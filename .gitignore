@@ -8,6 +8,12 @@ main.js.map
 *.js.map
 dist
 
+# Typst WASM assets — copied from node_modules/vendor/ at build time by
+# esbuild.config.mjs, not source. See vendor/typst/README.md for provenance.
+typst-compiler.wasm
+typst-cmarker/
+typst-fonts/
+
 # Testing
 coverage
 
