@@ -109,9 +109,14 @@ export default tseslint.config(
         console: 'readonly',
         setTimeout: 'readonly',
         clearTimeout: 'readonly',
+        Buffer: 'readonly',
       },
     },
     rules: {
+      // Test files never ship in main.js (esbuild's entry point is src/main.ts
+      // only) — mobile-compatibility rules about real Node module access are
+      // noise here, not a real constraint.
+      'obsidianmd/no-nodejs-modules': 'off',
       '@typescript-eslint/no-unsafe-assignment': 'off',
       '@typescript-eslint/no-unsafe-call': 'off',
       '@typescript-eslint/no-unsafe-member-access': 'off',
