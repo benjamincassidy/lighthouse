@@ -1,5 +1,12 @@
 # Binary Distribution System
 
+> **Note (GitHub issue #78):** PDF export no longer uses a downloaded Typst binary — Typst now
+> runs in-process via WebAssembly, bundled directly with the plugin (see `vendor/typst/` and
+> `src/core/tools/TypstRunner.ts`). Everything below describing Typst as part of this
+> download-on-first-use system is now describing dead functionality; don't rebuild or re-upload
+> Typst binaries for future releases. Pandoc (DOCX/EPUB) is unaffected and still uses this system.
+> A full rewrite of this document is scoped to issue #83, once Pandoc is also replaced.
+
 ## Overview
 
 Lighthouse bundles Pandoc and Typst binaries with each plugin release, enabling users to export documents to PDF, DOCX, and EPUB without requiring manual tool installation. This document describes the automated binary distribution system.

@@ -36,6 +36,16 @@ export class Notice {
   }
 }
 
+// Tests run under vitest's Node environment, which is functionally "desktop"
+// from the plugin's perspective — no real Electron/mobile distinction to mock.
+export const Platform = {
+  isDesktop: true,
+  isMobile: false,
+  isMacOS: process.platform === 'darwin',
+  isWin: process.platform === 'win32',
+  isLinux: process.platform === 'linux',
+}
+
 export interface App {
   workspace: unknown
   vault: {

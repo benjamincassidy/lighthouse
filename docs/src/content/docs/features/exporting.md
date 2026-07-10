@@ -21,7 +21,7 @@ Lighthouse compiles a project's files — in your Sheet order — into a single 
 | **EPUB** | Pandoc | Citations, reflowable e-book format |
 | **Markdown** | Built-in | Plain concatenation, no external tools |
 
-The first time you export to PDF or DOCX, Lighthouse downloads the required Pandoc and/or Typst tooling automatically — this needs an internet connection and only happens once per format.
+PDF export runs entirely offline — Typst is bundled with the plugin, no download required. The first time you export to DOCX or EPUB, Lighthouse downloads the required Pandoc tooling automatically — this needs an internet connection and only happens once.
 
 ## Style Presets
 

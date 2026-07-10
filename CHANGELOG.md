@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - `lighthouse-uncounted: true` YAML frontmatter flag to exclude an individual file from word-count totals, goals, and pacing — independent of Extras-folder membership
 
+### Changed
+- **PDF export no longer downloads a native Typst binary.** Typst now runs entirely in-process via WebAssembly, bundled with the plugin — no subprocess, no runtime download, no network call. The Export dialog no longer prompts to install a Typst binary before exporting to PDF.
+
 ## [1.3.0] - 2026-07-08
 
 ### Changed
