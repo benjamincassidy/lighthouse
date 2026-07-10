@@ -1,5 +1,7 @@
-import { readFileSync } from 'fs'
+import { readFileSync, writeFileSync, mkdtempSync, rmSync } from 'fs'
 import { createRequire } from 'module'
+import { tmpdir } from 'os'
+import { join } from 'path'
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
@@ -9,9 +11,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
  * subprocess, and no network call.
  *
  * Deliberately NOT wired into any production export path yet — this is
- * investigation, not implementation. See the issue for the open questions
- * this doesn't yet answer (real bundle size in the actual plugin build, load
- * time inside Obsidian specifically).
+ * investigation, not implementation.
  *
  * @myriaddreamin/typst-ts-node-compiler (the "Node" package upstream
  * recommends) is a native N-API addon with platform-specific `.node`
@@ -19,16 +19,35 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
  * uses the browser/WASM packages instead (typst.ts + typst-ts-web-compiler),
  * which is what Obsidian's Electron renderer can actually load in-process.
  *
- * IMPORTANT gotcha this test locks in: `TypstCompilerDriver.init()` silently
- * overrides an empty `beforeBuild: []` — if it doesn't see a font loader, it
- * injects its own default one that fetches ~17 font files from
- * cdn.jsdelivr.net (LibertinusSerif, DejaVuSansMono, NewCM10/NewCMMath). This
- * is a hard requirement, not an optional default: with NO font loader at
- * all, compilation throws ("no font loader found"). Every call site must
+ * IMPORTANT gotcha #1: `TypstCompilerDriver.init()` silently overrides an
+ * empty `beforeBuild: []` — if it doesn't see a font loader, it injects its
+ * own default one that fetches ~17 font files from cdn.jsdelivr.net
+ * (LibertinusSerif, DejaVuSansMono, NewCM10/NewCMMath). This is a hard
+ * requirement, not an optional default: with NO font loader at all,
+ * compilation throws ("no font loader found"). Every call site must
  * explicitly pass `loadFonts([], { assets: false })` to disable that default
  * before it's safe to assume this is offline/network-free. This directly
  * informs issue #79 (per-theme font bundling) — it's required for
  * Typst-WASM to compile at all, not just a nice-to-have for custom fonts.
+ *
+ * IMPORTANT gotcha #2: `require.resolve()` (used below to locate the .wasm
+ * file for THIS test's purposes) only works because this repo's node_modules
+ * happens to be reachable from the test file's location. It will NOT work in
+ * the real shipped plugin — Obsidian installs a plugin as a single main.js
+ * at `.obsidian/plugins/lighthouse/`, with no node_modules anywhere nearby.
+ * Confirmed by bundling a probe through the project's real esbuild config
+ * and running the output from a directory with no node_modules: the
+ * require.resolve() approach throws MODULE_NOT_FOUND, while a plain
+ * plugin-directory-relative path (matching BinaryManager.ts's existing
+ * getPluginBaseDir()/path.join() pattern) works correctly. The second test
+ * below proves and locks in the correct pattern.
+ *
+ * Also measured directly inside a real Obsidian.app renderer process (via
+ * the same Playwright+CDP approach scripts/screenshots/capture.mjs uses):
+ * compiled successfully in ~88ms, identical to plain Node/vitest — no CSP or
+ * nodeIntegration issues specific to Obsidian's Electron renderer. The
+ * resulting esbuild bundle for the JS glue code (excluding the .wasm binary
+ * itself, which is correctly never inlined) is ~250KB.
  */
 
 /** Safely describes fetch()'s first argument for an assertion message, without relying on RequestInfo's default (unsafe) toString(). */
@@ -93,4 +112,40 @@ describe('Typst WASM spike (issue #77)', () => {
     expect(header).toBe('%PDF-')
     expect(fetchCalls).toEqual([])
   }, 20_000) // WASM init is ~500-700ms; generous timeout for slower CI runners
+
+  it('resolves the wasm binary via a plugin-relative path, not module resolution', async () => {
+    // Copies the wasm file to an isolated temp dir with no node_modules
+    // nearby, simulating .obsidian/plugins/lighthouse/ in a real install —
+    // proving require.resolve() is NOT how the real integration (#78) can
+    // locate this file; a plugin-directory-relative path is required.
+    const require = createRequire(import.meta.url)
+    const sourceWasmPath =
+      require.resolve('@myriaddreamin/typst-ts-web-compiler/pkg/typst_ts_web_compiler_bg.wasm')
+    const isolatedDir = mkdtempSync(join(tmpdir(), 'lighthouse-wasm-test-'))
+    const isolatedWasmPath = join(isolatedDir, 'typst-compiler.wasm')
+    writeFileSync(isolatedWasmPath, readFileSync(sourceWasmPath))
+
+    try {
+      const { createTypstCompiler, loadFonts } = await import('@myriaddreamin/typst.ts')
+      const wasmBinary = readFileSync(isolatedWasmPath) // plain path.join-style lookup, no require.resolve
+
+      const compiler = createTypstCompiler()
+      await compiler.init({
+        getModule: () => wasmBinary,
+        beforeBuild: [loadFonts([], { assets: false })],
+      })
+      compiler.addSource(
+        '/main.typ',
+        '= Hello\n\nCompiled from an isolated, node_modules-free path.',
+      )
+      const { result } = await compiler.compile({ mainFilePath: '/main.typ', format: 1 })
+
+      expect(result).toBeDefined()
+      const header = Buffer.from(result!.slice(0, 5)).toString('utf8')
+      expect(header).toBe('%PDF-')
+      expect(fetchCalls).toEqual([])
+    } finally {
+      rmSync(isolatedDir, { recursive: true, force: true })
+    }
+  }, 20_000)
 })
